@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Wall — who killed the memecoin market</title>
+<meta name="description" content="An evidence wall. Every photo is a public post. Every string is a documented connection. Resurrect.fun">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cork:#15100b;--cork2:#261b12;
+  --paper:#efe6d2;--paper2:#e4d8bf;--ink:#1b1711;--ink2:#4a3f2a;
+  --red:#c8102e;--string:#e0162f;--green:#2fbf71;--brass:#c9a14a;--muted:#8a7d66;
+  --type:'Special Elite',"Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--cork);color:var(--paper);font-family:var(--type);min-height:100vh;overflow-x:hidden;cursor:crosshair}
+a{color:inherit}
+button{font-family:var(--type)}
+
+/* cork */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .62 0 0 0 0 .45 0 0 0 0 .28 0 0 0 .38 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(160deg,var(--cork2),var(--cork) 60%,#0f0b07);
+  background-size:300px 300px,auto;}
+
+/* lights */
+#vig{position:fixed;inset:0;z-index:40;pointer-events:none;
+  background:radial-gradient(circle 520px at var(--mx,50%) var(--my,40%),rgba(0,0,0,0) 0,rgba(0,0,0,.18) 65%,rgba(0,0,0,.62) 100%)}
+#dark{position:fixed;inset:0;z-index:45;pointer-events:none;
+  background:radial-gradient(circle 230px at var(--mx,50%) var(--my,40%),rgba(0,0,0,0) 0,rgba(0,0,0,.6) 55%,rgba(0,0,0,.985) 100%)}
+body.lit #dark{animation:flick .95s steps(1) forwards}
+@keyframes flick{0%{opacity:1}12%{opacity:.15}22%{opacity:1}36%{opacity:.05}46%{opacity:.9}58%{opacity:0}72%{opacity:.75}100%{opacity:0}}
+body.lit.done #dark{display:none}
+
+/* bar */
+.bar{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;font-size:13px;color:var(--paper);
+  background:linear-gradient(rgba(10,7,4,.85),rgba(10,7,4,0));}
+.bar a{text-decoration:none;opacity:.85}
+.bar a:hover{opacity:1;text-decoration:underline}
+.bar .mid{letter-spacing:.12em;opacity:.8}
+.bar button{background:transparent;border:1px solid rgba(239,230,210,.5);color:var(--paper);padding:7px 12px;font-size:12px;cursor:pointer;letter-spacing:.04em}
+.bar button:hover{background:rgba(239,230,210,.1)}
+.bar button.on{border-color:var(--green);color:var(--green)}
+
+/* board */
+.board{position:relative;z-index:1;max-width:1480px;margin:0 auto;padding:120px 26px 140px;display:grid;grid-template-columns:repeat(12,1fr);gap:46px 24px;grid-auto-flow:dense;align-items:start}
+#strings{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;overflow:visible}
+#strings path{fill:none;stroke:var(--string);stroke-width:2.2;stroke-linecap:round;opacity:.9;
+  filter:drop-shadow(0 2px 1px rgba(0,0,0,.6));transition:stroke-dashoffset .95s cubic-bezier(.3,0,.2,1),opacity .25s,stroke-width .25s}
+#strings path.hot{stroke:#ff4d64;stroke-width:3.2;opacity:1}
+#strings path.dim{opacity:.18}
+#strings path.g{stroke:var(--green)}
+
+/* items */
+.item{position:relative;z-index:1;opacity:0;
+  transform:translateY(calc(var(--dy,0px) - 60px)) rotate(calc(var(--r,0deg) + 7deg)) scale(1.05);
+  transition:opacity .45s,transform .6s cubic-bezier(.2,1.35,.4,1)}
+.item.pinned{opacity:1;transform:translateY(var(--dy,0px)) rotate(var(--r,0deg))}
+.item.pinned:hover,.item.pinned.hot{z-index:6;transform:translateY(calc(var(--dy,0px) - 8px)) rotate(0deg) scale(1.025)}
+.item.pinned.dim{opacity:.55}
+.pin{position:absolute;left:50%;top:-10px;width:20px;height:20px;margin-left:-10px;border-radius:50%;z-index:3;
+  background:radial-gradient(circle at 35% 35%,#ff8585,#bf1024 58%,#6b0a16);
+  box-shadow:0 4px 5px rgba(0,0,0,.65),inset 0 -2px 3px rgba(0,0,0,.45)}
+.pin.brass{background:radial-gradient(circle at 35% 35%,#f6e2a6,#bf9540 58%,#6d5320)}
+.pin.green{background:radial-gradient(circle at 35% 35%,#a6f7cc,#2fbf71 58%,#176a3d)}
+.pin::after{content:'';position:absolute;left:50%;top:100%;width:2px;height:6px;margin-left:-1px;background:#222}
+
+/* photo */
+.photo{background:#fff;padding:10px 10px 12px;box-shadow:0 18px 34px rgba(0,0,0,.65),0 2px 6px rgba(0,0,0,.45);cursor:zoom-in}
+.photo img{display:block;width:100%;height:auto;filter:brightness(2.6) contrast(.08) sepia(.35);transition:filter 1.5s ease .3s}
+.item.pinned .photo img{filter:saturate(.92)}
+.tag{margin-top:10px;background:var(--paper);color:var(--ink);padding:9px 10px 8px;font-size:12.5px;line-height:1.45;border-top:1px dashed #b9ad92}
+.tag b{display:block;font-weight:400;color:var(--red);font-size:12px;letter-spacing:.06em;margin-bottom:3px}
+.tag a{color:var(--ink2)}
+.tape{position:absolute;width:96px;height:24px;background:rgba(255,232,150,.5);top:-11px;left:50%;transform:translateX(-50%) rotate(-3deg);box-shadow:0 1px 2px rgba(0,0,0,.35);z-index:3;backdrop-filter:blur(.5px)}
+.tape.r{transform:translateX(-50%) rotate(4deg)}
+
+/* clipping */
+.clip{background:var(--paper2);color:var(--ink);padding:18px 16px 15px;font-size:13.5px;line-height:1.5;box-shadow:0 12px 26px rgba(0,0,0,.6);
+  clip-path:polygon(0 1.5%,4% 0,9% 1.3%,16% 0,23% 1.1%,31% 0,41% 1.4%,51% 0,61% 1.2%,71% 0,81% 1.5%,91% 0,97% 1.1%,100% 0,100% 98.6%,96% 100%,88% 98.7%,80% 100%,70% 98.9%,60% 100%,50% 98.6%,40% 100%,30% 98.8%,20% 100%,10% 98.7%,4% 100%,0 98.6%)}
+.clip h4{font-weight:400;font-size:12px;color:var(--red);margin-bottom:7px;letter-spacing:.07em}
+.clip h4.g{color:#1d8a52}
+.clip p{color:var(--ink)}
+.clip .src{margin-top:9px;font-size:11.5px;color:#6a5e48}
+.clip .src a{color:var(--ink2)}
+
+/* stamp */
+.stamp{position:absolute;right:-10px;top:16px;z-index:4;pointer-events:none;
+  transform:rotate(-14deg) scale(2.6);opacity:0;
+  border:3px solid var(--red);color:var(--red);padding:3px 9px;font-size:15px;letter-spacing:.16em;
+  background:rgba(239,230,210,.55);mix-blend-mode:multiply;
+  transition:transform .32s cubic-bezier(.3,1.7,.5,1),opacity .18s}
+.item.pinned .stamp{transform:rotate(-14deg) scale(1);opacity:.92;transition-delay:.6s}
+.stamp.g{border-color:#1d8a52;color:#1d8a52}
+.stamp.l{right:auto;left:-10px;transform:rotate(11deg) scale(2.6)}
+.item.pinned .stamp.l{transform:rotate(11deg) scale(1)}
+
+/* title */
+.title{grid-column:1/-1;--r:0deg;margin-bottom:10px}
+.title h1{font-weight:400;font-size:clamp(34px,6.4vw,84px);line-height:.98;letter-spacing:-.01em;color:var(--paper);text-shadow:0 2px 0 rgba(0,0,0,.6)}
+.title p{margin-top:16px;max-width:60ch;font-size:15px;line-height:1.6;color:var(--muted)}
+.title p b{font-weight:400;color:var(--paper)}
+
+/* hub */
+.hub{grid-column:5/9;--r:-1deg;justify-self:center;width:100%}
+.hubcard{background:#f7f0dc;color:var(--ink);padding:22px 20px 18px;text-align:center;box-shadow:0 18px 34px rgba(0,0,0,.65);position:relative}
+.hubcard::before{content:'';position:absolute;inset:6px;border:1px solid rgba(27,23,17,.25);pointer-events:none}
+.hname{font-size:clamp(28px,3.6vw,44px);letter-spacing:.06em;color:var(--red);line-height:1}
+.hsub{margin-top:8px;font-size:12.5px;color:var(--ink2);letter-spacing:.05em}
+.hsub span{color:var(--red)}
+.item.pinned .hubcard{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 18px 34px rgba(0,0,0,.65),0 0 0 0 rgba(224,22,47,0)}50%{box-shadow:0 18px 34px rgba(0,0,0,.65),0 0 0 14px rgba(224,22,47,.12)}}
+
+/* monitor on the wall */
+.mon{grid-column:5/9;--r:1.5deg}
+.bezel{background:#1b1f1e;border:1px solid #2c3331;padding:14px 14px 10px;box-shadow:0 18px 34px rgba(0,0,0,.7),inset 0 0 30px rgba(0,0,0,.8)}
+.bezel canvas{display:block;width:100%;height:220px;background:#02050a;border:1px solid #0e1a14}
+.bezel .lbl{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#4ae38a;letter-spacing:.06em}
+.bezel .lbl i{font-style:normal;color:#5f7a6c}
+
+/* placement */
+.a{grid-column:1/5;--r:-2.4deg;--dy:10px}
+.k1{grid-column:9/13;--r:1.8deg;--dy:40px}
+.c{grid-column:1/6;--r:1.4deg;--dy:-10px}
+.b{grid-column:9/13;--r:-2deg;--dy:30px}
+.d{grid-column:6/11;--r:-1.2deg;--dy:20px}
+.k2{grid-column:1/4;--r:2.2deg;--dy:60px}
+.e{grid-column:5/9;--r:2deg;--dy:0px}
+.k3{grid-column:9/13;--r:-1.6deg;--dy:50px}
+.f{grid-column:1/6;--r:-1.8deg;--dy:10px}
+.k4{grid-column:6/9;--r:1.4deg;--dy:70px}
+.g{grid-column:9/13;--r:2.4deg;--dy:0px}
+.k5{grid-column:1/5;--r:-1.2deg;--dy:20px}
+.k6{grid-column:5/9;--r:1.6deg;--dy:50px}
+.k7{grid-column:9/13;--r:-2deg;--dy:10px}
+.fix{grid-column:4/10;--r:.6deg;margin-top:40px}
+.fixcard{padding:26px 24px 22px;background:#f4ecd8}
+.fixcard p{font-size:15px;line-height:1.6}
+.fixcard .btn{display:inline-block;margin-top:16px;padding:12px 18px;background:#1d8a52;color:#fff;text-decoration:none;font-size:14px;letter-spacing:.06em}
+.fixcard .btn:hover{background:#2fbf71}
+.legend{grid-column:1/-1;margin-top:40px;font-size:12px;color:var(--muted);line-height:1.7;max-width:70ch;--r:0deg}
+.legend i{display:inline-block;width:26px;height:2px;vertical-align:middle;margin-right:6px;background:var(--string)}
+.legend i.g{background:var(--green)}
+
+/* lightbox */
+#lb{position:fixed;inset:0;z-index:80;background:rgba(5,3,2,.92);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+#lb.open{display:flex}
+#lb figure{max-width:min(920px,100%);max-height:100%;overflow:auto;background:#fff;padding:12px 12px 14px;box-shadow:0 30px 60px rgba(0,0,0,.8)}
+#lb img{display:block;width:100%;height:auto}
+#lb figcaption{margin-top:10px;color:var(--ink);font-size:13.5px;line-height:1.5}
+#lb figcaption b{color:var(--red);font-weight:400;display:block;margin-bottom:4px}
+#lb figcaption a{color:var(--ink2)}
+
+@media(max-width:860px){
+  .board{grid-template-columns:1fr;gap:40px;padding:96px 18px 110px}
+  .board>.item{grid-column:1/-1!important;--dy:0px!important}
+  .hub,.fix{justify-self:stretch}
+  .bezel canvas{height:180px}
+  .bar .mid{display:none}
+  body{cursor:auto}
+}
+@media(prefers-reduced-motion:reduce){
+  .item,.item.pinned,.stamp,.photo img,#strings path{transition:none!important;animation:none!important}
+  .item{opacity:1;transform:rotate(var(--r,0deg))}
+  #dark{display:none}
+}
+</style>
+</head>
+<body>
+<div id="vig"></div>
+<div id="dark"></div>
+
+<nav class="bar">
+  <a href="index.html">&larr; back to the ICU</a>
+  <span class="mid">RESURRECT &middot; EVIDENCE WALL</span>
+  <button id="lights" type="button">turn on the lights</button>
+</nav>
+
+<main class="board" id="board">
+  <svg id="strings" aria-hidden="true"></svg>
+
+  <header class="item title pinned" id="t">
+    <h1>Who killed the<br>memecoin market?</h1>
+    <p>An evidence wall. <b>Every photo is a public post. Every string is a documented connection.</b> Hover a photo to see what it is tied to. Click to read it. Nothing here is a court finding; everything here is on the record.</p>
+  </header>
+
+  <!-- HUB -->
+  <div class="item hub" id="hub">
+    <div class="pin brass"></div>
+    <div class="hubcard">
+      <div class="hname">PUMP.FUN</div>
+      <div class="hsub">the launchpad &middot; <span id="cnt">0</span> strings attached</div>
+    </div>
+  </div>
+
+  <!-- A: sahil $MOTHER -->
+  <figure class="item a" id="a">
+    <div class="pin"></div>
+    <div class="photo" data-full="img/rec-01-sahil-mother.jpg">
+      <img src="img/rec-01-sahil-mother.jpg" alt="Post by sahil: 129 SOL sent moments before Iggy Azalea dropped $MOTHER, with a Solscan transfer of 129.5 SOL timestamped May 28 2024." loading="lazy">
+      <figcaption class="tag"><b>EXHIBIT A &middot; the wire before the launch</b>sahil (@villainmonkey) posts a 129.5 SOL transfer timestamped minutes before $MOTHER went public, and alleges every celebrity launch had a transfer to the same wallet first. <a href="https://x.com/villainmonkey" target="_blank" rel="noopener">source</a></figcaption>
+    </div>
+    <div class="stamp">ALLEGED</div>
+  </figure>
+
+  <!-- K1: lawsuit -->
+  <div class="item clip k1" id="k1">
+    <div class="pin"></div>
+    <h4>CLASS ACTION &middot; S.D.N.Y. &middot; 1:25-cv-00880</h4>
+    <p>Pump.fun accused of operating an unlicensed &ldquo;meme coin casino.&rdquo; Retail losses estimated at $4 to $5.5 billion. Solana Labs, Solana Foundation and Jito added as defendants.</p>
+    <div class="src">source: <a href="https://www.benzinga.com/content/46610158/pump-fun-accused-of-running-unlicensed-casino-in-5-5b-class-action-lawsuit" target="_blank" rel="noopener">Benzinga</a> &middot; <a href="https://news.bitcoin.com/new-york-judge-allows-expanded-claims-in-pump-fun-and-solana-class-action-case" target="_blank" rel="noopener">Bitcoin.com News</a></div>
+    <div class="stamp l">ON RECORD</div>
+  </div>
+
+  <!-- C: Bubblemaps $BULL -->
+  <figure class="item c" id="c">
+    <div class="tape"></div>
+    <div class="photo" data-full="img/scan-01-bull.jpg">
+      <img src="img/scan-01-bull.jpg" alt="Bubblemaps post: $BULL is about 50% bundled, hidden behind a maze of wallets. Left, a dense bubble map cluster; right, KOL posts calling it the next big runner." loading="lazy">
+      <figcaption class="tag"><b>EXHIBIT C &middot; the bundle and the shills</b>Bubblemaps, Apr 13 2026, 425K views. Left: one wallet funds 100+ fresh wallets through six layers. Right: the KOLs calling it &ldquo;the next big runner&rdquo; while ~45% of supply sat in a few hands. <a href="https://x.com/bubblemaps/status/2043732229076201602" target="_blank" rel="noopener">source</a></figcaption>
+    </div>
+    <div class="stamp">BUNDLED</div>
+  </figure>
+
+  <!-- B: alon / sahil chats -->
+  <figure class="item b" id="b">
+    <div class="pin"></div>
+    <div class="photo" data-full="img/rec-04-sahil-alon.jpg">
+      <img src="img/rec-04-sahil-alon.jpg" alt="Alon replies with a prayer-hands emoji. sahil replies: scrolling through our chats." loading="lazy">
+      <figcaption class="tag"><b>EXHIBIT B &middot; Nov 2026</b>Alon (@a1lon9) replies with &#128591;. sahil, who posted Exhibit A, answers: &ldquo;scrolling through our chats.&rdquo; Contents unverified. Developing.</figcaption>
+    </div>
+    <div class="stamp">ALLEGED</div>
+  </figure>
+
+  <!-- D: Bubblemaps Solstice -->
+  <figure class="item d" id="d">
+    <div class="pin"></div>
+    <div class="photo" data-full="img/scan-02-solstice.jpg">
+      <img src="img/scan-02-solstice.jpg" alt="Bubblemaps post: an investigation into The Solstice, top 3 social trader, and his ties to a massive bundling operation. Four bubble maps, four tokens, the same clustered shape." loading="lazy">
+      <figcaption class="tag"><b>EXHIBIT D &middot; four tokens, one shape</b>Bubblemaps, Oct 26 2026. The #3 social trader on pump.fun, 358K followers. Four coins he called, four clusters: dozens of fresh wallets buying at once, each holding 0.5 to 1% of supply, traceable to the deployer. <a href="https://x.com/bubblemaps" target="_blank" rel="noopener">source</a></figcaption>
+    </div>
+    <div class="stamp">BUNDLED</div>
+  </figure>
+
+  <!-- K2: 98% -->
+  <div class="item clip k2" id="k2">
+    <div class="pin"></div>
+    <h4>COURT FILING &middot; JULY 2025</h4>
+    <p>More than 11 million tokens launched through the platform. Over 98% failed within 24 hours.</p>
+    <div class="src">source: <a href="https://www.mexc.com/it-IT/news/62159" target="_blank" rel="noopener">Crypto.news</a></div>
+    <div class="stamp l">ON RECORD</div>
+  </div>
+
+  <!-- MONITOR -->
+  <div class="item mon" id="mon">
+    <div class="pin brass"></div>
+    <div class="bezel">
+      <canvas id="bubble" aria-label="Animated cluster map: one funding wallet feeding six layers of fresh wallets."></canvas>
+      <div class="lbl"><span>FUNDING CLUSTER &middot; LIVE</span><i>pattern per Bubblemaps</i></div>
+    </div>
+  </div>
+
+  <!-- E: Ethan receipt -->
+  <figure class="item e" id="e">
+    <div class="tape r"></div>
+    <div class="photo" data-full="img/receipt-ethan.jpg">
+      <img src="img/receipt-ethan.jpg" alt="Post by 0xEthan: I've made $142,000 in two months calling out coins on pumpfun. Callout rewards card: earned all-time $142,474." loading="lazy">
+      <figcaption class="tag"><b>EXHIBIT E &middot; the receipt</b>0xEthan, Nov 6 2026: $142,474 in pump.fun callout rewards in two months; says he out-earns some of the best doctors in America. Four weeks earlier Bubblemaps traced his side wallets selling into his own callouts. <a href="https://x.com/0xEthan" target="_blank" rel="noopener">source</a></figcaption>
+    </div>
+    <div class="stamp">FRONT-RAN</div>
+  </figure>
+
+  <!-- K3: X ban -->
+  <div class="item clip k3" id="k3">
+    <div class="pin"></div>
+    <h4>JUNE 2025 &middot; X</h4>
+    <p>X suspends the accounts of Pump.fun and co-founder Alon, alongside other memecoin services.</p>
+    <div class="src">source: <a href="https://www.theblock.co/post/358461/pump-fun-and-founder-alons-accounts-banned-on-x" target="_blank" rel="noopener">The Block</a></div>
+    <div class="stamp l">ON RECORD</div>
+  </div>
+
+  <!-- F: Ansem luck.io -->
+  <figure class="item f" id="f">
+    <div class="pin"></div>
+    <div class="photo" data-full="img/rec-02-ansem-luckio.jpg">
+      <img src="img/rec-02-ansem-luckio.jpg" alt="Post by Ansem announcing a partnership with luck.io on their launch, May 16 2025, 301K views." loading="lazy">
+      <figcaption class="tag"><b>EXHIBIT F &middot; the pivot</b>May 16 2025, seven months after the ZachXBT accusations: Ansem (@blknoiz06) announces a partnership with luck.io, an on-chain casino, to 301K viewers. <a href="https://x.com/blknoiz06" target="_blank" rel="noopener">source</a></figcaption>
+    </div>
+    <div class="stamp">ALLEGED</div>
+  </figure>
+
+  <!-- K4: ZachXBT / Ansem -->
+  <div class="item clip k4" id="k4">
+    <div class="pin"></div>
+    <h4>OCT 2024 &middot; ZACHXBT</h4>
+    <p>Accuses Ansem of promoting &ldquo;hundreds&rdquo; of pump-and-dumps. BODEN down 98.9% from a $1.04B peak. Ansem denies, cites WIF.</p>
+    <div class="src">source: <a href="https://cointelegraph.com/news/zachxbt-slams-crypto-influencer-over-memecoin-promotions" target="_blank" rel="noopener">Cointelegraph</a></div>
+    <div class="stamp l">ON RECORD</div>
+  </div>
+
+  <!-- G: reaction -->
+  <figure class="item g" id="g">
+    <div class="pin"></div>
+    <div class="photo" data-full="img/rec-03-reaction.jpg">
+      <img src="img/rec-03-reaction.jpg" alt="Post: alon tweeted a rug and couldn't even be bothered to apologise or acknowledge the people who lost money." loading="lazy">
+      <figcaption class="tag"><b>EXHIBIT G &middot; the ward</b>A trader&rsquo;s reaction after Alon&rsquo;s token post. Author not shown in the capture.</figcaption>
+    </div>
+  </figure>
+
+  <!-- K5: Anglio -->
+  <div class="item clip k5" id="k5">
+    <div class="pin"></div>
+    <h4>OCT 2026 &middot; BUBBLEMAPS</h4>
+    <p>Caller Anglio: five side wallets bought ~20 seconds before 61% of his 534 callouts and sold minutes later. ~$130k, 60% of it from pump.fun callout rewards. He admitted the method.</p>
+    <div class="src">source: <a href="https://blog.bubblemaps.io/key-opinion-leaders-are-leading-by-example-just-not-for-you/" target="_blank" rel="noopener">Bubblemaps</a></div>
+    <div class="stamp l">FRONT-RAN</div>
+  </div>
+
+  <!-- K6: Alon revises -->
+  <div class="item clip k6" id="k6">
+    <div class="pin"></div>
+    <h4>OCT 2026 &middot; PLATFORM RESPONSE</h4>
+    <p>After the expos&eacute;s, Alon revises caller rewards from volume to follower profit. Says past payouts cannot be reclaimed, even if later deemed unjustified.</p>
+    <div class="src">source: <a href="https://coinedition.com/crypto-live-news/bubblemaps-flags-anglio-linked-wallets-over-130k-in/" target="_blank" rel="noopener">Coin Edition</a></div>
+    <div class="stamp l">ON RECORD</div>
+  </div>
+
+  <!-- K7: Hayden Davis -->
+  <div class="item clip k7" id="k7">
+    <div class="pin"></div>
+    <h4>FEB 2026 &middot; BUBBLEMAPS</h4>
+    <p>Hayden Davis, the Kelsier Ventures CEO tied to the LIBRA and MELANIA launches, linked to one of the largest private allocations of pump.fun&rsquo;s own PUMP token.</p>
+    <div class="src">source: <a href="https://beincrypto.com/trump-coin-insider-hayden-davis-pumpfun-token-dump" target="_blank" rel="noopener">BeInCrypto</a></div>
+    <div class="stamp l">ON RECORD</div>
+  </div>
+
+  <!-- FIX -->
+  <div class="item fix" id="fix">
+    <div class="pin green"></div>
+    <div class="clip fixcard">
+      <h4 class="g">THE ONLY PIN WITH NO STRING</h4>
+      <p>Fixed-price batch launch, so nobody is first. One human, one wallet, so nobody is fifty people. Immutable liquidity, so nobody pulls it. Zero dev allocation, so nobody dumps on you.</p>
+      <a class="btn" href="index.html#wl">Get on the list</a>
+    </div>
+    <div class="stamp g">RESURRECT</div>
+  </div>
+
+  <p class="item legend pinned" id="lg"><i></i>documented connection &nbsp; <i class="g"></i>the fix &nbsp;&middot;&nbsp; Photos are screenshots of public posts with interface buttons masked; text untouched. Clippings are court filings and published reporting, linked. Allegations are labeled as such. Defendants deny the claims.</p>
+</main>
+
+<div id="lb" role="dialog" aria-modal="true"><figure><img id="lbimg" src="" alt=""><figcaption id="lbcap"></figcaption></figure></div>
+
+<script>
+(function(){
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const body=document.body,board=document.getElementById('board'),svg=document.getElementById('strings'),cnt=document.getElementById('cnt');
+
+  /* flashlight */
+  function mv(x,y){document.documentElement.style.setProperty('--mx',x+'px');document.documentElement.style.setProperty('--my',y+'px');}
+  mv(innerWidth*.5,innerHeight*.42);
+  addEventListener('mousemove',e=>mv(e.clientX,e.clientY),{passive:true});
+  addEventListener('touchstart',e=>{const t=e.touches[0];if(t)mv(t.clientX,t.clientY);},{passive:true});
+
+  /* lights */
+  const btn=document.getElementById('lights');let lit=false;
+  function lightsOn(){if(lit)return;lit=true;body.classList.add('lit');btn.textContent='lights: on';btn.classList.add('on');setTimeout(()=>body.classList.add('done'),1000);}
+  btn.addEventListener('click',lightsOn);
+  addEventListener('scroll',()=>{if(scrollY>160)lightsOn();},{passive:true});
+  addEventListener('touchstart',lightsOn,{passive:true,once:true});
+  if(reduce)lightsOn();
+
+  /* strings */
+  const edges=[
+    ['hub','a'],['hub','c'],['hub','d'],['hub','e'],['hub','k1'],['hub','k2'],['hub','k3'],['k7','hub'],
+    ['a','b'],['g','b'],['c','d'],['e','k6'],['e','d'],['f','k4'],['k5','e'],['k5','k6'],['d','k5']
+  ];
+  const paths=edges.map(([A,B])=>{const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.dataset.a=A;p.dataset.b=B;svg.appendChild(p);return p;});
+  const pinned=new Set(['t','lg']);let drawn=0;
+  function anchor(id){
+    const el=document.getElementById(id);const pin=el.querySelector('.pin')||el;
+    const r=pin.getBoundingClientRect(),b=board.getBoundingClientRect();
+    return {x:r.left-b.left+r.width/2,y:r.top-b.top+(pin.classList.contains('pin')?r.height/2:8)};
+  }
+  function layout(){
+    for(const p of paths){
+      const a=anchor(p.dataset.a),b=anchor(p.dataset.b);
+      const mx=(a.x+b.x)/2,my=(a.y+b.y)/2,len=Math.hypot(b.x-a.x,b.y-a.y),sag=Math.min(90,22+len*0.12);
+      p.setAttribute('d',`M${a.x},${a.y} Q${mx},${my+sag} ${b.x},${b.y}`);
+      const L=p.getTotalLength();p.style.strokeDasharray=L;
+      p.style.strokeDashoffset=p.classList.contains('draw')?0:L;
+    }
+  }
+  function tryDraw(){
+    let n=0;
+    for(const p of paths){
+      if(p.classList.contains('draw')){n++;continue;}
+      if(pinned.has(p.dataset.a)&&pinned.has(p.dataset.b)){
+        p.classList.add('draw');requestAnimationFrame(()=>{p.style.strokeDashoffset=0;});n++;
+      }
+    }
+    if(n!==drawn){drawn=n;cnt.textContent=n;}
+  }
+  new ResizeObserver(()=>layout()).observe(board);
+  addEventListener('load',layout);
+  board.querySelectorAll('img').forEach(im=>im.addEventListener('load',layout));
+  layout();
+
+  /* pin items on scroll */
+  const items=[...board.querySelectorAll('.item:not(.pinned)')];
+  let queue=0;
+  const io=new IntersectionObserver(entries=>{
+    for(const en of entries){
+      if(!en.isIntersecting||en.target.dataset.done)continue;
+      en.target.dataset.done=1;
+      const delay=reduce?0:(queue++%4)*140;
+      setTimeout(()=>{en.target.classList.add('pinned');pinned.add(en.target.id);layout();tryDraw();},delay);
+      setTimeout(()=>{queue=Math.max(0,queue-1);},700);
+    }
+  },{threshold:.18,rootMargin:'0px 0px -6% 0px'});
+  items.forEach(i=>io.observe(i));
+
+  /* hover: light up connected strings */
+  board.querySelectorAll('.item').forEach(it=>{
+    it.addEventListener('mouseenter',()=>{
+      const id=it.id;const linked=new Set([id]);
+      for(const p of paths){if(p.dataset.a===id||p.dataset.b===id){p.classList.add('hot');linked.add(p.dataset.a);linked.add(p.dataset.b);}else p.classList.add('dim');}
+      board.querySelectorAll('.item.pinned').forEach(o=>{if(o.id==='t'||o.id==='lg')return;if(linked.has(o.id))o.classList.add('hot');else o.classList.add('dim');});
+      it.classList.remove('dim');
+    });
+    it.addEventListener('mouseleave',()=>{paths.forEach(p=>p.classList.remove('hot','dim'));board.querySelectorAll('.item').forEach(o=>o.classList.remove('hot','dim'));});
+  });
+
+  /* lightbox */
+  const lb=document.getElementById('lb'),lbimg=document.getElementById('lbimg'),lbcap=document.getElementById('lbcap');
+  board.querySelectorAll('.photo').forEach(ph=>{
+    ph.addEventListener('click',e=>{
+      if(e.target.closest('a'))return;
+      lbimg.src=ph.dataset.full;lbimg.alt=ph.querySelector('img').alt;lbcap.innerHTML=ph.querySelector('.tag').innerHTML;lb.classList.add('open');
+    });
+  });
+  lb.addEventListener('click',e=>{if(!e.target.closest('a'))lb.classList.remove('open');});
+  addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('open');});
+
+  /* cluster monitor */
+  (function(){
+    const cv=document.getElementById('bubble');if(!cv)return;const ctx=cv.getContext('2d');
+    let W,H,nodes=[],E=[],org=[],t0=null,run=false;const rnd=(a,b)=>a+Math.random()*(b-a);
+    function build(){const dpr=Math.min(2,devicePixelRatio||1);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+      nodes=[{x:W*.1,y:H*.5,r:11,l:0}];E=[];org=[];const counts=[1,4,9,16,24,28,30];let prev=[0];
+      for(let L=1;L<=6;L++){const cur=[],n=counts[L],x=W*(.1+L*.115);for(let i=0;i<n;i++){const y=H*.08+H*.84*((i+.5)/n)+rnd(-H*.03,H*.03);const idx=nodes.push({x:x+rnd(-W*.02,W*.02),y,r:L<3?rnd(4,6.5):rnd(2.5,4.5),l:L})-1;E.push([prev[Math.floor(Math.random()*prev.length)],idx,L]);cur.push(idx);}prev=cur;}
+      for(let i=0;i<22;i++)org.push({x:W*rnd(.85,.98),y:H*rnd(.08,.94),r:rnd(1.6,3)});}
+    function draw(p){ctx.clearRect(0,0,W,H);const m=p*7;
+      for(const [a,b,L] of E){if(L>m)continue;const q=Math.min(1,m-L),A=nodes[a],B=nodes[b];ctx.strokeStyle=`rgba(242,177,52,${.16+.26*q})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(A.x+(B.x-A.x)*q,A.y+(B.y-A.y)*q);ctx.stroke();}
+      for(const n of nodes){if(n.l>m)continue;const q=Math.min(1,m-n.l);ctx.beginPath();ctx.arc(n.x,n.y,n.r*q,0,7);if(n.l===0){ctx.fillStyle='#FF4747';ctx.shadowColor='#FF4747';ctx.shadowBlur=16;}else{ctx.fillStyle=`rgba(242,177,52,${.5+.5*q})`;ctx.shadowColor='#F2B134';ctx.shadowBlur=7;}ctx.fill();ctx.shadowBlur=0;}
+      for(const o of org){ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,7);ctx.fillStyle='rgba(74,227,138,.75)';ctx.fill();}
+      ctx.font='10px monospace';ctx.fillStyle='#5F7A6C';ctx.fillText('funding wallet',nodes[0].x-36,nodes[0].y+26);ctx.fillStyle='rgba(74,227,138,.85)';ctx.fillText('organic',W*.86,12);}
+    function frame(ts){if(!t0)t0=ts;const p=Math.min(1,(ts-t0)/(reduce?1:5200));draw(p);if(p<1)requestAnimationFrame(frame);}
+    build();draw(0);
+    new IntersectionObserver(en=>{if(en[0].isIntersecting&&!run){run=true;requestAnimationFrame(frame);}},{threshold:.3}).observe(cv);
+    addEventListener('resize',()=>{build();draw(run?1:0);});
+  })();
+})();
+</script>
+</body>
+</html>

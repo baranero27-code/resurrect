@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resurrect — Fair memecoin launches on Solana</title>
+<meta name="description" content="Patient: the memecoin market. Condition: no pulse. Cause: sniper bots, bundlers, rug pulls. Treatment: fair launches. Resurrect.fun">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#03060A;
+  --bezel:#0A0F13;
+  --panel:#071017;
+  --green:#4AE38A;
+  --green-dim:rgba(74,227,138,.35);
+  --cyan:#5BD3E6;
+  --amber:#F2B134;
+  --red:#FF4747;
+  --text:#CFE6D8;
+  --dim:#5F7A6C;
+  --line:rgba(207,230,216,.12);
+  --grid:rgba(74,227,138,.045);
+  --mono:'Share Tech Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:15px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+  padding:18px;
+}
+::selection{background:var(--green);color:var(--bg)}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+
+/* ---- CRT overlay ---- */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:90;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);
+  mix-blend-mode:multiply;opacity:.7;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:91;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%);
+}
+
+/* ---- Monitor bezel ---- */
+.monitor{
+  max-width:1180px;margin:0 auto;
+  background:var(--bezel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:0 0 0 6px #050709,0 0 60px rgba(74,227,138,.06),inset 0 0 80px rgba(0,0,0,.6);
+  overflow:hidden;
+}
+.screen{
+  background:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+    var(--panel);
+  background-size:24px 24px,24px 24px,auto;
+}
+
+/* ---- Header bar ---- */
+.bar{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 22px;border-bottom:1px solid var(--line);
+  background:rgba(0,0,0,.35);font-size:13px;color:var(--dim);
+}
+.bar b{color:var(--text);font-weight:400}
+.bar .l{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.led{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red);animation:blink 1s steps(2) infinite}
+.led.ok{background:var(--green);box-shadow:0 0 10px var(--green);animation:none}
+@keyframes blink{50%{opacity:.15}}
+.clock{color:var(--green)}
+
+/* ---- Vitals ---- */
+.vitals{padding:20px 22px 8px;border-bottom:1px solid var(--line)}
+.ch{
+  display:grid;grid-template-columns:86px 1fr 150px;gap:18px;align-items:center;
+  padding:10px 0;border-bottom:1px dashed var(--line);
+}
+.ch:last-child{border-bottom:0}
+.ch .lbl{font-size:12px;color:var(--dim);line-height:1.3}
+.ch .lbl b{display:block;color:var(--text);font-weight:400;font-size:14px}
+.trace{height:64px;overflow:hidden;position:relative}
+.trace svg{position:absolute;left:0;top:0;height:100%;width:200%;}
+.trace path{fill:none;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;
+  filter:drop-shadow(0 0 4px currentColor)}
+.ch.g .trace path{stroke:var(--green);color:var(--green)}
+.ch.c .trace path{stroke:var(--cyan);color:var(--cyan)}
+.ch.a .trace path{stroke:var(--amber);color:var(--amber)}
+.trace .flat{animation:scroll 6s linear infinite}
+.trace .live{display:none;animation:scroll 3s linear infinite}
+.monitor.alive .trace .flat{display:none}
+.monitor.alive .trace .live{display:block}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.num{text-align:right;line-height:1}
+.num .v{font-size:40px;color:var(--text)}
+.ch.g .num .v{color:var(--green)}
+.ch.c .num .v{color:var(--cyan)}
+.ch.a .num .v{color:var(--amber)}
+.num .u{font-size:11px;color:var(--dim);margin-top:4px}
+.alarm{
+  display:inline-flex;align-items:center;gap:10px;margin:12px 0 6px;
+  padding:6px 12px;border:1px solid var(--red);color:var(--red);font-size:12px;
+  animation:blink 1.2s steps(2) infinite;
+}
+.monitor.alive .alarm{border-color:var(--green);color:var(--green);animation:none}
+
+/* ---- Sections ---- */
+.sec{padding:52px 22px;border-bottom:1px solid var(--line)}
+.sec h2{
+  font-size:13px;font-weight:400;color:var(--dim);margin-bottom:22px;
+  display:flex;align-items:center;gap:12px;
+}
+.sec h2::before{content:'';width:8px;height:8px;background:var(--green);box-shadow:0 0 8px var(--green)}
+.sec h2 span{color:var(--text)}
+
+/* ---- Notes (hero typing) ---- */
+.notes{padding:40px 22px 48px;border-bottom:1px solid var(--line)}
+.notes .line{
+  font-size:clamp(15px,1.7vw,19px);line-height:1.55;color:var(--text);
+  min-height:1.55em;white-space:pre-wrap;
+}
+.notes .line .t{color:var(--dim);margin-right:14px}
+.notes .line.big{font-size:clamp(26px,4.6vw,56px);line-height:1.08;margin:22px 0 8px;color:var(--green)}
+.notes .line.warn{color:var(--amber)}
+.cur{display:inline-block;width:.6em;height:1.1em;background:var(--green);vertical-align:-0.15em;margin-left:2px;animation:blink .9s steps(2) infinite}
+.done .cur{display:none}
+
+/* ---- Case file ---- */
+.case{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.rec{
+  border:1px solid var(--line);background:rgba(0,0,0,.35);padding:16px 18px;
+  font-size:13.5px;line-height:1.55;opacity:0;transform:translateY(6px);
+  transition:opacity .35s,transform .35s;
+}
+.rec.in{opacity:1;transform:none}
+.rec .d{color:var(--amber);font-size:12px;margin-bottom:6px}
+.rec .d i{font-style:normal;color:var(--dim);margin-left:8px}
+.rec p{color:var(--text);min-height:3.1em}
+.rec .src{margin-top:10px;font-size:12px;color:var(--dim)}
+.rec .src a{color:var(--cyan)}
+.note{font-size:12px;color:var(--dim);margin-top:18px;max-width:70ch}
+
+/* ---- Triage posts ---- */
+.feed{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.post{
+  border:1px solid var(--line);background:rgba(0,0,0,.35);padding:16px 18px;
+  opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s;
+}
+.post.in{opacity:1;transform:none}
+.post .who{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+.post .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--dim),#223)}
+.post .h{color:var(--text)}
+.post .h i{font-style:normal;color:var(--dim);margin-left:8px}
+.post .body{font-size:14.5px;line-height:1.55;color:var(--text);min-height:4.6em;white-space:pre-wrap}
+.post .meta{margin-top:12px;font-size:12px;color:var(--dim);display:flex;gap:18px}
+
+/* ---- Wall teaser ---- */
+.wallgo{display:block;text-decoration:none;margin:0 22px;padding:28px 26px;border:1px solid var(--red);background:rgba(255,71,71,.05);color:var(--text);position:relative;overflow:hidden;transition:background .15s,border-color .15s}
+.wallgo:hover{background:rgba(255,71,71,.1);text-decoration:none}
+.wallgo::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 38px,rgba(255,71,71,.08) 38px 40px);pointer-events:none}
+.wallgo .k{font-size:12px;color:var(--red);letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.wallgo .k::before{content:'';width:8px;height:8px;background:var(--red);box-shadow:0 0 10px var(--red);animation:blink 1.2s steps(2) infinite}
+.wallgo .t{font-size:clamp(20px,3vw,30px);line-height:1.15;color:var(--text)}
+.wallgo .s{margin-top:8px;font-size:13px;color:var(--dim)}
+.wallgo .go{position:absolute;right:26px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--red);letter-spacing:.06em}
+.wallwrap{padding:52px 0;border-bottom:1px solid var(--line)}
+@media(max-width:700px){.wallgo{margin:0 14px;padding:22px 18px 56px}.wallgo .go{right:18px;top:auto;bottom:18px;transform:none}}
+
+/* ---- Imaging (scans) ---- */
+.scans{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.scan{border:1px solid var(--line);background:rgba(0,0,0,.4);padding:14px 14px 16px;opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
+.scan.in{opacity:1;transform:none}
+.scan .sl{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--amber);margin-bottom:10px}
+.scan .sl i{font-style:normal;color:var(--dim)}
+.scan .tw{min-height:120px}
+.scan .twitter-tweet{margin:0!important}
+.scan blockquote.twitter-tweet{border:1px dashed var(--line);padding:14px;font-size:13px;color:var(--text);line-height:1.5}
+.scan blockquote.twitter-tweet p{margin-bottom:8px}
+.scan blockquote.twitter-tweet a{color:var(--cyan)}
+.scan .fx{margin-top:12px;font-size:13px;color:var(--text);min-height:2.9em;white-space:pre-wrap}
+.scan .shot{display:block}
+.scan .shot img{display:block;width:100%;height:auto;border:1px solid var(--line);filter:saturate(.9)}
+.receipt{margin:0 0 16px;max-width:760px;border:1px solid var(--line);background:rgba(0,0,0,.4);padding:10px}
+.receipt img{display:block;width:100%;height:auto;border:1px solid var(--line);filter:saturate(.9)}
+.receipt figcaption{margin-top:12px;font-size:13px;line-height:1.55;color:var(--text)}
+.receipt .rl{display:block;font-size:12px;color:var(--amber);margin-bottom:6px}
+.receipt figcaption i{display:block;font-style:normal;color:var(--dim);font-size:12px;margin-top:6px}
+
+/* ---- Cluster map ---- */
+.bscan{border:1px solid var(--line);background:rgba(0,0,0,.45);padding:14px 14px 12px;margin-bottom:16px}
+.bhead{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--amber);margin-bottom:10px;flex-wrap:wrap}
+.bhead i{font-style:normal;color:var(--dim)}
+#bubble{display:block;width:100%;height:300px;border:1px solid var(--line);background:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),#02050a;background-size:24px 24px,24px 24px,auto}
+.bstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.bstats div{border-top:1px dashed var(--line);padding-top:8px}
+.bstats b{display:block;font-weight:400;font-size:24px;color:var(--amber);line-height:1}
+.bstats b.g{color:var(--green)}
+.bstats span{font-size:11px;color:var(--dim)}
+.bnote{margin-top:12px;font-size:12px;color:var(--dim)}
+
+/* ---- Records (screenshots) ---- */
+.records{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.record{margin:0;border:1px solid var(--line);background:rgba(0,0,0,.4);padding:10px;opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
+.record.in{opacity:1;transform:none}
+.record a{display:block}
+.record img{display:block;width:100%;height:auto;border:1px solid var(--line);filter:saturate(.85) contrast(1.02)}
+.record figcaption{margin-top:12px;font-size:13px;line-height:1.55;color:var(--text)}
+.record .rl{display:block;font-size:12px;color:var(--amber);margin-bottom:6px}
+.record figcaption i{display:block;font-style:normal;color:var(--dim);font-size:12px;margin-top:6px}
+@media(max-width:640px){#bubble{height:220px}.bstats{grid-template-columns:repeat(2,1fr)}}
+
+/* ---- Billing ---- */
+.bill{max-width:760px;border:1px solid var(--line);background:rgba(0,0,0,.4)}
+.bill .r{display:grid;grid-template-columns:1fr auto;gap:16px;padding:14px 18px;border-bottom:1px dashed var(--line);font-size:14px;align-items:center}
+.bill .r:last-child{border-bottom:0}
+.bill .r .k{color:var(--text)}
+.bill .r .k i{display:block;font-style:normal;font-size:12px;color:var(--dim);margin-top:3px}
+.bill .r .v{color:var(--green);text-align:right;white-space:nowrap;font-size:18px}
+.bill .r.neg .v{color:var(--red)}
+.bill .r.tot{background:rgba(255,71,71,.07)}
+.bill .r.tot .k{color:var(--red)}
+.verdict{margin-top:18px;font-size:15px;color:var(--text);max-width:60ch}
+.verdict b{font-weight:400;color:var(--red)}
+
+/* ---- Defib ---- */
+.defib{padding:64px 22px;text-align:center;border-bottom:1px solid var(--line)}
+.defib p{color:var(--dim);font-size:14px;margin-bottom:22px}
+.pad{
+  display:inline-flex;flex-direction:column;align-items:center;gap:14px;
+  padding:26px 40px;border:1px solid var(--line);background:rgba(0,0,0,.4);
+}
+.pad .st{font-size:12px;color:var(--amber);min-height:1.5em}
+.pad button{
+  font-family:var(--mono);font-size:22px;letter-spacing:.08em;
+  padding:16px 44px;border:2px solid var(--red);color:var(--red);background:transparent;
+  cursor:pointer;transition:background .12s,color .12s,border-color .12s;
+}
+.pad button:hover{background:var(--red);color:#000}
+.pad button:disabled{opacity:.5;cursor:default}
+.charge{width:300px;max-width:70vw;height:8px;border:1px solid var(--line);background:#000;position:relative;overflow:hidden}
+.charge i{position:absolute;inset:0;width:0;background:var(--amber);box-shadow:0 0 12px var(--amber);transition:width 1.8s linear}
+.charge.full i{width:100%;background:var(--green);box-shadow:0 0 12px var(--green)}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:99}
+.flash.go{animation:flash .5s ease-out}
+@keyframes flash{0%{opacity:.9}100%{opacity:0}}
+.monitor.alive .pad button{border-color:var(--green);color:var(--green)}
+.monitor.alive .pad button:hover{background:var(--green)}
+
+/* ---- Rx ---- */
+.rx{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.rxi{border:1px solid var(--line);background:rgba(0,0,0,.35);padding:20px 20px 18px}
+.rxi .k{font-size:12px;color:var(--amber);margin-bottom:10px}
+.rxi h3{font-size:19px;font-weight:400;color:var(--green);line-height:1.2;margin-bottom:10px}
+.rxi p{font-size:13.5px;color:var(--text);line-height:1.55}
+.rxi .ind{margin-top:12px;font-size:12px;color:var(--dim)}
+.rxi .ind b{font-weight:400;color:var(--red)}
+
+/* ---- Discharge ---- */
+.dis{padding:64px 22px 56px}
+.dis h2{font-size:clamp(26px,4vw,44px);font-weight:400;color:var(--text);line-height:1.1;margin-bottom:14px}
+.dis h2::before{display:none}
+.dis p{color:var(--dim);max-width:60ch;margin-bottom:26px;font-size:14px}
+.form{display:flex;max-width:560px;border:1px solid var(--line);background:#000}
+.form:focus-within{border-color:var(--green);box-shadow:0 0 0 3px rgba(74,227,138,.12)}
+.form input{flex:1;min-width:0;background:transparent;border:0;padding:18px 20px;color:var(--text);font-family:var(--mono);font-size:14px;outline:none}
+.form input::placeholder{color:var(--dim)}
+.form button{background:var(--green);border:0;color:#000;padding:0 28px;font-family:var(--mono);font-size:13px;letter-spacing:.06em;cursor:pointer;white-space:nowrap}
+.form button:hover{background:#7FF0AE}
+.fn{margin-top:14px;font-size:12px;color:var(--dim)}
+.fn b{font-weight:400;color:var(--green)}
+
+/* ---- Footer ---- */
+.foot{padding:20px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim);background:rgba(0,0,0,.35)}
+
+@media(max-width:700px){
+  body{padding:8px}
+  .bar{padding:12px 14px;font-size:12px}
+  .vitals,.sec,.notes,.defib,.dis{padding-left:14px;padding-right:14px}
+  .ch{grid-template-columns:64px 1fr 84px;gap:10px}
+  .num .v{font-size:28px}
+  .trace{height:50px}
+  .form{flex-direction:column}
+  .form button{padding:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .led,.alarm,.cur,.trace .flat,.trace .live{animation:none}
+  .rec,.post{opacity:1;transform:none;transition:none}
+}
+</style>
+</head>
+<body>
+<div class="flash" id="flash"></div>
+
+<div class="monitor" id="mon">
+<div class="screen">
+
+  <!-- HEADER -->
+  <div class="bar">
+    <div class="l">
+      <span class="led" id="led"></span>
+      <b>RESURRECT ICU</b>
+      <span>BED 01</span>
+      <span>PATIENT: <b>MEMECOIN MARKET</b></span>
+      <span>ID: <b>SOL-2020</b></span>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+
+  <!-- VITALS -->
+  <div class="vitals">
+    <div class="ch g">
+      <div class="lbl">ECG II<b>PULSE</b></div>
+      <div class="trace">
+        <svg class="flat" viewBox="0 0 2000 64" preserveAspectRatio="none"><path d="M0,32 L995,32 L1000,30 L1005,32 L2000,32"/></svg>
+        <svg class="live" viewBox="0 0 2000 64" preserveAspectRatio="none"><path id="ecg"/></svg>
+      </div>
+      <div class="num"><div class="v" id="hr">0</div><div class="u">bpm</div></div>
+    </div>
+    <div class="ch c">
+      <div class="lbl">VOL<b>24H FLOW</b></div>
+      <div class="trace">
+        <svg class="flat" viewBox="0 0 2000 64" preserveAspectRatio="none"><path d="M0,34 L2000,34"/></svg>
+        <svg class="live" viewBox="0 0 2000 64" preserveAspectRatio="none"><path id="vol"/></svg>
+      </div>
+      <div class="num"><div class="v" id="vl">$0</div><div class="u">new buyers</div></div>
+    </div>
+    <div class="ch a">
+      <div class="lbl">TRUST<b>RETAIL</b></div>
+      <div class="trace">
+        <svg class="flat" viewBox="0 0 2000 64" preserveAspectRatio="none"><path d="M0,36 L2000,36"/></svg>
+        <svg class="live" viewBox="0 0 2000 64" preserveAspectRatio="none"><path id="tr"/></svg>
+      </div>
+      <div class="num"><div class="v" id="tv">0%</div><div class="u">saturation</div></div>
+    </div>
+    <div class="alarm" id="alarm"><span>■</span><span id="alarmtxt">ASYSTOLE — NO PULSE DETECTED</span></div>
+  </div>
+
+  <!-- NOTES: self-typing hero -->
+  <div class="notes" id="notes">
+    <div class="line" data-t="23:58:02" data-type="patient admitted. unresponsive on arrival."></div>
+    <div class="line" data-t="23:58:09" data-type="history: 13,000,000 tokens issued by pump.fun. court filing says 98% dead within 24 hours."></div>
+    <div class="line" data-t="23:58:17" data-type="cause: sniper bots took block one. bundlers took the float. ruggers took the rest."></div>
+    <div class="line warn" data-t="23:58:24" data-type="retail has left the building."></div>
+    <div class="line big" data-type="The memecoin market is dead."></div>
+    <div class="line" data-t="23:58:31" data-type="initiating resurrection protocol. scroll for case file."></div>
+  </div>
+
+  <!-- CASE FILE -->
+  <section class="sec">
+    <h2><span>CASE FILE</span> documented incidents, on record</h2>
+    <div class="case" id="case">
+      <div class="rec"><div class="d">2025-01<i>SDNY</i></div><p data-type="Class action filed against Pump.fun. Alleges every token it issued is an unregistered security; platform collected ~$500M in fees."></p><div class="src">source: <a href="https://www.theblock.co/post/338170/investor-sues-pump-fun-for-losses-on-highly-volatile-memecoins-alleging-securities-violations" target="_blank" rel="noopener">The Block</a></div></div>
+      <div class="rec"><div class="d">2025-07<i>amended complaint</i></div><p data-type="Suit expands to $5.5B. Calls Pump.fun an unlicensed “meme coin casino.” Estimates $4–5.5B in retail losses. Filing: 11M+ tokens, over 98% failed within 24h."></p><div class="src">source: <a href="https://www.benzinga.com/content/46610158/pump-fun-accused-of-running-unlicensed-casino-in-5-5b-class-action-lawsuit" target="_blank" rel="noopener">Benzinga</a> · <a href="https://www.mexc.com/it-IT/news/62159" target="_blank" rel="noopener">Crypto.news</a></div></div>
+      <div class="rec"><div class="d">2025-12<i>court ruling</i></div><p data-type="Judge McMahon allows expanded claims, including alleged insider advantages in token launches. Solana Labs, Solana Foundation and Jito added as defendants."></p><div class="src">source: <a href="https://news.bitcoin.com/new-york-judge-allows-expanded-claims-in-pump-fun-and-solana-class-action-case" target="_blank" rel="noopener">Bitcoin.com News</a></div></div>
+      <div class="rec"><div class="d">2024-11<i>platform</i></div><p data-type="Pump.fun pulls its livestream feature after streams showing violence and self-harm were used to pump tokens. Same weekend: $14.3M in daily revenue."></p><div class="src">source: <a href="https://blockworks.co/news/pumpdotfun-suspends-livestream-feature" target="_blank" rel="noopener">Blockworks</a></div></div>
+      <div class="rec"><div class="d">2025-06<i>X</i></div><p data-type="X suspends the accounts of Pump.fun and co-founder Alon, alongside other memecoin services. Platform criticized as a breeding ground for pump-and-dumps."></p><div class="src">source: <a href="https://www.theblock.co/post/358461/pump-fun-and-founder-alons-accounts-banned-on-x" target="_blank" rel="noopener">The Block</a></div></div>
+      <div class="rec"><div class="d">2024-10<i>allegation</i></div><p data-type="ZachXBT accuses influencer Ansem of promoting “hundreds” of memecoin pump-and-dumps. BODEN down 98.9% from a $1.04B peak; HOBBES, ZEUS, WYNN down ~98%. Ansem denies, cites WIF."></p><div class="src">source: <a href="https://cointelegraph.com/news/zachxbt-slams-crypto-influencer-over-memecoin-promotions" target="_blank" rel="noopener">Cointelegraph</a> · <a href="https://dailycoin.com/is-ansem-running-pump-and-dumps-crypto-influencer-under-fire/" target="_blank" rel="noopener">DailyCoin</a></div></div>
+      <div class="rec"><div class="d">2024<i>on-chain analysis</i></div><p data-type="BlockBeats reviews Ansem’s wallets: tokens he mentioned only once or twice showed 100% negative returns for followers."></p><div class="src">source: <a href="https://www.chaincatcher.com/en/article/2146185" target="_blank" rel="noopener">ChainCatcher</a></div></div>
+      <div class="rec"><div class="d">2026<i>thread</i></div><p data-type="Alon posts about a “hantavirus” token. Traders reportedly lose ~$20K within an hour; wallets allegedly bought before the post and sold after attention peaked."></p><div class="src">source: <a href="https://solanafloor.com/news/pump-fun-co-founder-s-hantavirus-post-triggers-backlash" target="_blank" rel="noopener">SolanaFloor</a></div></div>
+          <div class="rec"><div class="d">2026-10<i>Bubblemaps</i></div><p data-type="Pump.fun caller Anglio: five side wallets bought ~20 seconds before 61% of his 534 callouts, sold minutes later. Est. $130k, 60% of it from pump.fun callout rewards. He admitted the method."></p><div class="src">source: <a href="https://blog.bubblemaps.io/key-opinion-leaders-are-leading-by-example-just-not-for-you/" target="_blank" rel="noopener">Bubblemaps</a> · <a href="https://www.kucoin.com/news/flash/bubblemaps-alleges-anglio-linked-wallets-earned-130k-via-pre-callout-trading" target="_blank" rel="noopener">KuCoin News</a></div></div>
+      <div class="rec"><div class="d">2026-10<i>platform response</i></div><p data-type="After the exposés, Alon revises pump.fun caller rewards from volume to follower profit. Says past payouts cannot be reclaimed, even if later deemed unjustified."></p><div class="src">source: <a href="https://coinedition.com/crypto-live-news/bubblemaps-flags-anglio-linked-wallets-over-130k-in/" target="_blank" rel="noopener">Coin Edition</a></div></div>
+      <div class="rec"><div class="d">2026-02<i>Bubblemaps</i></div><p data-type="Hayden Davis, the Kelsier Ventures CEO tied to the LIBRA and MELANIA launches, linked by Bubblemaps to one of the largest private allocations of pump.fun’s own PUMP token. Launchpad-level insider."></p><div class="src">source: <a href="https://beincrypto.com/trump-coin-insider-hayden-davis-pumpfun-token-dump" target="_blank" rel="noopener">BeInCrypto</a></div></div>
+    </div>
+    <p class="note">All entries are allegations, court filings or published reporting, linked to their source. Nothing here is a finding of guilt. Defendants deny the claims.</p>
+  </section>
+
+  <!-- TRIAGE -->
+  <section class="sec">
+    <h2><span>TRIAGE</span> patient-reported symptoms</h2>
+    <div class="feed" id="feed">
+      <div class="post"><div class="who"><span class="av"></span><span class="h">sniped_again<i>bed 02</i></span></div><div class="body" data-type="bought at block 1. token was already +400% before my tx landed. the bot that got block 0 sold into me at block 3."></div><div class="meta"><span>symptom: sniped</span><span>loss: 2.1 SOL</span></div></div>
+      <div class="post"><div class="who"><span class="av"></span><span class="h">bagholder_sol<i>bed 03</i></span></div><div class="body" data-type="dev said “LP locked” in telegram. LP was locked. the 60% of supply sitting in three wallets wasn’t."></div><div class="meta"><span>symptom: bundled</span><span>loss: 14 SOL</span></div></div>
+      <div class="post"><div class="who"><span class="av"></span><span class="h">firstbuyer_lol<i>bed 04</i></span></div><div class="body" data-type="50 wallets bought in the same block. all funded from one CEX withdrawal two minutes earlier. “organic community.”"></div><div class="meta"><span>symptom: bundled</span><span>loss: 0.8 SOL</span></div></div>
+      <div class="post"><div class="who"><span class="av"></span><span class="h">exit_liquidity<i>bed 05</i></span></div><div class="body" data-type="KOL posted the ticker at 2:14. his wallet sold at 2:16. i bought at 2:15."></div><div class="meta"><span>symptom: insider</span><span>loss: 6 SOL</span></div></div>
+      <div class="post"><div class="who"><span class="av"></span><span class="h">rekt_anon<i>bed 06</i></span></div><div class="body" data-type="the chart only goes up for the people who were there before the chart existed."></div><div class="meta"><span>symptom: chronic</span><span>loss: undisclosed</span></div></div>
+      <div class="post"><div class="who"><span class="av"></span><span class="h">done_with_this<i>bed 07</i></span></div><div class="body" data-type="seven launches this week. seven rugs. i’m out. wake me up when it’s fair."></div><div class="meta"><span>symptom: discharged self</span><span>loss: trust</span></div></div>
+    </div>
+    <p class="note">Composite reports. Handles are not real accounts; the patterns are.</p>
+  </section>
+
+  <!-- WALL -->
+  <div class="wallwrap">
+    <a class="wallgo" href="wall.html">
+      <div class="k">EVIDENCE ROOM · DOWN THE HALL</div>
+      <div class="t">Seven photos. Seven clippings. Seventeen strings. One pin they all lead back to.</div>
+      <div class="s">The wall. Every post, every court record, every wallet cluster, tied together. Lights are off when you walk in.</div>
+      <div class="go">open the room →</div>
+    </a>
+  </div>
+
+  <!-- IMAGING -->
+  <section class="sec">
+    <h2><span>IMAGING</span> cluster map, then live scans from X</h2>
+    <div class="bscan">
+      <div class="bhead"><span>SCAN 00 · funding cluster</span><i>pattern per Bubblemaps, $BULL, Apr 2026</i></div>
+      <canvas id="bubble" aria-label="Animated map: one funding wallet feeding six layers of fresh wallets, next to a few unconnected organic holders"></canvas>
+      <div class="bstats">
+        <div><b id="bs-n">0</b><span>wallets in cluster</span></div>
+        <div><b id="bs-s">0%</b><span>of supply held</span></div>
+        <div><b id="bs-t">0.0 min</b><span>buy window</span></div>
+        <div><b class="g">26</b><span>organic holders, for scale</span></div>
+      </div>
+      <p class="bnote">Original visualization of the pattern Bubblemaps documented: one wallet funds 100+ fresh wallets through six layers, and they buy within minutes of each other. Not their chart; their findings.</p>
+    </div>
+    <div class="scans" id="scans">
+      <div class="scan">
+        <div class="sl"><span>SCAN 01 · $BULL bundle</span><i>Apr 13, 2026 · 425K views</i></div>
+        <a class="shot" href="https://x.com/bubblemaps/status/2043732229076201602" target="_blank" rel="noopener"><img src="img/scan-01-bull.jpg" alt="Bubblemaps post: $BULL is about 50% bundled, carefully hidden behind a maze of wallets. Left, a bubble map of one dense wallet cluster; right, KOL posts calling it the next big runner." loading="lazy"></a>
+        <div class="fx" data-type="finding: left, the cluster. one wallet funded 100+ fresh wallets through six layers; they bought within minutes, right before a 16x. right, the KOLs calling it the next runner while ~45% of supply sat in a few hands."></div>
+      </div>
+      <div class="scan">
+        <div class="sl"><span>SCAN 02 · bundling operation</span><i>Oct 26, 2026</i></div>
+        <a class="shot" href="https://x.com/bubblemaps" target="_blank" rel="noopener"><img src="img/scan-02-solstice.jpg" alt="Bubblemaps post: an investigation into The Solstice, top 3 social trader, and his ties to a massive bundling operation. Four bubble maps of four tokens, each showing the same clustered shape." loading="lazy"></a>
+        <div class="fx" data-type="finding: the #3 social trader on pump.fun, 358K followers. four tokens he called, four clusters, same shape. the promoted coins were bundled: dozens of fresh wallets buying at once, each holding 0.5 to 1% of supply, traceable to the deployer."></div>
+      </div>
+      <div class="scan">
+        <div class="sl"><span>SCAN 03 · KOL wallets</span><i>2024-10-09</i></div>
+        <div class="tw"><blockquote class="twitter-tweet" data-theme="dark" data-dnt="true"><p>ZachXBT: 11 high-confidence wallets tied to a top memecoin KOL, holding ~$24M in memecoins.</p><a href="https://twitter.com/zachxbt/status/1843940648430493906">View on X</a></blockquote></div>
+        <div class="fx" data-type="finding: the people telling you what to buy were already holding eight figures of it, all funded from one source. you were the exit."></div>
+      </div>
+    </div>
+    <p class="note">Scans 01 and 02 are screenshots of Bubblemaps’ posts with interface buttons masked; scan 03 loads live from X. Findings are Bubblemaps’ and ZachXBT’s estimates, not court findings.</p>
+  </section>
+
+  <!-- RECORDS -->
+  <section class="sec">
+    <h2><span>RECORDS</span> posts from X, as captured</h2>
+    <div class="records">
+      <figure class="record">
+        <a href="https://x.com/villainmonkey" target="_blank" rel="noopener"><img src="img/rec-01-sahil-mother.jpg" alt="Post by sahil showing a 129.5 SOL transfer on Solscan, timestamped May 28 2024, minutes before the $MOTHER launch" loading="lazy"></a>
+        <figcaption><span class="rl">REC 01 · celebrity launches</span>sahil (@villainmonkey) posts a Solscan transfer of 129.5 SOL sent minutes before Iggy Azalea announced $MOTHER, and alleges every celebrity launch had a transfer to the same wallet before the contract address went public.<i>allegation, thread ongoing</i></figcaption>
+      </figure>
+      <figure class="record">
+        <a href="https://x.com/blknoiz06" target="_blank" rel="noopener"><img src="img/rec-02-ansem-luckio.jpg" alt="Post by Ansem announcing a partnership with luck.io on their launch, May 16 2025, 301K views" loading="lazy"></a>
+        <figcaption><span class="rl">REC 02 · the KOL pivot</span>May 2025, seven months after the ZachXBT accusations: Ansem (@blknoiz06) announces a partnership with luck.io, an on-chain casino, to 301K viewers.<i>his own words</i></figcaption>
+      </figure>
+      <figure class="record">
+        <img src="img/rec-03-reaction.jpg" alt="Post reading: alon tweeted a rug and couldn't even be bothered to apologise or acknowledge the people who lost money" loading="lazy">
+        <figcaption><span class="rl">REC 03 · the ward speaks</span>A trader’s reaction after Alon’s token post. Author not shown in the capture.<i>see case file: hantavirus thread</i></figcaption>
+      </figure>
+      <figure class="record">
+        <img src="img/rec-04-sahil-alon.jpg" alt="Alon replies with a prayer-hands emoji; sahil replies: scrolling through our chats." loading="lazy">
+        <figcaption><span class="rl">REC 04 · Nov 2026</span>Alon (@a1lon9) replies with 🙏. sahil (@villainmonkey), who posted the $MOTHER transfers, answers: “scrolling through our chats.” Contents of those chats are unverified.<i>developing</i></figcaption>
+      </figure>
+    </div>
+    <p class="note">Screenshots of public posts. Interface buttons were cropped or masked; the text was not touched. Click a record to open the account on X.</p>
+  </section>
+
+  <!-- BILLING -->
+  <section class="sec">
+    <h2><span>BILLING</span> who got paid while the patient flatlined</h2>
+    <figure class="receipt record">
+      <a href="https://x.com/0xEthan" target="_blank" rel="noopener"><img src="img/receipt-ethan.jpg" alt="Post by 0xEthan: I've made $142,000 in two months calling out coins on pumpfun. I earn more than some of the best doctors in America. Attached: pump.fun callout rewards card, earned all-time $142,474." loading="lazy"></a>
+      <figcaption><span class="rl">RECEIPT · Nov 6, 2026 · 21K views</span>0xEthan posts his pump.fun callout rewards card: $142,474 in two months, and says he out-earns some of the best doctors in America. Four weeks earlier, Bubblemaps had traced his side wallets selling into his own callouts within three minutes.<i>his own screenshot. the platform paid this.</i></figcaption>
+    </figure>
+    <div class="bill">
+      <div class="r"><div class="k">Protocol fees collected by pump.fun<i>cumulative, Dune data via Yellow research, 2026</i></div><div class="v">+ $700M</div></div>
+      <div class="r"><div class="k">Callout rewards pump.fun paid to two flagged callers<i>0xEthan $142,474 self-reported Nov 2026; Anglio ~$80k Bubblemaps estimate</i></div><div class="v">+ $222K</div></div>
+      <div class="r"><div class="k">Side-wallet front-running profits, same two callers<i>Bubblemaps estimate, Oct 2026</i></div><div class="v">+ $95K</div></div>
+      <div class="r"><div class="k">Memecoins held by wallets tied to one KOL<i>ZachXBT, 11 wallets, Oct 2024</i></div><div class="v">+ $24M</div></div>
+      <div class="r neg tot"><div class="k">Retail losses on pump.fun tokens<i>class action estimate, SDNY</i></div><div class="v">− $4B to $5.5B</div></div>
+    </div>
+    <p class="verdict">The house got paid. The callers got paid. The insiders got paid. <b>The patient paid for all of it.</b></p>
+  </section>
+
+  <!-- DEFIB -->
+  <section class="defib">
+    <p>No pulse for 14 months. Standard treatment has failed. Attempt resuscitation.</p>
+    <div class="pad">
+      <div class="charge" id="charge"><i></i></div>
+      <div class="st" id="st">defibrillator ready</div>
+      <button id="clear">CHARGE</button>
+    </div>
+  </section>
+
+  <!-- RX -->
+  <section class="sec">
+    <h2><span>TREATMENT PLAN</span> four prescriptions, enforced by contract</h2>
+    <div class="rx">
+      <div class="rxi"><div class="k">Rx 01</div><h3>Fixed-price fair launch</h3><p>First 15 minutes run as a sealed batch auction. Everyone buys at one clearing price. Being first in the mempool is worth nothing.</p><div class="ind">indication: <b>sniper bots</b></div></div>
+      <div class="rxi"><div class="k">Rx 02</div><h3>One human, one wallet</h3><p>Proof-of-personhood gates every launch. Fifty wallets from one person costs fifty verifications and a permanent ban.</p><div class="ind">indication: <b>bundlers</b></div></div>
+      <div class="rxi"><div class="k">Rx 03</div><h3>Immutable liquidity</h3><p>The LP contract has no admin key, no pull function, no upgrade path. Locked by code, not by a promise.</p><div class="ind">indication: <b>rug pulls</b></div></div>
+      <div class="rxi"><div class="k">Rx 04</div><h3>Zero dev allocation</h3><p>Full supply starts in the bonding curve. No pre-mint, no team wallet, no “marketing budget” waiting to dump.</p><div class="ind">indication: <b>insider dumps</b></div></div>
+    </div>
+  </section>
+
+  <!-- DISCHARGE -->
+  <section class="dis">
+    <h2>Be here when the patient wakes up.</h2>
+    <p>First fair launch opens early 2026. One email when it goes live. No newsletters, no airdrop promises, no spam.</p>
+    <form class="form" id="wl">
+      <input type="email" placeholder="your@email.com" required aria-label="Email address">
+      <button type="submit">NOTIFY ME</button>
+    </form>
+    <p class="fn" id="fn">Your email is used once, to notify you when the first launch opens.</p>
+  </section>
+
+  <div class="foot">
+    <span>RESURRECT PROTOCOL · built on Solana</span>
+    <span><a href="wall.html">the wall</a> &nbsp;&middot;&nbsp; <a href="https://twitter.com" target="_blank" rel="noopener">twitter</a></span>
+  </div>
+
+</div>
+</div>
+
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mon = document.getElementById('mon');
+
+  /* clock */
+  const clock=document.getElementById('clock');
+  const tick=()=>{const d=new Date();clock.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');};
+  tick();setInterval(tick,1000);
+
+  /* ECG live paths */
+  function beat(x,b,h){return `L${x},${b} L${x+6},${b-2} L${x+10},${b} L${x+14},${b+6} L${x+17},${b-h} L${x+20},${b+14} L${x+24},${b} L${x+36},${b-5} L${x+48},${b}`;}
+  function ecg(id,b,h,period){let d=`M0,${b}`;for(let x=0;x<2000;x+=period){d+=beat(x,b,h);d+=` L${x+period},${b}`;}document.getElementById(id).setAttribute('d',d);}
+  ecg('ecg',34,28,160); ecg('vol',36,16,220); ecg('tr',38,10,300);
+
+  /* typewriter */
+  function typeEl(el,text,speed){
+    return new Promise(res=>{
+      if(reduce){el.textContent+=text;res();return;}
+      let i=0;const cur=document.createElement('span');cur.className='cur';el.appendChild(cur);
+      (function step(){
+        if(i<text.length){cur.insertAdjacentText('beforebegin',text[i++]);setTimeout(step,speed+(Math.random()*speed*.6));}
+        else{cur.remove();res();}
+      })();
+    });
+  }
+  async function typeLines(container){
+    const lines=[...container.querySelectorAll('[data-type]')];
+    for(const l of lines){
+      const t=l.dataset.t;if(t){const s=document.createElement('span');s.className='t';s.textContent=t;l.appendChild(s);}
+      await typeEl(l,l.dataset.type,l.classList.contains('big')?34:18);
+      await new Promise(r=>setTimeout(r,reduce?0:220));
+    }
+    container.classList.add('done');
+  }
+  typeLines(document.getElementById('notes'));
+
+  /* reveal + type cards on scroll */
+  function group(sel){
+    const items=[...document.querySelectorAll(sel)];
+    const io=new IntersectionObserver(async(entries)=>{
+      for(const e of entries){
+        if(!e.isIntersecting||e.target.dataset.done)continue;
+        e.target.dataset.done=1;e.target.classList.add('in');
+        const t=e.target.querySelector('[data-type]');
+        if(t)typeEl(t,t.dataset.type,10);
+      }
+    },{threshold:.25});
+    items.forEach(i=>io.observe(i));
+  }
+  group('.rec');group('.post');group('.scan');group('.record');
+
+  /* defib */
+  const btn=document.getElementById('clear'),st=document.getElementById('st'),ch=document.getElementById('charge');
+  const alarm=document.getElementById('alarmtxt'),led=document.getElementById('led'),flash=document.getElementById('flash');
+  function count(id,to,fmt,ms){const el=document.getElementById(id);const t0=performance.now();(function f(n){const p=Math.min(1,(n-t0)/ms);el.textContent=fmt(Math.round(to*(1-Math.pow(1-p,3))));if(p<1)requestAnimationFrame(f);})(t0);}
+  let phase=0;
+  btn.addEventListener('click',()=>{
+    if(phase===0){
+      phase=1;btn.disabled=true;st.textContent='charging…';ch.querySelector('i').style.width='100%';
+      setTimeout(()=>{ch.classList.add('full');st.textContent='charged. stand clear.';btn.textContent='CLEAR';btn.disabled=false;phase=2;},reduce?0:1900);
+    }else if(phase===2){
+      phase=3;btn.disabled=true;flash.classList.add('go');
+      setTimeout(()=>{
+        mon.classList.add('alive');led.classList.add('ok');
+        alarm.textContent='SINUS RHYTHM — PATIENT RESPONSIVE';
+        count('hr',72,n=>n,1600);count('vl',1200000,n=>'$'+(n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?Math.round(n/1e3)+'K':n),1800);count('tv',100,n=>n+'%',1700);
+        st.textContent='return of spontaneous circulation.';btn.textContent='ALIVE';
+      },reduce?0:300);
+    }
+  });
+
+  /* cluster map */
+  (function(){
+    const cv=document.getElementById('bubble');if(!cv)return;
+    const ctx=cv.getContext('2d');
+    const sn=document.getElementById('bs-n'),ss=document.getElementById('bs-s'),stt=document.getElementById('bs-t');
+    let W,H,nodes=[],edges=[],organic=[],t0=null,running=false;
+    const rnd=(a,b)=>a+Math.random()*(b-a);
+    function build(){
+      const dpr=Math.min(2,devicePixelRatio||1);
+      W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+      nodes=[];edges=[];organic=[];
+      nodes.push({x:W*0.10,y:H*0.5,r:13,layer:0});
+      const counts=[1,4,9,16,24,28,30];let prev=[0];
+      for(let L=1;L<=6;L++){
+        const cur=[],n=counts[L],x=W*(0.10+L*0.115);
+        for(let i=0;i<n;i++){
+          const y=H*0.08+H*0.84*((i+0.5)/n)+rnd(-H*0.03,H*0.03);
+          const idx=nodes.push({x:x+rnd(-W*0.02,W*0.02),y,r:L<3?rnd(5,8):rnd(3,5.5),layer:L})-1;
+          edges.push([prev[Math.floor(Math.random()*prev.length)],idx,L]);cur.push(idx);
+        }
+        prev=cur;
+      }
+      for(let i=0;i<26;i++)organic.push({x:W*rnd(0.85,0.98),y:H*rnd(0.08,0.94),r:rnd(2,3.5)});
+    }
+    function draw(p){
+      ctx.clearRect(0,0,W,H);const maxL=p*7;
+      for(const [a,b,L] of edges){if(L>maxL)continue;const q=Math.min(1,maxL-L),A=nodes[a],B=nodes[b];
+        ctx.strokeStyle=`rgba(242,177,52,${0.16+0.26*q})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(A.x+(B.x-A.x)*q,A.y+(B.y-A.y)*q);ctx.stroke();}
+      for(const n of nodes){if(n.layer>maxL)continue;const q=Math.min(1,maxL-n.layer);
+        ctx.beginPath();ctx.arc(n.x,n.y,n.r*q,0,7);
+        if(n.layer===0){ctx.fillStyle='#FF4747';ctx.shadowColor='#FF4747';ctx.shadowBlur=18;}else{ctx.fillStyle=`rgba(242,177,52,${0.5+0.5*q})`;ctx.shadowColor='#F2B134';ctx.shadowBlur=8;}
+        ctx.fill();ctx.shadowBlur=0;}
+      for(const o of organic){ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,7);ctx.fillStyle='rgba(74,227,138,.75)';ctx.fill();}
+      ctx.font='11px "Share Tech Mono",monospace';ctx.fillStyle='#5F7A6C';
+      ctx.fillText('funding wallet',nodes[0].x-40,nodes[0].y+30);
+      for(let L=1;L<=6;L++)if(L<=maxL)ctx.fillText('L'+L,W*(0.10+L*0.115)-7,H-6);
+      ctx.fillStyle='rgba(74,227,138,.85)';ctx.fillText('organic',W*0.86,14);
+    }
+    function frame(ts){if(!t0)t0=ts;const p=Math.min(1,(ts-t0)/(reduce?1:5200));draw(p);const e=1-Math.pow(1-p,3);
+      sn.textContent=Math.round(112*e);ss.textContent=Math.round(45*e)+'%';stt.textContent=(4*e).toFixed(1)+' min';if(p<1)requestAnimationFrame(frame);}
+    build();draw(0);
+    new IntersectionObserver(en=>{if(en[0].isIntersecting&&!running){running=true;requestAnimationFrame(frame);}},{threshold:.3}).observe(cv);
+    addEventListener('resize',()=>{build();draw(running?1:0);});
+  })();
+
+  /* waitlist */
+  const wl=document.getElementById('wl'),fn=document.getElementById('fn');
+  wl.addEventListener('submit',e=>{e.preventDefault();wl.querySelector('input').value='';wl.querySelector('input').placeholder='recorded';fn.innerHTML='<b>Recorded.</b> One email when the first launch opens.';});
+})();
+</script>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+</body>
+</html>
