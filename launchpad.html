@@ -187,7 +187,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 
 
 /* pairing-asset picker */
-.picker{display:grid;grid-template-columns:1.25fr .85fr;gap:12px;margin:8px 0 4px}
+.picker{display:grid;grid-template-columns:1.55fr .75fr;gap:14px;margin:8px 0 4px}
 .pk-list{border:1px solid var(--line);background:#02060a}
 .pk-search{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
 .pk-search span{color:var(--green);font-size:16px}
@@ -203,7 +203,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .pk-pop div{display:flex;gap:6px;flex-wrap:wrap}
 .pk-pop button{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);color:var(--text);padding:3px 8px 3px 4px;font-size:11px;cursor:pointer}
 .pk-pop button:hover,.pk-pop button.on{border-color:var(--green);color:var(--green)}
-.pk-head,.pk-row{display:grid;grid-template-columns:1fr 96px 92px 64px;gap:10px;align-items:center;padding:8px 12px}
+.pk-head,.pk-row{display:grid;grid-template-columns:1fr 110px 110px 80px;gap:10px;align-items:center;padding:8px 12px}
 .pk-head{font-size:10px;color:var(--dim);letter-spacing:.1em;border-bottom:1px solid var(--line)}
 .pk-head .r,.pk-row .r{text-align:right}
 .pk-rows{max-height:372px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--dim) transparent}
@@ -213,6 +213,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .pk-row.on::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--green);box-shadow:0 0 8px var(--green)}
 .pk-row.kb{outline:1px solid var(--amber);outline-offset:-1px}
 .pk-row .id{display:flex;align-items:center;gap:10px;min-width:0}
+.pk-row .id>span{display:flex;flex-direction:column;min-width:0;gap:2px}
 .pk-row .id b{display:block;font-weight:400;line-height:1.1}
 .pk-row .id small{display:block;color:var(--dim);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pk-row .cat{font-size:10px;letter-spacing:.06em;color:var(--dim);border:1px solid var(--line);padding:2px 6px;justify-self:start;white-space:nowrap}
@@ -228,7 +229,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .pk-sel h4{font-weight:400;font-size:20px;line-height:1;margin:0}
 .pk-sel h4 small{display:block;font-size:12px;color:var(--dim);margin-top:4px}
 .pk-sel .k{font-size:10px;color:var(--dim);letter-spacing:.1em;margin:14px 0 4px}
-.pk-sel .price{font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.pk-sel .price{font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
 .pk-sel .price span{font-size:13px;margin-left:8px}
 .pk-sel .rows{margin-top:6px}
 .pk-sel .row{padding:7px 0;font-size:12.5px}
@@ -430,8 +431,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   <!-- CREATE -->
   <section class="sec" id="create">
     <h2><span>CREATE A LAUNCH</span> five steps · the parts you can change and the parts you can’t</h2>
-    <div class="create">
-      <form class="form" id="createForm">
+    <div class="form" style="margin-bottom:14px">
         <div class="stepn">STEP 1 · PICK YOUR PAIRING ASSET</div>
         <p class="note" style="margin:0 0 10px">Your coin trades against this asset. Fees and holder rewards are paid in it.</p>
         <div class="picker">
@@ -446,7 +446,10 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
           <div class="pk-sel" id="pk-sel"></div>
         </div>
 
-        <div class="stepn">STEP 2 · NAME YOUR COIN</div>
+    </div>
+    <div class="create">
+      <form class="form" id="createForm">
+        <div class="stepn" style="margin-top:0">STEP 2 · NAME YOUR COIN</div>
         <div class="f"><label>ticker</label><input id="tk" placeholder="1–10 letters or numbers, unique" maxlength="10" required></div>
         <div class="f"><label>name</label><input id="nmi" placeholder="e.g. Lazarus" required></div>
         <div class="f"><label>image</label><label class="filebtn" for="imgf"><span class="btn sm" style="pointer-events:none">choose image</span><span id="imgn" style="font-size:12px;color:var(--dim)">PNG, JPG, GIF or WebP · no file chosen</span><input type="file" id="imgf" accept="image/png,image/jpeg,image/gif,image/webp" hidden></label></div>
