@@ -39,22 +39,28 @@ const u64 = v => { const b = new Uint8Array(8); new DataView(b.buffer).setBigUin
 const cat = (...a) => { const n = a.reduce((s, x) => s + x.length, 0), o = new Uint8Array(n); let p = 0; for (const x of a) { o.set(x, p); p += x.length; } return o; };
 async function fetchElf() { const r = await fetch('../program/resurrect.so?v=' + Date.now()); if (!r.ok) throw new Error('cannot fetch .so'); return new Uint8Array(await r.arrayBuffer()); }
 async function writeBuffer(elf) {
-  const buffer = Keypair.generate(); const bufLen = elf.length + 37;
-  const rent = await conn.getMinimumBalanceForRentExemption(bufLen);
-  const tx = new Transaction().add(
-    SystemProgram.createAccount({ fromPubkey: payer.publicKey, newAccountPubkey: buffer.publicKey, lamports: rent, space: bufLen, programId: LOADER }),
-    new TransactionInstruction({ programId: LOADER, data: u32(0), keys: [{ pubkey: buffer.publicKey, isSigner: false, isWritable: true }, { pubkey: payer.publicKey, isSigner: false, isWritable: false }] }));
-  await sendAndConfirmTransaction(conn, tx, [payer, buffer]); log('buffer created', buffer.publicKey.toBase58(), 'len', bufLen);
-  const CHUNK = 900; const chunks = []; for (let off = 0; off < elf.length; off += CHUNK) chunks.push(off);
+  let bufferPk; const saved = localStorage.getItem('rsrct_buffer');
+  if (saved && await conn.getAccountInfo(new PublicKey(saved))) { bufferPk = new PublicKey(saved); log('resuming buffer', saved); }
+  else {
+    const buffer = Keypair.generate(); const bufLen = elf.length + 37; const rent = await conn.getMinimumBalanceForRentExemption(bufLen);
+    const tx = new Transaction().add(
+      SystemProgram.createAccount({ fromPubkey: payer.publicKey, newAccountPubkey: buffer.publicKey, lamports: rent, space: bufLen, programId: LOADER }),
+      new TransactionInstruction({ programId: LOADER, data: u32(0), keys: [{ pubkey: buffer.publicKey, isSigner: false, isWritable: true }, { pubkey: payer.publicKey, isSigner: false, isWritable: false }] }));
+    await sendAndConfirmTransaction(conn, tx, [payer, buffer]); bufferPk = buffer.publicKey; localStorage.setItem('rsrct_buffer', bufferPk.toBase58()); log('buffer created', bufferPk.toBase58(), 'len', bufLen);
+  }
+  // compare on-chain buffer with elf to skip chunks already written
+  const acct = await conn.getAccountInfo(bufferPk); const onchain = new Uint8Array(acct.data).slice(37);
+  const CHUNK = 900; const chunks = []; for (let off = 0; off < elf.length; off += CHUNK) { const a = elf.slice(off, off + CHUNK), b = onchain.slice(off, off + CHUNK); let same = a.length === b.length; for (let i = 0; same && i < a.length; i++) if (a[i] !== b[i]) same = false; if (!same) chunks.push(off); }
+  log('chunks to write', chunks.length, 'of', Math.ceil(elf.length / CHUNK));
   let done = 0; const worker = async (idxs) => { for (const off of idxs) {
     const bytes = elf.slice(off, off + CHUNK);
-    const ix = new TransactionInstruction({ programId: LOADER, data: cat(u32(1), u32(off), u64(bytes.length), bytes), keys: [{ pubkey: buffer.publicKey, isSigner: false, isWritable: true }, { pubkey: payer.publicKey, isSigner: true, isWritable: false }] });
-    for (let attempt = 0; attempt < 6; attempt++) { try { await sendAndConfirmTransaction(conn, new Transaction().add(ix), [payer], { commitment: 'confirmed', skipPreflight: true }); break; } catch (e) { if (attempt === 5) throw e; await sleep(1500 * (attempt + 1)); } }
-    done++; if (done % 25 === 0) log('written', done, '/', chunks.length);
+    const ix = new TransactionInstruction({ programId: LOADER, data: cat(u32(1), u32(off), u64(bytes.length), bytes), keys: [{ pubkey: bufferPk, isSigner: false, isWritable: true }, { pubkey: payer.publicKey, isSigner: true, isWritable: false }] });
+    for (let attempt = 0; ; attempt++) { try { await sendAndConfirmTransaction(conn, new Transaction().add(ix), [payer], { commitment: 'confirmed', skipPreflight: true }); break; } catch (e) { if (attempt >= 40) throw e; const wait = Math.min(30000, 2000 * Math.pow(1.5, attempt)); if (attempt % 5 === 0) log('retry', off, (e.message || '').slice(0, 60)); await sleep(wait); } }
+    done++; if (done % 20 === 0) log('written', done, '/', chunks.length); await sleep(350);
   } };
-  const P = 8; const lanes = Array.from({ length: P }, (_, i) => chunks.filter((_, j) => j % P === i));
+  const P = 3; const lanes = Array.from({ length: P }, (_, i) => chunks.filter((_, j) => j % P === i));
   await Promise.all(lanes.map(worker)); log('buffer fully written');
-  return buffer.publicKey;
+  return bufferPk;
 }
 document.getElementById('b2').onclick = async () => {
   try {
@@ -72,7 +78,7 @@ document.getElementById('b2').onclick = async () => {
       new TransactionInstruction({ programId: LOADER, data: cat(u32(2), u64(maxLen)), keys: [
         { pubkey: payer.publicKey, isSigner: true, isWritable: true }, { pubkey: programData, isSigner: false, isWritable: true }, { pubkey: PROGRAM_KP.publicKey, isSigner: false, isWritable: true }, { pubkey: bufferPk, isSigner: false, isWritable: true },
         { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }, { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, { pubkey: payer.publicKey, isSigner: true, isWritable: false }] }));
-    const sig = await sendAndConfirmTransaction(conn, tx, [payer, PROGRAM_KP]); log('DEPLOYED ✅', sig); await refreshBal();
+    const sig = await sendAndConfirmTransaction(conn, tx, [payer, PROGRAM_KP]); localStorage.removeItem('rsrct_buffer'); log('DEPLOYED ✅', sig); await refreshBal();
   } catch (e) { log('ERROR', e.message, e.logs ? e.logs.join('\n') : ''); }
 };
 document.getElementById('b5').onclick = async () => {
@@ -82,7 +88,7 @@ document.getElementById('b5').onclick = async () => {
     const tx = new Transaction().add(new TransactionInstruction({ programId: LOADER, data: u32(3), keys: [
       { pubkey: programData, isSigner: false, isWritable: true }, { pubkey: PROGRAM_KP.publicKey, isSigner: false, isWritable: true }, { pubkey: bufferPk, isSigner: false, isWritable: true }, { pubkey: payer.publicKey, isSigner: false, isWritable: true },
       { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }, { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, { pubkey: payer.publicKey, isSigner: true, isWritable: false }] }));
-    log('UPGRADED ✅', await sendAndConfirmTransaction(conn, tx, [payer]));
+    log('UPGRADED ✅', await sendAndConfirmTransaction(conn, tx, [payer])); localStorage.removeItem('rsrct_buffer');
   } catch (e) { log('ERROR', e.message); }
 };
 document.getElementById('b3').onclick = async () => {
