@@ -90,10 +90,11 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .tool .lbl{font-size:11px;color:var(--dim);letter-spacing:.08em}
 
 /* asset avatars */
-.ast{display:inline-grid;place-items:center;position:relative;width:22px;height:22px;border-radius:50%;flex:none;overflow:hidden;background:var(--c1,#1b2a33);background-image:linear-gradient(135deg,var(--c1,#1b2a33),var(--c2,#0b1419));border:1px solid rgba(255,255,255,.12);font-size:7px;letter-spacing:.02em;color:#fff;vertical-align:middle}
-.ast img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
-.ast.lg{width:34px;height:34px;font-size:10px}
-.ast.xl{width:52px;height:52px;font-size:14px}
+.ast{display:inline-grid;place-items:center;position:relative;width:24px;height:24px;border-radius:50%;flex:none;overflow:hidden;background:var(--c1,#1b2a33);background-image:linear-gradient(135deg,var(--c1,#1b2a33),var(--c2,#0b1419));border:1px solid rgba(255,255,255,.14);font-size:7px;letter-spacing:.02em;color:#fff;vertical-align:middle;box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+.ast img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;background:#fff;image-rendering:auto}
+.ast.sq{border-radius:9px}.ast.sq img{border-radius:9px;object-fit:contain;padding:2px;background:#fff}
+.ast.lg{width:44px;height:44px;font-size:11px}.ast.lg.sq{border-radius:11px}.ast.lg.sq img{border-radius:11px;padding:3px}
+.ast.xl{width:72px;height:72px;font-size:16px}.ast.xl.sq{border-radius:16px}.ast.xl.sq img{border-radius:16px;padding:5px}
 .ast.sub{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border:2px solid var(--card);font-size:7px}
 .avwrap{position:relative;flex:none}
 .cat-crypto{--c1:#7a3df0;--c2:#2a1a66}.cat-xstock{--c1:#1f6fe5;--c2:#0e2a5c}.cat-prestock{--c1:#e0742a;--c2:#5a2b0a}.cat-basket{--c1:#2bb3a3;--c2:#0b4a44}.cat-commodity{--c1:#d4a017;--c2:#5c4306}.cat-leverage{--c1:#e5365f;--c2:#5c0f22}
@@ -203,7 +204,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .pk-pop div{display:flex;gap:6px;flex-wrap:wrap}
 .pk-pop button{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);color:var(--text);padding:3px 8px 3px 4px;font-size:11px;cursor:pointer}
 .pk-pop button:hover,.pk-pop button.on{border-color:var(--green);color:var(--green)}
-.pk-head,.pk-row{display:grid;grid-template-columns:1fr 110px 110px 80px;gap:10px;align-items:center;padding:8px 12px}
+.pk-head,.pk-row{display:grid;grid-template-columns:1fr 110px 110px 80px;gap:10px;align-items:center;padding:9px 12px}
 .pk-head{font-size:10px;color:var(--dim);letter-spacing:.1em;border-bottom:1px solid var(--line)}
 .pk-head .r,.pk-row .r{text-align:right}
 .pk-rows{max-height:372px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--dim) transparent}
@@ -214,7 +215,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .pk-row.kb{outline:1px solid var(--amber);outline-offset:-1px}
 .pk-row .id{display:flex;align-items:center;gap:10px;min-width:0}
 .pk-row .id>span{display:flex;flex-direction:column;min-width:0;gap:2px}
-.pk-row .id b{display:block;font-weight:400;line-height:1.1}
+.pk-row .id b{display:block;font-weight:400;line-height:1.1;font-size:14px}
 .pk-row .id small{display:block;color:var(--dim);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pk-row .cat{font-size:10px;letter-spacing:.06em;color:var(--dim);border:1px solid var(--line);padding:2px 6px;justify-self:start;white-space:nowrap}
 .pk-row .px{font-variant-numeric:tabular-nums}
@@ -225,7 +226,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .pk-sel{border:1px solid var(--green-dim);background:var(--card);padding:16px;align-self:start;position:relative;overflow:hidden}
 .pk-sel::after{content:'';position:absolute;inset:auto -40px -40px auto;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(74,227,138,.12),transparent 70%);pointer-events:none}
 .pk-sel .top{display:flex;align-items:center;gap:12px}
-.pk-sel .top .ast{width:48px;height:48px;font-size:12px}
+.pk-sel .top .ast{width:72px;height:72px;font-size:16px}
 .pk-sel h4{font-weight:400;font-size:20px;line-height:1;margin:0}
 .pk-sel h4 small{display:block;font-size:12px;color:var(--dim);margin-top:4px}
 .pk-sel .k{font-size:10px;color:var(--dim);letter-spacing:.1em;margin:14px 0 4px}
@@ -619,7 +620,15 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const ALIAS={TSLAx:'TSLA·XST',SPYx:'SPY·XST',NVDAx:'NVDA·XST',GLDx:'GOLD',AAPLx:'AAPL·XST',GOOGLx:'GOOGL·XST',METAx:'META·XST',MSFTx:'MSFT·XST',GMEx:'GME·XST'};
   const akey=s=>ALIAS[s]||s;
   const short=m=>m.slice(0,4)+'…'+m.slice(-4);
-  const ast=(s,cls='')=>{s=akey(s);const a=AS[s]||{c:'crypto',n:s,s:s};return `<span class="ast cat-${a.c} ${cls}" title="${a.n}">${(a.s||s).slice(0,4)}${a.i?`<img src="${a.i}" alt="" loading="lazy" onerror="this.remove()">`:''}</span>`;};
+  const SQ=new Set(['xstock','ondo','sunrise','prestock','tessera','basket','leverage','commodity']);
+  const DEX=m=>'https://dd.dexscreener.com/ds-data/tokens/solana/'+m+'.png';
+  const WSRV=u=>'https://wsrv.nl/?url='+encodeURIComponent(u)+'&w=128&h=128&fit=contain&output=png';
+  let eager=0;
+  const ast=(s,cls='')=>{s=akey(s);const a=AS[s]||{c:'crypto',n:s,s:s};
+    let img='';if(a.i){const fb=[];if(a.c==='crypto'){if(!/^img\//.test(a.i))fb.push(WSRV(a.i));fb.push(DEX(a.m));}
+      img=`<img src="${a.i}" alt="" ${eager++<48?'decoding="async"':'loading="lazy" decoding="async"'} data-fb="${fb.join('|')}" onerror="astfb(this)">`;}
+    return `<span class="ast cat-${a.c} ${SQ.has(a.c)?'sq':''} ${cls}" title="${a.n}">${(a.s||s).slice(0,4)}${img}</span>`;};
+  window.astfb=im=>{const fb=(im.dataset.fb||'').split('|').filter(Boolean);if(!fb.length){im.remove();return;}im.dataset.fb=fb.slice(1).join('|');im.src=fb[0];};
   const sym=s=>(AS[akey(s)]||{}).s||s;
 
   /* ---- token data ---- */
@@ -703,7 +712,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const visible=()=>Object.keys(AS).filter(k=>(cat==='all'||AS[k].c===cat)&&(!q||(AS[k].s+' '+AS[k].n+' '+AS[k].m).toLowerCase().includes(q)));
   function renderCats(){const cnt={all:Object.keys(AS).length};Object.values(AS).forEach(a=>cnt[a.c]=(cnt[a.c]||0)+1);
     $('#cats').innerHTML=['all',...Object.keys(CATN)].map(c=>`<button type="button" data-c="${c}" class="${c===cat?'on':''}">${c==='all'?'All':CATN[c]}<small>${cnt[c]||0}</small></button>`).join('');}
-  function renderAssets(){const v0=visible();kb=-1;const v=v0.slice(0,300);fetchVisiblePrices(v);
+  function renderAssets(){const v0=visible();kb=-1;eager=0;const v=v0.slice(0,300);fetchVisiblePrices(v);
     assets.innerHTML=v.length?v.map(k=>{const a=AS[k],p=PX[a.m]||{};return `<button type="button" class="pk-row ${k===anchor?'on':''}" data-a="${k}" role="option" aria-selected="${k===anchor}">
       <span class="id">${ast(k,'lg')}<span><b>${a.s}</b><small>${a.n}</small></span></span>
       <span class="cat">${CATN[a.c]}</span>
@@ -737,7 +746,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const PXQ=new Set();let pxTimer=null;
   function fetchVisiblePrices(keys){const need=keys.map(k=>AS[k].m).filter(m=>!PX[m]&&!PXQ.has(m)).slice(0,100);if(!need.length)return;need.forEach(m=>PXQ.add(m));clearTimeout(pxTimer);pxTimer=setTimeout(async()=>{try{const j=await (await fetch('https://lite-api.jup.ag/price/v3?ids='+need.join(','))).json();Object.assign(PX,j);need.forEach(m=>{if(!PX[m])PX[m]={};});renderAssets();renderSel();}catch(e){need.forEach(m=>PXQ.delete(m));}},250);}
   async function loadPrices(){fetchVisiblePrices(visible().slice(0,100));if(anchor&&AS[anchor])fetchVisiblePrices([anchor]);}
-  fetch('js/assets.json').then(r=>r.json()).then(list=>{list.sort((x,y)=>(y.mc||0)-(x.mc||0));for(const a of list){AS[a.k]={s:a.s,n:a.n,m:a.m,c:a.c,f:a.f,mc:a.mc||0,i:a.i||('img/assets2/'+a.m+'.png')};}
+  fetch('js/assets.json').then(r=>r.json()).then(list=>{list.sort((x,y)=>(x.r||0)-(y.r||0));eager=0;for(const a of list){AS[a.k]={s:a.s,n:a.n,m:a.m,c:a.c,f:a.f,mc:a.mc||0,i:a.i||('img/assets2/'+a.m+'.png')};}
     $('#pk-pop').innerHTML=POP.filter(k=>AS[k]).map(k=>`<button type="button" data-a="${k}">${ast(k)}${AS[k].s}</button>`).join('');
     renderCats();renderAssets();renderSel();renderHero();render();loadPrices();setInterval(loadPrices,60000);});
   $('#tk').addEventListener('input',e=>{e.target.value=e.target.value.replace(/[^a-z0-9]/gi,'').toUpperCase();$('#r-tk').textContent=e.target.value?'$'+e.target.value:'—';});
