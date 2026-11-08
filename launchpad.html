@@ -697,7 +697,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   /* ---- live numbers ---- */
   const t0=Date.now();const f=s=>{s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
   setInterval(()=>{const el=(Date.now()-t0)/1000;$$('[data-end]').forEach(e=>e.textContent=f(+e.dataset.end-el));$('#d-next').textContent=f(161-(el%161));
-    if(Math.random()<.15){const s2=$('#s2');s2.textContent=(parseInt(s2.textContent.replace(/,/g,''))+1).toLocaleString('en-US');}
+    if(!window.__live&&Math.random()<.15){const s2=$('#s2');s2.textContent=(parseInt(s2.textContent.replace(/,/g,''))+1).toLocaleString('en-US');}
     if(Math.random()<.2){const p=$('#d-paid');p.textContent='$'+(parseInt(p.textContent.replace(/[$,]/g,''))+Math.floor(Math.random()*4)).toLocaleString('en-US');}
   },1000);
 
@@ -779,7 +779,7 @@ window.addEventListener('load',async()=>{
     const live=Ls.filter(l=>!l.settled&&now<l.endTs).length, grad=Ls.filter(l=>l.settled&&l.poolTokens>0n).length, bids=Ls.reduce((a,l)=>a+l.bids,0);
     const fSol=v=>(Number(v)/1e9).toLocaleString('en-US',{maximumFractionDigits:4})+' SOL';
     const feesSol=Ls.filter(sol).reduce((a,l)=>a+l.feesAccrued,0n), paidSol=Ls.filter(sol).reduce((a,l)=>a+l.rewardsDistributed,0n), other=Ls.filter(l=>!sol(l)).length;
-    $('#s1').textContent=live; $('#s2').textContent=bids.toLocaleString('en-US'); $('#s2l').textContent='sealed bids placed · devnet';
+    window.__live=true; $('#s1').textContent=live; $('#s2').textContent=bids.toLocaleString('en-US'); $('#s2l').textContent='sealed bids placed · devnet';
     $('#an1').textContent=fSol(feesSol); $('#an1l').textContent='fees collected · SOL-paired launches'+(other?` (+${other} launches in other assets)`:'');
     $('#an2').textContent=fSol(paidSol); $('#an3').textContent='0'; $('#an3l').textContent='RSRCT burned · token not launched yet'; $('#an4').textContent='0'; $('#an4l').textContent='trader airdrops · not live yet';
     $('#an5').textContent=Ls.length; $('#an6').textContent=grad; $('#an7').textContent=Ls.filter(l=>l.requireHuman).length; $('#an7l').textContent='launches requiring a human pass'; $('#an8').textContent='0';
