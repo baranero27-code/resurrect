@@ -1,0 +1,32 @@
+# Resurrect
+
+Fair memecoin launches on Solana. No bots, no bundlers, no rugs, no insider KOLs.
+
+- **Site:** https://baranero27-code.github.io/resurrect/ — the ICU (manifesto) · `launchpad.html` (preview) · `app.html` (live on devnet)
+- **Program (devnet):** `5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t` — source in [`program/`](program/)
+
+## What the program enforces
+| | |
+|---|---|
+| Launch | 15-minute **sealed batch** (commit–reveal). Everyone pays **one clearing price**. |
+| Bids | One bid per wallet. Optional **proof of personhood** (Civic Uniqueness pass, checked on chain) → one human, one wallet, one bid. |
+| Supply | 1,000,000,000 fixed. Mint & freeze authority revoked before the launch is accepted. |
+| Creator | **0% allocation, no first buy.** Creator can only bid like everyone else. |
+| Pairing | Any SPL Token or Token-2022 asset: SOL, USDC, xStocks, Ondo, Sunrise, commodities — 2,400+ in the picker. |
+| Liquidity | 20% of supply + everything raised → constant-product pool **owned by the program. No withdraw instruction exists.** |
+| Fees | 1% per swap, in the pairing asset. Creator share ≤ 20%; the rest goes to holders who stake (no lockup, no fee). |
+
+## Repo layout
+```
+index.html        the ICU — manifesto page
+launchpad.html    product preview (simulated coins; hero/analytics numbers read live from devnet)
+app.html          live devnet app: create, bid, reveal, settle, claim, trade, stake, claim rewards
+js/rsrct.js       hand-encoded web3.js client for the program (no Anchor TS)
+js/rsrct-bundle.js  esbuild bundle: @solana/web3.js + spl-token + client
+js/assets.json    2,418 pairing assets (mint, symbol, category, icon)
+program/          Anchor program source, stripped .so, e2e test, README
+dev/deploy.html   browser-based deploy/upgrade console (program secret stays in localStorage, never in git)
+```
+
+## Status
+Devnet. Unaudited. No real funds. Mainnet requires an independent audit and moving the upgrade authority to a multisig.

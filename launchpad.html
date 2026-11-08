@@ -336,14 +336,14 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     </div>
     <div class="stats">
       <div class="stat"><b id="s1">3</b><span>sealed batches live</span></div>
-      <div class="stat"><b id="s2">1,248</b><span>verified humans</span></div>
+      <div class="stat"><b id="s2">1,248</b><span id="s2l">verified humans</span></div>
       <div class="stat r"><b>0</b><span>rugs possible</span></div>
     </div>
   </section>
 
   <!-- LAUNCHES -->
   <section class="sec" id="launches">
-    <h2><span>LAUNCHES</span> every coin passes through three phases <i>devnet data</i></h2>
+    <h2><span>LAUNCHES</span> every coin passes through three phases <i>simulated preview · <a href="app.html" style="color:var(--green)">real launches in the live app ↗</a></i></h2>
     <div class="life">
       <div class="ph"><div class="k">PHASE 1 · 15 MIN</div><b>Sealed batch</b><p>Bids hidden until close. One clearing price. Nobody is first.</p></div>
       <div class="ph"><div class="k">PHASE 2</div><b>Bonding</b><p>Open trading on the curve. Holders already earning from every trade.</p></div>
@@ -518,16 +518,16 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
   <!-- ANALYTICS -->
   <section class="sec" id="analytics">
-    <h2><span>ANALYTICS</span> where the fees went · read live from the program <i>devnet totals</i></h2>
+    <h2><span>ANALYTICS</span> where the fees went <i id="an-src">simulated preview · connecting to devnet…</i></h2>
     <div class="an">
-      <div class="stat"><b>$184.2K</b><span>fees collected, all time</span></div>
-      <div class="stat"><b>$64.5K</b><span>paid to holders</span></div>
-      <div class="stat"><b>$46.0K</b><span>RSRCT bought &amp; burned</span></div>
-      <div class="stat"><b>$36.8K</b><span>airdropped to verified traders</span></div>
-      <div class="stat"><b>41</b><span>launches</span></div>
-      <div class="stat"><b>29</b><span>graduated</span></div>
-      <div class="stat"><b>0.9%</b><span>median largest wallet</span></div>
-      <div class="stat r"><b>0</b><span>bundles detected</span></div>
+      <div class="stat"><b id="an1">$184.2K</b><span id="an1l">fees collected, all time</span></div>
+      <div class="stat"><b id="an2">$64.5K</b><span>paid to holders</span></div>
+      <div class="stat"><b id="an3">$46.0K</b><span id="an3l">RSRCT bought &amp; burned</span></div>
+      <div class="stat"><b id="an4">$36.8K</b><span id="an4l">airdropped to verified traders</span></div>
+      <div class="stat"><b id="an5">41</b><span>launches</span></div>
+      <div class="stat"><b id="an6">29</b><span>graduated</span></div>
+      <div class="stat"><b id="an7">0.9%</b><span id="an7l">median largest wallet</span></div>
+      <div class="stat r"><b id="an8">0</b><span>bundles detected</span></div>
     </div>
     <div class="burns">
       <h4 style="font-weight:400;font-size:12px;color:var(--dim);letter-spacing:.1em;margin:18px 0 8px">BURNS · latest</h4>
@@ -765,6 +765,28 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const io=new IntersectionObserver(en=>{en.forEach(x=>{if(x.isIntersecting)tabs.forEach(t=>t.classList.toggle('on',t.getAttribute('href')==='#'+x.target.id));});},{rootMargin:'-40% 0px -55% 0px'});
   ['launches','create','rewards','analytics','profile','how'].forEach(id=>io.observe(document.getElementById(id)));
 })();
+</script>
+<script src="js/rsrct-bundle.js" defer></script>
+<script>
+// Replace the simulated hero + analytics numbers with real devnet totals read from the program.
+window.addEventListener('load',async()=>{
+  const $=s=>document.querySelector(s); const src=$('#an-src'); if(!window.makeRsrct) return;
+  try{
+    const {Connection}=solanaWeb3; const conn=new Connection('https://api.devnet.solana.com','confirmed');
+    const R=makeRsrct(solanaWeb3,splToken,'5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t');
+    const Ls=await Promise.race([R.fetchLaunches(conn),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000))]);
+    const now=Math.floor(Date.now()/1000); const sol=l=>l.pairMint.equals(R.NATIVE);
+    const live=Ls.filter(l=>!l.settled&&now<l.endTs).length, grad=Ls.filter(l=>l.settled&&l.poolTokens>0n).length, bids=Ls.reduce((a,l)=>a+l.bids,0);
+    const fSol=v=>(Number(v)/1e9).toLocaleString('en-US',{maximumFractionDigits:4})+' SOL';
+    const feesSol=Ls.filter(sol).reduce((a,l)=>a+l.feesAccrued,0n), paidSol=Ls.filter(sol).reduce((a,l)=>a+l.rewardsDistributed,0n), other=Ls.filter(l=>!sol(l)).length;
+    $('#s1').textContent=live; $('#s2').textContent=bids.toLocaleString('en-US'); $('#s2l').textContent='sealed bids placed · devnet';
+    $('#an1').textContent=fSol(feesSol); $('#an1l').textContent='fees collected · SOL-paired launches'+(other?` (+${other} launches in other assets)`:'');
+    $('#an2').textContent=fSol(paidSol); $('#an3').textContent='0'; $('#an3l').textContent='RSRCT burned · token not launched yet'; $('#an4').textContent='0'; $('#an4l').textContent='trader airdrops · not live yet';
+    $('#an5').textContent=Ls.length; $('#an6').textContent=grad; $('#an7').textContent=Ls.filter(l=>l.requireHuman).length; $('#an7l').textContent='launches requiring a human pass'; $('#an8').textContent='0';
+    src.innerHTML='live · read from the devnet program just now · <a href="app.html" style="color:var(--green)">open the app ↗</a>';
+    const burns=document.querySelector('.burns'); if(burns) burns.innerHTML='<p class="note" style="margin-top:16px">Buyback &amp; burn starts with the RSRCT token. Nothing to show yet — and nothing to fake.</p>';
+  }catch(e){ src.textContent='simulated preview · devnet unreachable right now'; }
+});
 </script>
 </body>
 </html>
