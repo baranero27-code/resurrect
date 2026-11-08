@@ -74,7 +74,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
       <div class="dgrid">
         <div>
           <div class="box"><h4>STATE <i id="d-phase" class="on"></i></h4><div class="rows" id="d-rows"></div></div>
-          <div class="box" style="margin-top:14px"><h4>POOL · SEALED, PROGRAM-OWNED, NO WITHDRAW INSTRUCTION</h4><div class="big" id="d-pool"></div><p class="note" style="margin-top:10px">20% of supply + all SOL raised in the batch seed a constant-product pool inside the program. There is no instruction that can remove it. 1% fee on every swap accrues to the fee vault.</p></div>
+          <div class="box" style="margin-top:14px"><h4>POOL · SEALED, PROGRAM-OWNED, NO WITHDRAW INSTRUCTION</h4><div class="big" id="d-pool"></div><p class="note" style="margin-top:10px">20% of supply + all of the pairing asset raised in the batch seed a constant-product pool inside the program. There is no instruction that can remove it. 1% fee on every swap accrues to the fee vault.</p></div>
         </div>
         <div>
           <div class="box" id="actbox"><h4>YOUR ACTIONS <i id="d-you"></i></h4><div id="actions"></div></div>
@@ -92,28 +92,28 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
   </section>
 
   <section class="sec" id="create">
-    <h2><span>CREATE A LAUNCH</span> real token, real auction, on devnet</h2>
+    <h2><span>CREATE A LAUNCH</span> real token, real auction, any pairing asset, on devnet</h2>
     <div class="dgrid">
       <form id="createForm" class="box">
         <div class="f"><label>name</label><input id="c-name" maxlength="32" placeholder="e.g. Lazarus" required></div>
         <div class="f"><label>ticker</label><input id="c-sym" maxlength="10" placeholder="1–10 letters or numbers" required></div>
         <div class="f"><label>batch length</label><select id="c-batch"><option value="60">1 minute (test)</option><option value="300">5 minutes</option><option value="900" selected>15 minutes</option></select></div>
         <div class="f"><label>creator fee share</label><div style="display:flex;gap:12px;align-items:center"><input type="range" id="c-fee" min="0" max="20" value="5" style="padding:0;border:0;background:transparent;accent-color:var(--green)"><b id="c-feev" style="font-weight:400;color:var(--green)">5%</b></div></div>
-        <div class="f"><label>pairing asset</label><div class="fixed">SOL <i>DEVNET · MORE ASSETS AT MAINNET</i></div></div>
+        <div class="f"><label>pairing asset</label><div><select id="c-pair"><option value="So11111111111111111111111111111111111111112">SOL · wrapped automatically</option><option value="4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU">USDC-Dev · devnet test USDC (SPL)</option><option value="custom">custom mint address… (SPL Token or Token-2022)</option></select><input id="c-pairmint" placeholder="paste a devnet mint address" style="display:none;margin-top:6px"><div id="c-pairinfo" class="note" style="margin-top:6px">Your coin trades against this asset. Bids, pool, fees and rewards are all in it. On mainnet: 2,400+ assets — xStocks, Ondo, Sunrise, commodities.</div></div></div>
         <div class="f"><label>supply</label><div class="fixed">1,000,000,000 · authorities revoked in the same transaction <i>FIXED</i></div></div>
-        <div class="f"><label>allocation</label><div class="fixed">80% sold in the batch · 20% + all raised SOL → sealed pool <i>FIXED</i></div></div>
+        <div class="f"><label>allocation</label><div class="fixed">80% sold in the batch · 20% + everything raised → sealed pool <i>FIXED</i></div></div>
         <div class="f"><label>dev allocation</label><div class="fixed no">0% · creator keeps nothing <i>NOT NEGOTIABLE</i></div></div>
         <div class="f"><label>first buy</label><div class="fixed no">none · creator bids like everyone else <i>NOT AVAILABLE</i></div></div>
         <div class="act"><button class="btn solid" id="c-go" type="submit">create mint + open sealed batch</button></div>
-        <p class="note" style="margin-top:10px">One transaction: creates the mint, mints 1B to you, revokes mint authority, then hands 100% to the program vault and opens the batch. Cost ≈ 0.01 devnet SOL.</p>
+        <p class="note" style="margin-top:10px">One transaction: creates the mint, mints 1B to you, revokes mint authority, hands 100% to the program vault, opens escrow / pool / fee accounts in the pairing asset and starts the batch. Cost ≈ 0.02 devnet SOL.</p>
       </form>
       <div>
         <div class="box"><h4>HOW A BATCH WORKS</h4><div class="rows">
-          <div class="row"><span>1 · commit</span><b>escrow SOL + hash(amount, salt). Deposit more than your bid to hide it.</b></div>
+          <div class="row"><span>1 · commit</span><b>escrow the pairing asset + hash(amount, salt). Deposit more than your bid to hide it.</b></div>
           <div class="row"><span>2 · reveal</span><b>10-minute window after close. Your salt is stored in this browser.</b></div>
-          <div class="row"><span>3 · settle</span><b>anyone. price = total SOL ÷ 800M tokens. Pool seeds and seals.</b></div>
+          <div class="row"><span>3 · settle</span><b>anyone. price = total raised ÷ 800M tokens. Pool seeds and seals.</b></div>
           <div class="row"><span>4 · claim</span><b>tokens at the clearing price + refund of extra deposit.</b></div>
-          <div class="row"><span>5 · trade</span><b>swap against the sealed pool. 1% fee.</b></div>
+          <div class="row"><span>5 · trade</span><b>swap against the sealed pool. 1% fee in the pairing asset; creator share claimable, rest to holders.</b></div>
         </div></div>
         <div class="box" style="margin-top:14px"><h4>ACTIVITY</h4><div class="log" id="log"></div></div>
       </div>
@@ -136,10 +136,19 @@ const toast=$('#toast');let tt;const say=m=>{toast.textContent=m;toast.classList
 const log=(m,c='')=>{const d=document.createElement('div');d.className=c;d.textContent=new Date().toLocaleTimeString('en-GB')+' · '+m;$('#log').prepend(d);};
 const explorer=(k,type='address')=>`https://explorer.solana.com/${type}/${k}?cluster=devnet`;
 $('#pidlbl').textContent='program '+PROGRAM_ID.slice(0,4)+'…'+PROGRAM_ID.slice(-4); $('#pidfoot').textContent=PROGRAM_ID.slice(0,8)+'…'; $('#pidfoot').href=explorer(PROGRAM_ID);
-const fmtSol=l=>(Number(l)/LAMPORTS_PER_SOL).toLocaleString('en-US',{maximumFractionDigits:4})+' SOL';
-const fmtTok=b=>(Number(b)/1e6).toLocaleString('en-US',{maximumFractionDigits:2});
 const short=k=>k.slice(0,4)+'…'+k.slice(-4);
 const mmss=s=>{s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+// ---------- pairing assets ----------
+const KNOWN={'So11111111111111111111111111111111111111112':'SOL','4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU':'USDC','Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr':'USDC','EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v':'USDC'};
+const pairSym=l=>KNOWN[l.pairMint.toBase58()]||('pair '+short(l.pairMint.toBase58()));
+const fmtPair=(l,v)=>(Number(v)/10**l.pairDecimals).toLocaleString('en-US',{maximumFractionDigits:Math.min(l.pairDecimals,6)})+' '+pairSym(l);
+const fmtSol=v=>(Number(v)/LAMPORTS_PER_SOL).toLocaleString('en-US',{maximumFractionDigits:4})+' SOL';
+const fmtTok=b=>(Number(b)/1e6).toLocaleString('en-US',{maximumFractionDigits:2});
+const isNative=l=>l.pairMint.equals(R.NATIVE);
+const pairProg=l=>new PublicKey(l.pairTokenProgram);
+// price helpers: pair units per whole token
+const tokPrice=l=>l.settled&&l.poolTokens>0n?Number(l.poolPair)/Number(l.poolTokens)*1e6/10**l.pairDecimals:0;
+const fmtPx=(l,p)=>p?p.toLocaleString('en-US',{maximumFractionDigits:Math.min(l.pairDecimals+3,12)})+' '+pairSym(l):'—';
 
 // ---------- wallet ----------
 let wallet=null,pubkey=null;
@@ -152,64 +161,82 @@ $('#faucet').addEventListener('click',async()=>{ try{ say('Requesting 1 devnet S
 async function sendTx(ixs,extraSigners=[]){ if(!pubkey) throw new Error('connect a wallet first'); const tx=new Transaction().add(...ixs); tx.feePayer=pubkey; tx.recentBlockhash=(await conn.getLatestBlockhash('confirmed')).blockhash; if(extraSigners.length) tx.partialSign(...extraSigners);
   let sig; if(wallet.signAndSendTransaction){ const r=await wallet.signAndSendTransaction(tx); sig=r.signature||r; } else { const signed=await wallet.signTransaction(tx); sig=await conn.sendRawTransaction(signed.serialize(),{skipPreflight:false}); }
   await conn.confirmTransaction(sig,'confirmed'); return sig; }
-async function ensureAta(mint){ const ata=spl.getAssociatedTokenAddressSync(mint,pubkey); const info=await conn.getAccountInfo(ata); return {ata, ix: info?null:spl.createAssociatedTokenAccountIdempotentInstruction(pubkey,ata,pubkey,mint)}; }
+const ataIx=(mint,prog=R.TOKEN)=>spl.createAssociatedTokenAccountIdempotentInstruction(pubkey,R.ata(mint,pubkey,prog),pubkey,mint,prog);
+// pair-side plumbing: make sure the ATA exists, wrap SOL if needed, unwrap after
+const prep=(l,lamports=0n)=>R.ixsPreparePair({owner:pubkey,pairMint:l.pairMint,prog:pairProg(l),lamports}).ixs;
+const unwrap=l=>R.ixsUnwrap({owner:pubkey,pairMint:l.pairMint,prog:pairProg(l)});
+async function pairBalance(l){ if(isNative(l)) return BigInt(await conn.getBalance(pubkey)); try{ const b=await conn.getTokenAccountBalance(R.ata(l.pairMint,pubkey,pairProg(l))); return BigInt(b.value.amount); }catch(e){ return 0n; } }
 
 // ---------- launches ----------
 let launches=[],current=null,now=()=>Math.floor(Date.now()/1000);
 function phaseOf(l){ const t=now(); if(!l.settled){ if(t<l.endTs) return 'batch'; if(t<l.revealEndTs) return 'reveal'; return 'settle'; } return l.poolTokens>0n?'live':'empty'; }
 const PH={batch:['SEALED BATCH','live'],reveal:['REVEAL WINDOW','rev'],settle:['READY TO SETTLE','set'],live:['TRADING · POOL SEALED','grad'],empty:['NO BIDS · CLOSED','dead']};
-async function loadLaunches(){ try{ const info=await conn.getAccountInfo(new PublicKey(PROGRAM_ID)); if(!info){ $('#list').innerHTML='<div class="empty"><b>Program not deployed on devnet yet.</b>Deployment is pending (waiting for devnet SOL). Everything else is ready.</div>'; return; } launches=await Promise.race([R.fetchLaunches(conn),new Promise((_,rej)=>setTimeout(()=>rej(new Error('RPC timeout')),15000))]); launches.sort((a,b)=>b.startTs-a.startTs); renderList(); if(current){ const c=launches.find(l=>l.pubkey.equals(current.pubkey)); if(c){current=c;renderDetail();} } }catch(e){ $('#list').innerHTML='<div class="empty"><b>Could not read the program.</b>'+e.message+'</div>'; } }
+async function loadLaunches(){ try{ const info=await conn.getAccountInfo(new PublicKey(PROGRAM_ID)); if(!info){ $('#list').innerHTML='<div class="empty"><b>Program not deployed on devnet yet.</b></div>'; return; } launches=await Promise.race([R.fetchLaunches(conn),new Promise((_,rej)=>setTimeout(()=>rej(new Error('RPC timeout')),15000))]); launches.sort((a,b)=>b.startTs-a.startTs); renderList(); if(current){ const c=launches.find(l=>l.pubkey.equals(current.pubkey)); if(c){current=c;renderDetail();} } }catch(e){ $('#list').innerHTML='<div class="empty"><b>Could not read the program.</b>'+e.message+'</div>'; } }
 function renderList(){ const list=$('#list'); if(!launches.length){ list.innerHTML='<div class="empty"><b>No launches yet on devnet.</b>Be the first: create one below. Zero allocation, sealed batch, pool sealed forever.</div>'; return; }
-  list.innerHTML=launches.map((l,i)=>{ const ph=phaseOf(l); const [lbl,cls]=PH[ph]; const price=l.settled&&l.poolTokens>0n?Number(l.poolSol)/Number(l.poolTokens):0; const fdv=price*1e15/LAMPORTS_PER_SOL;
-    const k1=ph==='batch'?['closes in',`<span data-end="${l.endTs}">${mmss(l.endTs-now())}</span>`]:ph==='reveal'?['reveal ends',`<span data-end="${l.revealEndTs}">${mmss(l.revealEndTs-now())}</span>`]:ph==='live'?['FDV',fdv.toFixed(2)+' SOL']:['raised',fmtSol(l.totalRevealedLamports)];
-    const k2=ph==='batch'?['sealed bids',l.bids+' wallets']:ph==='reveal'?['revealed',l.revealed+' / '+l.bids]:ph==='live'?['pool',fmtSol(l.poolSol)]:['bids',l.bids+''];
-    return `<div class="tk" data-i="${i}"><div class="top"><div class="av">${l.symbol.slice(0,2)}</div><div class="nm"><b>$${l.symbol}</b><span>${l.name}</span></div><span class="chip ${cls}">${lbl}</span></div>
+  list.innerHTML=launches.map((l,i)=>{ const ph=phaseOf(l); const [lbl,cls]=PH[ph]; const px=tokPrice(l); const fdv=px*1e9;
+    const k1=ph==='batch'?['closes in',`<span data-end="${l.endTs}">${mmss(l.endTs-now())}</span>`]:ph==='reveal'?['reveal ends',`<span data-end="${l.revealEndTs}">${mmss(l.revealEndTs-now())}</span>`]:ph==='live'?['FDV',fdv.toLocaleString('en-US',{maximumFractionDigits:2})+' '+pairSym(l)]:['raised',fmtPair(l,l.totalRevealed)];
+    const k2=ph==='batch'?['sealed bids',l.bids+' wallets']:ph==='reveal'?['revealed',l.revealed+' / '+l.bids]:ph==='live'?['pool',fmtPair(l,l.poolPair)]:['bids',l.bids+''];
+    return `<div class="tk" data-i="${i}"><div class="top"><div class="av">${l.symbol.slice(0,2)}</div><div class="nm"><b>$${l.symbol}</b><span>${l.name} · <span style="color:var(--green)">paired with ${pairSym(l)}</span></span></div><span class="chip ${cls}">${lbl}</span></div>
       <div class="kv"><div>${k1[0]}<b class="${ph==='batch'?'g':''}">${k1[1]}</b></div><div>${k2[0]}<b>${k2[1]}</b></div></div></div>`; }).join('');
   list.querySelectorAll('.tk').forEach(el=>el.addEventListener('click',()=>{current=launches[+el.dataset.i];openDetail();})); }
 function openDetail(){ $('#list').style.display='none'; $('#detail').classList.add('open'); renderDetail(); $('#detail').scrollIntoView({behavior:'smooth',block:'start'}); }
 $('#back').addEventListener('click',()=>{ $('#detail').classList.remove('open'); $('#list').style.display=''; current=null; });
 
 const bidKey=l=>'rsrct_bid_'+l.pubkey.toBase58()+'_'+(pubkey?pubkey.toBase58():'');
-async function renderDetail(){ const l=current; if(!l) return; const ph=phaseOf(l); const [lbl]=PH[ph];
-  $('#d-av').textContent=l.symbol.slice(0,2); $('#d-name').innerHTML=`${l.name} <span style="color:var(--dim)">$${l.symbol}</span>`; $('#d-mint').textContent=short(l.mint.toBase58()); $('#d-mint').href=explorer(l.mint.toBase58()); $('#d-launch').textContent=short(l.pubkey.toBase58()); $('#d-launch').href=explorer(l.pubkey.toBase58());
+async function renderDetail(){ const l=current; if(!l) return; const ph=phaseOf(l); const [lbl]=PH[ph]; const P=pairSym(l), dec=l.pairDecimals, unit=10**dec;
+  $('#d-av').textContent=l.symbol.slice(0,2); $('#d-name').innerHTML=`${l.name} <span style="color:var(--dim)">$${l.symbol}</span> <span class="tag" style="font-size:11px;vertical-align:middle">PAIRED WITH ${P}</span>`; $('#d-mint').textContent=short(l.mint.toBase58()); $('#d-mint').href=explorer(l.mint.toBase58()); $('#d-launch').textContent=short(l.pubkey.toBase58()); $('#d-launch').href=explorer(l.pubkey.toBase58());
   $('#d-phase').textContent=lbl;
   const steps=['SEALED BATCH','REVEAL','SETTLE','TRADE']; const idx={batch:0,reveal:1,settle:2,live:3,empty:3}[ph]; $('#phase').innerHTML=steps.map((s,i)=>`<div class="${i===idx?'on':i<idx?'done':''}">${i+1} · ${s}</div>`).join('');
-  const price=l.settled&&l.poolTokens>0n?Number(l.poolSol)/Number(l.poolTokens):0; const clearing=l.clearingPriceQ32>0n?R.priceFromQ32(l.clearingPriceQ32):0;
-  $('#d-rows').innerHTML=[['creator',short(l.creator.toBase58())+' · 0% allocation'],['batch window',new Date(l.startTs*1000).toLocaleTimeString('en-GB')+' → '+new Date(l.endTs*1000).toLocaleTimeString('en-GB')],['reveal window ends',new Date(l.revealEndTs*1000).toLocaleTimeString('en-GB')],['sealed bids',l.bids+' wallets · one per wallet'],['revealed',l.revealed+' · '+fmtSol(l.totalRevealedLamports)],['clearing price',clearing?(clearing*1e6/LAMPORTS_PER_SOL).toFixed(9)+' SOL / token':'— (set at settle)'],['creator fee share',(l.creatorFeeBps/100)+'% of fees'],['fees accrued',fmtSol(l.feeLamports)]].map(r=>`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
-  $('#d-pool').innerHTML=l.settled?`<div>SOL in pool<b>${fmtSol(l.poolSol)}</b></div><div>tokens in pool<b>${fmtTok(l.poolTokens)}</b></div><div>spot price<b class="g">${price?(price*1e6/LAMPORTS_PER_SOL).toFixed(9):'—'} SOL</b></div>`:`<div>status<b>seeds at settle</b></div><div>will receive<b>${fmtTok(200000000000000n)} tokens</b></div><div>plus<b>all raised SOL</b></div>`;
+  const px=tokPrice(l); const clearing=l.clearingPriceQ32>0n?R.priceFromQ32(l.clearingPriceQ32):0; // pair base units per token base unit
+  $('#d-rows').innerHTML=[['pairing asset',`${P} · <a href="${explorer(l.pairMint.toBase58())}" target="_blank" rel="noopener">${short(l.pairMint.toBase58())}</a> · ${l.pairTokenProgram.equals(R.TOKEN22)?'Token-2022':'SPL Token'}`],['creator',short(l.creator.toBase58())+' · 0% allocation'],['batch window',new Date(l.startTs*1000).toLocaleTimeString('en-GB')+' → '+new Date(l.endTs*1000).toLocaleTimeString('en-GB')],['reveal window ends',new Date(l.revealEndTs*1000).toLocaleTimeString('en-GB')],['minimum bid',fmtPair(l,l.minBid)],['sealed bids',l.bids+' wallets · one per wallet'],['revealed',l.revealed+' · '+fmtPair(l,l.totalRevealed)],['clearing price',clearing?fmtPx(l,clearing*1e6/unit)+' / token':'— (set at settle)'],['creator fee share',(l.creatorFeeBps/100)+'% of fees'],['fees accrued',fmtPair(l,l.feesAccrued)],['creator fees owed · claimed',fmtPair(l,l.creatorFeesOwed)+' · '+fmtPair(l,l.creatorFeesClaimed)]].map(r=>`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+  $('#d-pool').innerHTML=l.settled?`<div>${P} in pool<b>${fmtPair(l,l.poolPair)}</b></div><div>tokens in pool<b>${fmtTok(l.poolTokens)}</b></div><div>spot price<b class="g">${fmtPx(l,px)}</b></div>`:`<div>status<b>seeds at settle</b></div><div>will receive<b>${fmtTok(200000000000000n)} tokens</b></div><div>plus<b>all ${P} raised</b></div>`;
   // actions
   const A=$('#actions'); $('#d-you').textContent=pubkey?short(pubkey.toBase58()):'not connected';
   if(!pubkey){ A.innerHTML='<p class="note">Connect a wallet to bid, reveal, settle, claim or trade.</p>'; return; }
-  const bid=await R.fetchBid(conn,l.mint,pubkey); const local=JSON.parse(localStorage.getItem(bidKey(l))||'null');
-  let html='';
-  if(ph==='batch'){ if(bid){ html+=`<div class="row"><span>your sealed bid</span><b class="g">committed · deposit ${fmtSol(bid.deposit)}</b></div><p class="note" style="margin-top:8px">Amount is hidden on chain${local?' and saved in this browser for the reveal.':'. ⚠ No salt found in this browser — reveal from the device you bid on.'}</p>`; }
-    else { html+=`<div class="f"><label>bid (SOL)</label><input id="b-amt" type="number" min="0.01" step="0.01" placeholder="0.50"></div><div class="f"><label>extra deposit</label><select id="b-extra"><option value="0">none (bid is guessable)</option><option value="25" selected>+25% (hides amount)</option><option value="50">+50%</option><option value="100">+100%</option></select></div><p class="note" style="margin:8px 0">You escrow bid + extra. The extra comes back at claim. Only hash(amount, salt) is stored on chain until you reveal.</p><div class="act"><button class="btn solid" id="b-go">commit sealed bid</button></div>`; } }
-  if(ph==='reveal'){ if(!bid) html+='<p class="note">You did not bid in this batch.</p>'; else if(bid.revealed) html+=`<div class="row"><span>revealed</span><b class="g">${fmtSol(bid.amount)}</b></div><p class="note" style="margin-top:8px">Wait for the reveal window to close, then anyone can settle.</p>`; else if(local) html+=`<div class="row"><span>your bid</span><b>${fmtSol(local.amount)} · deposit ${fmtSol(bid.deposit)}</b></div><div class="act"><button class="btn solid" id="r-go">reveal bid</button></div>`; else html+='<div class="warn">Bid found on chain but no salt in this browser. Unrevealed bids are excluded and fully refunded at claim.</div>'; }
+  const [bid,pbal]=await Promise.all([R.fetchBid(conn,l.mint,pubkey),pairBalance(l)]); const local=JSON.parse(localStorage.getItem(bidKey(l))||'null');
+  const minBid=Number(l.minBid)/unit;
+  let html=`<div class="row"><span>your ${P} balance</span><b>${fmtPair(l,pbal)}</b></div>`;
+  if(!isNative(l)&&pbal===0n) html+=`<div class="warn">You hold no ${P} in this wallet. ${l.pairMint.toBase58()==='4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'?'Get devnet USDC at <a href="https://spl-token-faucet.com" target="_blank" rel="noopener">spl-token-faucet.com</a>.':'Get some first.'}</div>`;
+  if(ph==='batch'){ if(bid){ html+=`<div class="row"><span>your sealed bid</span><b class="g">committed · deposit ${fmtPair(l,bid.deposit)}</b></div><p class="note" style="margin-top:8px">Amount is hidden on chain${local?' and saved in this browser for the reveal.':'. ⚠ No salt found in this browser — reveal from the device you bid on.'}</p>`; }
+    else { html+=`<div class="f"><label>bid (${P})</label><input id="b-amt" type="number" min="${minBid}" step="${minBid}" placeholder="${(minBid*50).toLocaleString('en-US',{maximumFractionDigits:6})}"></div><div class="f"><label>extra deposit</label><select id="b-extra"><option value="0">none (bid is guessable)</option><option value="25" selected>+25% (hides amount)</option><option value="50">+50%</option><option value="100">+100%</option></select></div><p class="note" style="margin:8px 0">You escrow bid + extra in ${P}${isNative(l)?' (SOL is wrapped and unwrapped for you in the same transaction)':''}. The extra comes back at claim. Only hash(amount, salt) is stored on chain until you reveal.</p><div class="act"><button class="btn solid" id="b-go">commit sealed bid</button></div>`; } }
+  if(ph==='reveal'){ if(!bid) html+='<p class="note">You did not bid in this batch.</p>'; else if(bid.revealed) html+=`<div class="row"><span>revealed</span><b class="g">${fmtPair(l,bid.amount)}</b></div><p class="note" style="margin-top:8px">Wait for the reveal window to close, then anyone can settle.</p>`; else if(local) html+=`<div class="row"><span>your bid</span><b>${fmtPair(l,local.amount)} · deposit ${fmtPair(l,bid.deposit)}</b></div><div class="act"><button class="btn solid" id="r-go">reveal bid</button></div>`; else html+='<div class="warn">Bid found on chain but no salt in this browser. Unrevealed bids are excluded and fully refunded at claim.</div>'; }
   if(ph==='settle'){ html+=`<p class="note">Reveal window closed. Anyone can settle: one clearing price, pool seeds and seals.</p><div class="act"><button class="btn solid" id="s-go">settle launch</button></div>`; }
-  if(ph==='live'||ph==='empty'){ if(bid&&!bid.claimed){ const tok=bid.revealed&&clearing?Number(bid.amount)/clearing:0; html+=`<div class="row"><span>your claim</span><b class="g">${tok?fmtTok(tok)+' tokens':'—'} + refund ${fmtSol(bid.revealed?bid.deposit-bid.amount:bid.deposit)}</b></div><div class="act"><button class="btn solid" id="cl-go">claim</button></div>`; } else if(bid) html+='<div class="row"><span>your claim</span><b>done</b></div>';
-    if(ph==='live'){ html+=`<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:10px"><div class="f"><label>buy with SOL</label><input id="sw-sol" type="number" min="0.001" step="0.001" placeholder="0.10"></div><div class="row"><span>you receive ≈</span><b id="sw-q1">—</b></div><div class="act"><button class="btn solid" id="sw-buy">buy</button></div>
-      <div class="f" style="margin-top:8px"><label>sell tokens</label><input id="sw-tok" type="number" min="1" step="1" placeholder="1000"></div><div class="row"><span>you receive ≈</span><b id="sw-q2">—</b></div><div class="act"><button class="btn red" id="sw-sell">sell</button></div><p class="note" style="margin-top:8px">1% fee on the SOL side goes to the fee vault. Max 1% slippage.</p></div>`; } }
+  if(ph==='live'||ph==='empty'){ if(bid&&!bid.claimed){ const tok=bid.revealed&&clearing?Number(bid.amount)/clearing:0; html+=`<div class="row"><span>your claim</span><b class="g">${tok?fmtTok(tok)+' tokens':'—'} + refund ${fmtPair(l,bid.revealed?bid.deposit-bid.amount:bid.deposit)}</b></div><div class="act"><button class="btn solid" id="cl-go">claim</button></div>`; } else if(bid) html+='<div class="row"><span>your claim</span><b>done</b></div>';
+    if(ph==='live'){ html+=`<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:10px"><div class="f"><label>buy with ${P}</label><input id="sw-pair" type="number" min="0" step="any" placeholder="${(minBid*10).toLocaleString('en-US',{maximumFractionDigits:6})}"></div><div class="row"><span>you receive ≈</span><b id="sw-q1">—</b></div><div class="act"><button class="btn solid" id="sw-buy">buy</button></div>
+      <div class="f" style="margin-top:8px"><label>sell tokens</label><input id="sw-tok" type="number" min="1" step="1" placeholder="1000"></div><div class="row"><span>you receive ≈</span><b id="sw-q2">—</b></div><div class="act"><button class="btn red" id="sw-sell">sell</button></div><p class="note" style="margin-top:8px">1% fee on the ${P} side goes to the fee vault. Max 1% slippage.</p></div>`; }
+    if(l.creator.equals(pubkey)&&l.creatorFeesOwed>0n) html+=`<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:10px"><div class="row"><span>your creator fees</span><b class="g">${fmtPair(l,l.creatorFeesOwed)}</b></div><div class="act"><button class="btn" id="cf-go">claim creator fees</button></div></div>`; }
   A.innerHTML=html;
   // handlers
   const cp=(ain,rin,rout)=>{ain=BigInt(ain);rin=BigInt(rin);rout=BigInt(rout);const nin=rin+ain;return rout-(rin*rout)/nin;};
-  $('#b-go')?.addEventListener('click',async e=>{e.preventDefault();try{ const amt=parseFloat($('#b-amt').value); if(!(amt>=0.01)) return say('Minimum bid 0.01 SOL'); const lam=BigInt(Math.round(amt*LAMPORTS_PER_SOL)); const extra=lam*BigInt($('#b-extra').value)/100n; const salt=R.randomSalt();
-    localStorage.setItem(bidKey(l),JSON.stringify({amount:lam.toString(),salt:Array.from(salt)})); say('Sign the sealed bid…'); const sig=await sendTx([await R.ixCommitBid({bidder:pubkey,mint:l.mint,lamports:lam,salt,deposit:lam+extra})]); log('sealed bid committed · '+sig.slice(0,12)+'…','ok'); say('Bid sealed. Come back after close to reveal.'); refreshBal(); loadLaunches(); }catch(e){ log('commit failed: '+(e.message||e),'err'); say('Bid failed: '+(e.message||e).slice(0,120)); }});
-  $('#r-go')?.addEventListener('click',async()=>{try{ const sig=await sendTx([await R.ixRevealBid({bidder:pubkey,mint:l.mint,lamports:BigInt(local.amount),salt:Uint8Array.from(local.salt)})]); log('bid revealed · '+sig.slice(0,12)+'…','ok'); say('Revealed.'); loadLaunches(); }catch(e){ log('reveal failed: '+(e.message||e),'err'); say('Reveal failed: '+(e.message||e).slice(0,120)); }});
-  $('#s-go')?.addEventListener('click',async()=>{try{ const sig=await sendTx([await R.ixSettle({mint:l.mint})]); log('settled · '+sig.slice(0,12)+'…','ok'); say('Settled. Pool is sealed.'); loadLaunches(); }catch(e){ log('settle failed: '+(e.message||e),'err'); say('Settle failed: '+(e.message||e).slice(0,120)); }});
-  $('#cl-go')?.addEventListener('click',async()=>{try{ const {ata,ix}=await ensureAta(l.mint); const ixs=[]; if(ix)ixs.push(ix); ixs.push(await R.ixClaim({bidder:pubkey,mint:l.mint,bidderToken:ata})); const sig=await sendTx(ixs); log('claimed · '+sig.slice(0,12)+'…','ok'); say('Claimed.'); refreshBal(); loadLaunches(); }catch(e){ log('claim failed: '+(e.message||e),'err'); say('Claim failed: '+(e.message||e).slice(0,120)); }});
-  $('#sw-sol')?.addEventListener('input',e=>{ const v=parseFloat(e.target.value)||0; const lam=BigInt(Math.round(v*LAMPORTS_PER_SOL)); const net=lam-lam/100n; const out=v>0?cp(net,l.poolSol,l.poolTokens):0n; $('#sw-q1').textContent=v>0?fmtTok(out)+' tokens':'—'; });
-  $('#sw-tok')?.addEventListener('input',e=>{ const v=parseFloat(e.target.value)||0; const t=BigInt(Math.round(v*1e6)); const g=v>0?cp(t,l.poolTokens,l.poolSol):0n; $('#sw-q2').textContent=v>0?fmtSol(g-g/100n):'—'; });
-  $('#sw-buy')?.addEventListener('click',async()=>{try{ const v=parseFloat($('#sw-sol').value); if(!(v>0)) return; const lam=BigInt(Math.round(v*LAMPORTS_PER_SOL)); const net=lam-lam/100n; const out=cp(net,l.poolSol,l.poolTokens); const {ata,ix}=await ensureAta(l.mint); const ixs=[]; if(ix)ixs.push(ix); ixs.push(await R.ixSwap({trader:pubkey,mint:l.mint,traderToken:ata,solForTokens:true,amountIn:lam,minOut:out*99n/100n})); const sig=await sendTx(ixs); log('bought · '+sig.slice(0,12)+'…','ok'); say('Bought.'); refreshBal(); loadLaunches(); }catch(e){ log('buy failed: '+(e.message||e),'err'); say('Buy failed: '+(e.message||e).slice(0,120)); }});
-  $('#sw-sell')?.addEventListener('click',async()=>{try{ const v=parseFloat($('#sw-tok').value); if(!(v>0)) return; const t=BigInt(Math.round(v*1e6)); const g=cp(t,l.poolTokens,l.poolSol); const out=g-g/100n; const ata=spl.getAssociatedTokenAddressSync(l.mint,pubkey); const sig=await sendTx([await R.ixSwap({trader:pubkey,mint:l.mint,traderToken:ata,solForTokens:false,amountIn:t,minOut:out*99n/100n})]); log('sold · '+sig.slice(0,12)+'…','ok'); say('Sold.'); refreshBal(); loadLaunches(); }catch(e){ log('sell failed: '+(e.message||e),'err'); say('Sell failed: '+(e.message||e).slice(0,120)); }});
+  const base=v=>BigInt(Math.round(v*unit));
+  const fail=(what,e)=>{ log(what+' failed: '+(e.message||e),'err'); say(what+' failed: '+(e.message||e).slice(0,120)); };
+  const common={mint:l.mint,pairMint:l.pairMint,pairProg:pairProg(l)};
+  $('#b-go')?.addEventListener('click',async e=>{e.preventDefault();try{ const amt=parseFloat($('#b-amt').value); if(!(amt>=minBid)) return say('Minimum bid '+fmtPair(l,l.minBid)); const amount=base(amt); const extra=amount*BigInt($('#b-extra').value)/100n; const deposit=amount+extra; if(deposit>pbal) return say('Not enough '+P+' in your wallet.'); const salt=R.randomSalt();
+    localStorage.setItem(bidKey(l),JSON.stringify({amount:amount.toString(),salt:Array.from(salt)})); say('Sign the sealed bid…'); const sig=await sendTx([...prep(l,isNative(l)?deposit:0n),await R.ixCommitBid({bidder:pubkey,...common,amount,salt,deposit}),...unwrap(l)]); log('sealed bid committed · '+sig.slice(0,12)+'…','ok'); say('Bid sealed. Come back after close to reveal.'); refreshBal(); loadLaunches(); }catch(e){ fail('Bid',e); }});
+  $('#r-go')?.addEventListener('click',async()=>{try{ const sig=await sendTx([await R.ixRevealBid({bidder:pubkey,mint:l.mint,amount:BigInt(local.amount),salt:Uint8Array.from(local.salt)})]); log('bid revealed · '+sig.slice(0,12)+'…','ok'); say('Revealed.'); loadLaunches(); }catch(e){ fail('Reveal',e); }});
+  $('#s-go')?.addEventListener('click',async()=>{try{ const sig=await sendTx([await R.ixSettle(common)]); log('settled · '+sig.slice(0,12)+'…','ok'); say('Settled. Pool is sealed.'); loadLaunches(); }catch(e){ fail('Settle',e); }});
+  $('#cl-go')?.addEventListener('click',async()=>{try{ const sig=await sendTx([...prep(l),ataIx(l.mint),await R.ixClaim({bidder:pubkey,...common}),...unwrap(l)]); log('claimed · '+sig.slice(0,12)+'…','ok'); say('Claimed.'); refreshBal(); loadLaunches(); }catch(e){ fail('Claim',e); }});
+  $('#cf-go')?.addEventListener('click',async()=>{try{ const sig=await sendTx([...prep(l),await R.ixClaimCreatorFees({creator:pubkey,...common}),...unwrap(l)]); log('creator fees claimed · '+sig.slice(0,12)+'…','ok'); say('Creator fees claimed.'); refreshBal(); loadLaunches(); }catch(e){ fail('Fee claim',e); }});
+  $('#sw-pair')?.addEventListener('input',e=>{ const v=parseFloat(e.target.value)||0; const a=base(v); const net=a-a/100n; const out=v>0?cp(net,l.poolPair,l.poolTokens):0n; $('#sw-q1').textContent=v>0?fmtTok(out)+' tokens':'—'; });
+  $('#sw-tok')?.addEventListener('input',e=>{ const v=parseFloat(e.target.value)||0; const t=BigInt(Math.round(v*1e6)); const g=v>0?cp(t,l.poolTokens,l.poolPair):0n; $('#sw-q2').textContent=v>0?fmtPair(l,g-g/100n):'—'; });
+  $('#sw-buy')?.addEventListener('click',async()=>{try{ const v=parseFloat($('#sw-pair').value); if(!(v>0)) return; const a=base(v); if(a>pbal) return say('Not enough '+P+'.'); const net=a-a/100n; const out=cp(net,l.poolPair,l.poolTokens); const sig=await sendTx([...prep(l,isNative(l)?a:0n),ataIx(l.mint),await R.ixSwap({trader:pubkey,...common,pairForTokens:true,amountIn:a,minOut:out*99n/100n}),...unwrap(l)]); log('bought · '+sig.slice(0,12)+'…','ok'); say('Bought.'); refreshBal(); loadLaunches(); }catch(e){ fail('Buy',e); }});
+  $('#sw-sell')?.addEventListener('click',async()=>{try{ const v=parseFloat($('#sw-tok').value); if(!(v>0)) return; const t=BigInt(Math.round(v*1e6)); const g=cp(t,l.poolTokens,l.poolPair); const out=g-g/100n; const sig=await sendTx([...prep(l),await R.ixSwap({trader:pubkey,...common,pairForTokens:false,amountIn:t,minOut:out*99n/100n}),...unwrap(l)]); log('sold · '+sig.slice(0,12)+'…','ok'); say('Sold.'); refreshBal(); loadLaunches(); }catch(e){ fail('Sell',e); }});
 }
 
 // ---------- create ----------
 $('#c-fee').addEventListener('input',e=>$('#c-feev').textContent=e.target.value+'%');
 $('#c-sym').addEventListener('input',e=>e.target.value=e.target.value.replace(/[^a-z0-9]/gi,'').toUpperCase());
-$('#createForm').addEventListener('submit',async e=>{ e.preventDefault(); if(!pubkey) return say('Connect a wallet first.');
+$('#c-pair').addEventListener('change',e=>{ $('#c-pairmint').style.display=e.target.value==='custom'?'':'none'; checkPair(); });
+$('#c-pairmint').addEventListener('input',checkPair);
+let pairOk=null;
+async function checkPair(){ pairOk=null; const v=$('#c-pair').value; const addr=v==='custom'?$('#c-pairmint').value.trim():v; const info=$('#c-pairinfo'); if(!addr){ info.textContent='Paste a devnet mint address.'; return; }
+  try{ const pk=new PublicKey(addr); const pi=await R.pairInfo(conn,pk); pairOk={pk,...pi}; info.innerHTML=`✓ ${KNOWN[addr]||short(addr)} · ${pi.prog.equals(R.TOKEN22)?'Token-2022':'SPL Token'} · ${pi.decimals} decimals · minimum bid ${pi.decimals>=2?(10**-2).toFixed(2):'1'} units. Bids, pool, fees and rewards all in this asset.`; }
+  catch(e){ info.textContent='✗ '+(e.message||'not a valid mint on devnet'); } }
+checkPair();
+$('#createForm').addEventListener('submit',async e=>{ e.preventDefault(); if(!pubkey) return say('Connect a wallet first.'); if(!pairOk) return say('Pick a valid pairing asset.');
   const name=$('#c-name').value.trim(), sym=$('#c-sym').value.trim(), batch=parseInt($('#c-batch').value), fee=parseInt($('#c-fee').value)*100; if(!name||!sym) return say('Name and ticker required.');
-  const btn=$('#c-go'); btn.disabled=true; try{ const mintKp=Keypair.generate(); const {ata,ixs}=await R.ixsCreateFixedMint({connection:conn,payer:pubkey,mintKp}); ixs.push(await R.ixCreateLaunch({creator:pubkey,mint:mintKp.publicKey,creatorToken:ata,name,symbol:sym,batchSecs:batch,creatorFeeBps:fee}));
-    say('Sign to create the mint and open the batch…'); const sig=await sendTx(ixs,[mintKp]); log(`launch $${sym} created · mint ${mintKp.publicKey.toBase58()} · ${sig.slice(0,12)}…`,'ok'); say('Launch is live. Sealed batch open.'); refreshBal(); await loadLaunches(); current=launches.find(l=>l.mint.equals(mintKp.publicKey))||null; if(current) openDetail(); }
+  const btn=$('#c-go'); btn.disabled=true; try{ const mintKp=Keypair.generate(); const {ata,ixs}=await R.ixsCreateFixedMint({connection:conn,payer:pubkey,mintKp}); ixs.push(await R.ixCreateLaunch({creator:pubkey,mint:mintKp.publicKey,pairMint:pairOk.pk,pairProg:pairOk.prog,creatorToken:ata,name,symbol:sym,batchSecs:batch,creatorFeeBps:fee}));
+    say('Sign to create the mint and open the batch…'); const sig=await sendTx(ixs,[mintKp]); log(`launch $${sym} paired with ${KNOWN[pairOk.pk.toBase58()]||short(pairOk.pk.toBase58())} · mint ${mintKp.publicKey.toBase58()} · ${sig.slice(0,12)}…`,'ok'); say('Launch is live. Sealed batch open.'); refreshBal(); await loadLaunches(); current=launches.find(l=>l.mint.equals(mintKp.publicKey))||null; if(current) openDetail(); }
   catch(err){ log('create failed: '+(err.message||err),'err'); say('Create failed: '+(err.message||err).slice(0,140)); } finally{ btn.disabled=false; } });
 
 // ---------- tick ----------

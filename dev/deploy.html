@@ -83,8 +83,14 @@ document.getElementById('b2').onclick = async () => {
 };
 document.getElementById('b5').onclick = async () => {
   try {
-    const elf = await fetchElf(); const bufferPk = await writeBuffer(elf);
+    const elf = await fetchElf();
     const [programData] = PublicKey.findProgramAddressSync([PROGRAM_KP.publicKey.toBuffer()], LOADER);
+    const pd = await conn.getAccountInfo(programData); const have = pd.data.length - 45; // 45-byte programdata header
+    if (have < elf.length) { const add = elf.length - have + 32768; log('programdata too small (' + have + ' < ' + elf.length + ') — extending by', add, 'bytes');
+      const ext = new Transaction().add(new TransactionInstruction({ programId: LOADER, data: cat(u32(6), u32(add)), keys: [
+        { pubkey: programData, isSigner: false, isWritable: true }, { pubkey: PROGRAM_KP.publicKey, isSigner: false, isWritable: true }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, { pubkey: payer.publicKey, isSigner: true, isWritable: true }] }));
+      log('EXTENDED', await sendAndConfirmTransaction(conn, ext, [payer])); }
+    const bufferPk = await writeBuffer(elf);
     const tx = new Transaction().add(new TransactionInstruction({ programId: LOADER, data: u32(3), keys: [
       { pubkey: programData, isSigner: false, isWritable: true }, { pubkey: PROGRAM_KP.publicKey, isSigner: false, isWritable: true }, { pubkey: bufferPk, isSigner: false, isWritable: true }, { pubkey: payer.publicKey, isSigner: false, isWritable: true },
       { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }, { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, { pubkey: payer.publicKey, isSigner: true, isWritable: false }] }));
@@ -100,7 +106,7 @@ document.getElementById('b4').onclick = async () => {
     const R = makeRsrct(solanaWeb3, splToken, PROGRAM_KP.publicKey.toBase58());
     const mintKp = Keypair.generate(); const { ata, ixs } = await R.ixsCreateFixedMint({ connection: conn, payer: payer.publicKey, mintKp });
     await sendAndConfirmTransaction(conn, new Transaction().add(...ixs), [payer, mintKp]); log('fixed mint', mintKp.publicKey.toBase58());
-    await sendAndConfirmTransaction(conn, new Transaction().add(await R.ixCreateLaunch({ creator: payer.publicKey, mint: mintKp.publicKey, creatorToken: ata, name: 'Resurrect the Trenches', symbol: 'TRENCH', batchSecs: 900, creatorFeeBps: 500 })), [payer]);
+    await sendAndConfirmTransaction(conn, new Transaction().add(await R.ixCreateLaunch({ creator: payer.publicKey, mint: mintKp.publicKey, pairMint: splToken.NATIVE_MINT, pairProg: splToken.TOKEN_PROGRAM_ID, creatorToken: ata, name: 'Resurrect the Trenches', symbol: 'TRENCH', batchSecs: 900, creatorFeeBps: 500 })), [payer]);
     const L = await R.fetchLaunch(conn, mintKp.publicKey); log('LAUNCH LIVE ✅', L.pubkey.toBase58(), L.symbol, 'ends', new Date(L.endTs * 1000).toISOString());
   } catch (e) { log('ERROR', e.message, e.logs ? e.logs.join('\n') : ''); }
 };
