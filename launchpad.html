@@ -357,6 +357,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
       <div class="seg" id="sort"><button class="on" data-s="fdv">FDV</button><button data-s="recent">Recent</button><button data-s="vol">24h volume</button></div>
       <input class="search" id="q" placeholder="search ticker, name, pairing asset">
     </div>
+    <div id="livegrid" style="display:none;margin-bottom:18px"><h4 style="font-weight:400;font-size:12px;color:var(--green);letter-spacing:.1em;margin-bottom:10px">● LIVE ON DEVNET · real launches, read from the program</h4><div class="grid" id="livelist"></div><h4 style="font-weight:400;font-size:12px;color:var(--dim);letter-spacing:.1em;margin:18px 0 10px">SIMULATED · what a busy day looks like</h4></div>
     <div class="grid" id="list"></div>
     <div class="more"><button class="btn ghost sm" id="more">show more tokens</button></div>
 
@@ -783,6 +784,14 @@ window.addEventListener('load',async()=>{
     $('#an1').textContent=fSol(feesSol); $('#an1l').textContent='fees collected · SOL-paired launches'+(other?` (+${other} launches in other assets)`:'');
     $('#an2').textContent=fSol(paidSol); $('#an3').textContent='0'; $('#an3l').textContent='RSRCT burned · token not launched yet'; $('#an4').textContent='0'; $('#an4l').textContent='trader airdrops · not live yet';
     $('#an5').textContent=Ls.length; $('#an6').textContent=grad; $('#an7').textContent=Ls.filter(l=>l.requireHuman).length; $('#an7l').textContent='launches requiring a human pass'; $('#an8').textContent='0';
+    // real launches strip
+    const KN={'So11111111111111111111111111111111111111112':'SOL','4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU':'USDC'}; const ps=l=>KN[l.pairMint.toBase58()]||(l.pairMint.toBase58().slice(0,4)+'…');
+    const PHL={batch:['SEALED BATCH','live'],reveal:['REVEAL WINDOW','bond'],settle:['READY TO SETTLE','bond'],live:['TRADING · POOL SEALED','grad'],empty:['NO BIDS','']};
+    const phase=l=>!l.settled?(now<l.endTs?'batch':now<l.revealEndTs?'reveal':'settle'):(l.poolTokens>0n?'live':'empty');
+    const fp=(l,v)=>(Number(v)/10**l.pairDecimals).toLocaleString('en-US',{maximumFractionDigits:4})+' '+ps(l);
+    if(Ls.length){ $('#livegrid').style.display=''; $('#livelist').innerHTML=Ls.sort((a,b)=>b.startTs-a.startTs).slice(0,6).map(l=>{const ph=phase(l);const [lbl,cls]=PHL[ph];const px=l.settled&&l.poolTokens>0n?Number(l.poolPair)/Number(l.poolTokens)*1e6/10**l.pairDecimals:0;
+      return `<a class="tk" href="app.html" style="text-decoration:none;color:inherit"><div class="top"><div class="av">${l.symbol.slice(0,2)}</div><div class="nm"><b>$${l.symbol}</b><span>${l.name} · <span style="color:var(--green)">paired with ${ps(l)}</span></span></div><span class="chip ${cls}">${lbl}</span></div>
+        <div class="kv"><div>${ph==='batch'?'sealed bids':ph==='live'?'pool':'raised'}<b>${ph==='batch'?l.bids+' wallets':ph==='live'?fp(l,l.poolPair):fp(l,l.totalRevealed)}</b></div><div>${ph==='live'?'spot price':'proof of personhood'}<b>${ph==='live'?px.toPrecision(3)+' '+ps(l):(l.requireHuman?'required':'open')}</b></div></div></a>`;}).join(''); }
     src.innerHTML='live · read from the devnet program just now · <a href="app.html" style="color:var(--green)">open the app ↗</a>';
     const burns=document.querySelector('.burns'); if(burns) burns.innerHTML='<p class="note" style="margin-top:16px">Buyback &amp; burn starts with the RSRCT token. Nothing to show yet — and nothing to fake.</p>';
   }catch(e){ src.textContent='simulated preview · devnet unreachable right now'; }

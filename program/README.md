@@ -47,3 +47,15 @@ Passes are issued by Civic (getpass.civic.com); the launchpad never sees identit
 ## Not yet
 - Independent audit — **required before any mainnet deployment**
 - Upgrade authority → multisig, then freeze
+
+## Upgrade authority → multisig → frozen (mainnet runbook)
+```bash
+# 1. after deploying to mainnet with the same program keypair:
+solana program show 5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t -u m
+# 2. hand the upgrade authority to a Squads vault (create the vault at app.squads.so first)
+solana program set-upgrade-authority 5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t \
+  --new-upgrade-authority <SQUADS_VAULT_PDA> --skip-new-upgrade-authority-signer-check -u m -k <current-authority.json>
+# 3. after the audit, make the program immutable (irreversible):
+solana program set-upgrade-authority 5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t --final -u m   # signed through Squads
+```
+Until step 3, the upgrade authority is the single trust assumption of the system and must be disclosed on the site.
