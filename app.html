@@ -80,7 +80,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
       <div class="dgrid">
         <div>
           <div class="box"><h4>STATE <i id="d-phase" class="on"></i></h4><div class="rows" id="d-rows"></div></div>
-          <div class="box" style="margin-top:14px"><h4>POOL · SEALED, PROGRAM-OWNED, NO WITHDRAW INSTRUCTION</h4><div class="big" id="d-pool"></div><p class="note" style="margin-top:10px">20% of supply + all of the pairing asset raised in the batch seed a constant-product pool inside the program. There is no instruction that can remove it. 1% fee on every swap accrues to the fee vault.</p></div>
+          <div class="box" style="margin-top:14px"><h4>POOL · SEALED, PROGRAM-OWNED, NO WITHDRAW INSTRUCTION</h4><div class="big" id="d-pool"></div><div id="d-chart" style="margin-top:12px;display:none"><h4 style="margin:6px 0">PRICE · <span id="d-chartn"></span> swaps read from transaction history <i id="d-chartlast" style="font-style:normal;color:var(--dim)"></i></h4><canvas id="d-canvas" width="640" height="160" style="width:100%;height:160px;display:block;background:#000;border:1px solid var(--line)"></canvas><div class="rows" id="d-trades" style="font-size:12px;margin-top:8px"></div></div><p class="note" style="margin-top:10px">20% of supply + all of the pairing asset raised in the batch seed a constant-product pool inside the program. There is no instruction that can remove it. 1% fee on every swap accrues to the fee vault.</p></div>
         </div>
         <div>
           <div class="box" id="actbox"><h4>YOUR ACTIONS <i id="d-you"></i></h4><div id="actions"></div></div>
@@ -209,6 +209,7 @@ async function renderDetail(){ const l=current; if(!l) return; const ph=phaseOf(
   const px=tokPrice(l); const clearing=l.clearingPriceQ32>0n?R.priceFromQ32(l.clearingPriceQ32):0; // pair base units per token base unit
   $('#d-rows').innerHTML=[['pairing asset',`${P} · <a href="${explorer(l.pairMint.toBase58())}" target="_blank" rel="noopener">${short(l.pairMint.toBase58())}</a> · ${l.pairTokenProgram.equals(R.TOKEN22)?'Token-2022':'SPL Token'}`],['creator',short(l.creator.toBase58())+' · 0% allocation'],['batch window',new Date(l.startTs*1000).toLocaleTimeString('en-GB')+' → '+new Date(l.endTs*1000).toLocaleTimeString('en-GB')],['reveal window ends',new Date(l.revealEndTs*1000).toLocaleTimeString('en-GB')],['minimum bid',fmtPair(l,l.minBid)],['sealed bids',l.bids+' wallets · one per wallet'],['revealed',l.revealed+' · '+fmtPair(l,l.totalRevealed)],['clearing price',clearing?fmtPx(l,clearing*1e6/unit)+' / token':'— (set at settle)'],['creator fee share',(l.creatorFeeBps/100)+'% of fees'],['fees accrued',fmtPair(l,l.feesAccrued)],['creator fees owed · claimed',fmtPair(l,l.creatorFeesOwed)+' · '+fmtPair(l,l.creatorFeesClaimed)]].map(r=>`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
   $('#d-pool').innerHTML=l.settled?`<div>${P} in pool<b>${fmtPair(l,l.poolPair)}</b></div><div>tokens in pool<b>${fmtTok(l.poolTokens)}</b></div><div>spot price<b class="g">${fmtPx(l,px)}</b></div>`:`<div>status<b>seeds at settle</b></div><div>will receive<b>${fmtTok(200000000000000n)} tokens</b></div><div>plus<b>all ${P} raised</b></div>`;
+  renderHistory(l);
   // actions
   const A=$('#actions'); $('#d-you').textContent=pubkey?short(pubkey.toBase58()):'not connected';
   if(!pubkey){ A.innerHTML='<p class="note">Connect a wallet to bid, reveal, settle, claim or trade.</p>'; return; }
@@ -251,6 +252,27 @@ async function renderDetail(){ const l=current; if(!l) return; const ph=phaseOf(
   $('#sw-buy')?.addEventListener('click',async()=>{try{ const v=parseFloat($('#sw-pair').value); if(!(v>0)) return; const a=base(v); if(a>pbal) return say('Not enough '+P+'.'); const net=a-a/100n; const out=cp(net,l.poolPair,l.poolTokens); const sig=await sendTx([...prep(l,isNative(l)?a:0n),ataIx(l.mint),await R.ixSwap({trader:pubkey,...common,pairForTokens:true,amountIn:a,minOut:out*99n/100n}),...unwrap(l)]); log('bought · '+sig.slice(0,12)+'…','ok'); say('Bought.'); refreshBal(); loadLaunches(); }catch(e){ fail('Buy',e); }});
   $('#sw-sell')?.addEventListener('click',async()=>{try{ const v=parseFloat($('#sw-tok').value); if(!(v>0)) return; const t=BigInt(Math.round(v*1e6)); const g=cp(t,l.poolTokens,l.poolPair); const out=g-g/100n; const sig=await sendTx([...prep(l),await R.ixSwap({trader:pubkey,...common,pairForTokens:false,amountIn:t,minOut:out*99n/100n}),...unwrap(l)]); log('sold · '+sig.slice(0,12)+'…','ok'); say('Sold.'); refreshBal(); loadLaunches(); }catch(e){ fail('Sell',e); }});
 }
+
+// ---------- swap history (no indexer: parse Anchor events from the launch's transactions) ----------
+const HIST={}; let evDisc=null;
+async function eventDisc(){ if(!evDisc){ const b=new TextEncoder().encode('event:Swapped'); evDisc=new Uint8Array(await crypto.subtle.digest('SHA-256',b)).slice(0,8); } return evDisc; }
+function b64(s){ const bin=atob(s); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
+async function loadHistory(l){ const key=l.pubkey.toBase58(); if(HIST[key]&&Date.now()-HIST[key].t<20000) return HIST[key].rows; const d=await eventDisc();
+  const sigs=await conn.getSignaturesForAddress(l.pubkey,{limit:60}); const rows=[];
+  const txs=await Promise.all(sigs.slice(0,40).map(sg=>conn.getTransaction(sg.signature,{maxSupportedTransactionVersion:0,commitment:'confirmed'}).catch(()=>null)));
+  txs.forEach((tx,i)=>{ if(!tx||!tx.meta||tx.meta.err) return; for(const line of tx.meta.logMessages||[]){ if(!line.startsWith('Program data: ')) continue; const u=b64(line.slice(14)); if(u.length<8+64+32||!d.every((x,j)=>u[j]===x)) continue; const dv=new DataView(u.buffer,u.byteOffset); let o=8+32; const trader=new PublicKey(u.slice(o,o+32)); o+=32; const pairIn=dv.getBigUint64(o,true), tokensOut=dv.getBigUint64(o+8,true), tokensIn=dv.getBigUint64(o+16,true), pairOut=dv.getBigUint64(o+24,true);
+    rows.push({t:tx.blockTime||sigs[i].blockTime,i,sig:sigs[i].signature,trader,buy:pairIn>0n,pair:pairIn>0n?pairIn:pairOut,tok:pairIn>0n?tokensOut:tokensIn}); } });
+  rows.sort((a,b)=>a.t-b.t||b.i-a.i); HIST[key]={t:Date.now(),rows}; return rows; }
+function drawChart(l,rows){ const c=$('#d-canvas'); const g=c.getContext('2d'); const W=c.width,H=c.height; g.clearRect(0,0,W,H); g.fillStyle='#000'; g.fillRect(0,0,W,H);
+  const unit=10**l.pairDecimals; const pts=rows.map(r=>Number(r.pair)/unit/(Number(r.tok)/1e6)); const now=tokPrice(l); if(now) pts.push(now); if(pts.length<2){ pts.unshift(pts[0]||0); }
+  const mn=Math.min(...pts),mx=Math.max(...pts); const pad=(mx-mn)||mx*0.1||1; const y=v=>H-8-((v-mn)/(pad))*(H-16); const x=i=>8+i*(W-16)/Math.max(1,pts.length-1);
+  g.strokeStyle='rgba(74,227,138,.15)'; for(let i=1;i<4;i++){ g.beginPath(); g.moveTo(0,H*i/4); g.lineTo(W,H*i/4); g.stroke(); }
+  const up=pts[pts.length-1]>=pts[0]; g.strokeStyle=up?'#4AE38A':'#FF4747'; g.lineWidth=2; g.shadowColor=g.strokeStyle; g.shadowBlur=8; g.beginPath(); pts.forEach((v,i)=>i?g.lineTo(x(i),y(v)):g.moveTo(x(i),y(v))); g.stroke(); g.shadowBlur=0;
+  g.fillStyle='#5F7A6C'; g.font='11px Share Tech Mono, monospace'; g.fillText(mx.toPrecision(3),10,14); g.fillText(mn.toPrecision(3),10,H-12); }
+async function renderHistory(l){ const box=$('#d-chart'); if(!l.settled||l.poolTokens===0n){ box.style.display='none'; return; } box.style.display='';
+  try{ const rows=await loadHistory(l); $('#d-chartn').textContent=rows.length; $('#d-chartlast').textContent=rows.length?'last '+new Date(rows[rows.length-1].t*1000).toLocaleTimeString('en-GB'):'no swaps yet'; drawChart(l,rows);
+    $('#d-trades').innerHTML=rows.slice(-8).reverse().map(r=>`<div class="row"><span>${new Date(r.t*1000).toLocaleTimeString('en-GB')} · ${short(r.trader.toBase58())}</span><b class="${r.buy?'g':'r'}">${r.buy?'BUY':'SELL'} ${fmtTok(r.tok)} for ${fmtPair(l,r.pair)} · <a href="${explorer(r.sig,'tx')}" target="_blank" rel="noopener">tx</a></b></div>`).join('')||'<div class="row"><span>no trades yet</span><b>be the first</b></div>'; }
+  catch(e){ $('#d-chartlast').textContent='history unavailable: '+(e.message||e).slice(0,60); } }
 
 // ---------- profile ----------
 async function renderProfile(){ const who=$('#p-who'); if(!pubkey){ who.textContent='connect a wallet'; return; } who.textContent=short(pubkey.toBase58());
