@@ -329,7 +329,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   <section class="hero">
     <div>
       <h1>Launch coins on top of real assets. <b>Without the insiders.</b></h1>
-      <p>Pair your coin with SOL, USDC or any of 250+ real assets: tokenized stocks, pre-IPO tokens, indexes, commodities. Every launch opens as a sealed 15-minute batch where everyone pays one price, then trades on a curve, then graduates to liquidity nobody can pull. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
+      <p>Pair your coin with SOL, USDC or any of 2,400+ real assets: xStocks, Ondo tokenized stocks and ETFs, Sunrise stocks, pre-IPO tokens, indexes, commodities. Every launch opens as a sealed 15-minute batch where everyone pays one price, then trades on a curve, then graduates to liquidity nobody can pull. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
       <div class="cta" style="margin-top:14px;gap:6px" id="heroast"></div>
       <div class="cta"><a class="btn solid" href="#create">Launch a coin</a><a class="btn" href="#launches">Browse launches</a></div>
     </div>
@@ -436,7 +436,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
         <p class="note" style="margin:0 0 10px">Your coin trades against this asset. Fees and holder rewards are paid in it.</p>
         <div class="picker">
           <div class="pk-list">
-            <div class="pk-search"><span>⌕</span><input id="pk-q" placeholder="search 252 assets · ticker, name or mint" autocomplete="off"><kbd>↑↓ ⏎</kbd></div>
+            <div class="pk-search"><span>⌕</span><input id="pk-q" placeholder="search 2,400+ assets · ticker, name or mint" autocomplete="off"><kbd>↑↓ ⏎</kbd></div>
             <div class="cats" id="cats"></div>
             <div class="pk-pop"><span>POPULAR</span><div id="pk-pop"></div></div>
             <div class="pk-head"><span>asset</span><span>category</span><span class="r">price</span><span class="r">24h</span></div>
@@ -615,7 +615,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
   /* ---- pairing assets: real on-chain token metadata (symbol, name, mint, icon) ---- */
   const AS={}; // filled from js/assets.json (252 pairing assets)
-  const CATN={crypto:'Crypto',xstock:'xStock',sunrise:'Sunrise',prestock:'PreStock',tessera:'Tessera',basket:'Basket',commodity:'Commodity',leverage:'Leverage'};
+  const CATN={crypto:'Crypto',xstock:'xStock',ondo:'Ondo GM',sunrise:'Sunrise',prestock:'PreStock',tessera:'Tessera',basket:'Basket',commodity:'Commodity',leverage:'Leverage'};
   const ALIAS={TSLAx:'TSLA·XST',SPYx:'SPY·XST',NVDAx:'NVDA·XST',GLDx:'GOLD',AAPLx:'AAPL·XST',GOOGLx:'GOOGL·XST',METAx:'META·XST',MSFTx:'MSFT·XST',GMEx:'GME·XST'};
   const akey=s=>ALIAS[s]||s;
   const short=m=>m.slice(0,4)+'…'+m.slice(-4);
@@ -703,13 +703,13 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const visible=()=>Object.keys(AS).filter(k=>(cat==='all'||AS[k].c===cat)&&(!q||(AS[k].s+' '+AS[k].n+' '+AS[k].m).toLowerCase().includes(q)));
   function renderCats(){const cnt={all:Object.keys(AS).length};Object.values(AS).forEach(a=>cnt[a.c]=(cnt[a.c]||0)+1);
     $('#cats').innerHTML=['all',...Object.keys(CATN)].map(c=>`<button type="button" data-c="${c}" class="${c===cat?'on':''}">${c==='all'?'All':CATN[c]}<small>${cnt[c]||0}</small></button>`).join('');}
-  function renderAssets(){const v=visible();kb=-1;
+  function renderAssets(){const v0=visible();kb=-1;const v=v0.slice(0,300);fetchVisiblePrices(v);
     assets.innerHTML=v.length?v.map(k=>{const a=AS[k],p=PX[a.m]||{};return `<button type="button" class="pk-row ${k===anchor?'on':''}" data-a="${k}" role="option" aria-selected="${k===anchor}">
       <span class="id">${ast(k,'lg')}<span><b>${a.s}</b><small>${a.n}</small></span></span>
       <span class="cat">${CATN[a.c]}</span>
       <span class="r px">${fP(p.usdPrice)}</span>
       <span class="r ch">${fC(p.priceChange24h)}</span></button>`;}).join(''):`<div class="pk-empty">nothing matches “${q}”</div>`;
-    $('#pk-count').textContent=v.length+' of '+Object.keys(AS).length+' assets';
+    $('#pk-count').textContent=(v0.length>v.length?'showing '+v.length+' of ':'')+v0.length+' matches · '+Object.keys(AS).length+' assets';
     $$('#pk-pop button').forEach(b=>b.classList.toggle('on',b.dataset.a===anchor));}
   function renderSel(){const k=anchor,a=AS[k],p=PX[a.m]||{};
     const fee=a.f?`<div class="warn">⚠ ${a.f.replace('fee','fee on the underlying asset')}. Buyers of your coin never pay it; it applies only when ${a.s} itself moves.</div>`:'';
@@ -734,8 +734,10 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   $('#pk-q').addEventListener('input',e=>{q=e.target.value.trim().toLowerCase();renderAssets();});
   $('#pk-q').addEventListener('keydown',e=>{const rows=$$('.pk-row');if(!rows.length)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();kb=Math.max(0,Math.min(rows.length-1,kb+(e.key==='ArrowDown'?1:-1)));rows.forEach((r,i)=>r.classList.toggle('kb',i===kb));rows[kb].scrollIntoView({block:'nearest'});}
     else if(e.key==='Enter'){e.preventDefault();pick((rows[kb>=0?kb:0]).dataset.a);}});
-  async function loadPrices(){try{const ms=Object.values(AS).map(a=>a.m);for(let i=0;i<ms.length;i+=100){const j=await (await fetch('https://lite-api.jup.ag/price/v3?ids='+ms.slice(i,i+100).join(','))).json();Object.assign(PX,j);}renderAssets();renderSel();}catch(e){}}
-  fetch('js/assets.json').then(r=>r.json()).then(list=>{for(const a of list){AS[a.k]={s:a.s,n:a.n,m:a.m,c:a.c,f:a.f,i:'img/assets2/'+a.m+'.png'};}
+  const PXQ=new Set();let pxTimer=null;
+  function fetchVisiblePrices(keys){const need=keys.map(k=>AS[k].m).filter(m=>!PX[m]&&!PXQ.has(m)).slice(0,100);if(!need.length)return;need.forEach(m=>PXQ.add(m));clearTimeout(pxTimer);pxTimer=setTimeout(async()=>{try{const j=await (await fetch('https://lite-api.jup.ag/price/v3?ids='+need.join(','))).json();Object.assign(PX,j);need.forEach(m=>{if(!PX[m])PX[m]={};});renderAssets();renderSel();}catch(e){need.forEach(m=>PXQ.delete(m));}},250);}
+  async function loadPrices(){fetchVisiblePrices(visible().slice(0,100));if(anchor&&AS[anchor])fetchVisiblePrices([anchor]);}
+  fetch('js/assets.json').then(r=>r.json()).then(list=>{list.sort((x,y)=>(y.mc||0)-(x.mc||0));for(const a of list){AS[a.k]={s:a.s,n:a.n,m:a.m,c:a.c,f:a.f,mc:a.mc||0,i:a.i||('img/assets2/'+a.m+'.png')};}
     $('#pk-pop').innerHTML=POP.filter(k=>AS[k]).map(k=>`<button type="button" data-a="${k}">${ast(k)}${AS[k].s}</button>`).join('');
     renderCats();renderAssets();renderSel();renderHero();render();loadPrices();setInterval(loadPrices,60000);});
   $('#tk').addEventListener('input',e=>{e.target.value=e.target.value.replace(/[^a-z0-9]/gi,'').toUpperCase();$('#r-tk').textContent=e.target.value?'$'+e.target.value:'—';});
