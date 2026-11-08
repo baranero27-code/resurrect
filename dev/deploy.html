@@ -1,0 +1,101 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Resurrect · devnet deploy</title>
+<style>body{background:#03060A;color:#CFE6D8;font:14px/1.5 ui-monospace,Menlo,monospace;padding:24px;max-width:960px;margin:auto}button{font:inherit;padding:8px 14px;background:transparent;color:#4AE38A;border:1px solid #4AE38A;cursor:pointer;margin:4px 6px 4px 0}pre{background:#000;padding:12px;border:1px solid #223;white-space:pre-wrap;word-break:break-all;max-height:60vh;overflow:auto}b{color:#4AE38A}</style></head><body>
+<h2>Resurrect · devnet deploy console</h2>
+<div>program id: <b id="pid"></b> · payer: <b id="payer">—</b> · balance: <b id="bal">—</b></div>
+<div style="margin:10px 0"><button id="b1">1 · create payer + airdrop</button><button id="b2">2 · deploy program (.so)</button><button id="b3">3 · verify</button><button id="b4">4 · smoke test (mint + launch)</button><button id="b5">upgrade (rewrite buffer → upgrade)</button></div>
+<pre id="log"></pre>
+<script src="../js/rsrct-bundle.js"></script>
+<script>var PROGRAM_SECRET = (typeof PROGRAM_SECRET!=="undefined")?PROGRAM_SECRET:JSON.parse(localStorage.getItem("rsrct_program_secret")||"null");</script>
+<script>
+const { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, SYSVAR_RENT_PUBKEY, SYSVAR_CLOCK_PUBKEY, LAMPORTS_PER_SOL, sendAndConfirmTransaction } = solanaWeb3;
+const RPC = new URLSearchParams(location.search).get('rpc') || 'https://api.devnet.solana.com'; const conn = new Connection(RPC, 'confirmed');
+const LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
+if(!PROGRAM_SECRET){document.body.innerHTML='<p>no program key in localStorage</p>';throw new Error('no key');}
+const PROGRAM_KP = Keypair.fromSecretKey(Uint8Array.from(PROGRAM_SECRET));
+const log = (...a) => { const el = document.getElementById('log'); el.textContent += a.join(' ') + '\n'; el.scrollTop = el.scrollHeight; console.log(...a); };
+document.getElementById('pid').textContent = PROGRAM_KP.publicKey.toBase58();
+let payer = null;
+function loadPayer() { const s = localStorage.getItem('rsrct_devnet_payer'); if (s) { payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(s))); document.getElementById('payer').textContent = payer.publicKey.toBase58(); } }
+loadPayer();
+async function refreshBal() { if (!payer) return; const b = await conn.getBalance(payer.publicKey); document.getElementById('bal').textContent = (b / LAMPORTS_PER_SOL).toFixed(3) + ' SOL'; return b; }
+refreshBal();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function airdropUntil(target) {
+  let b = await refreshBal();
+  for (let i = 0; i < 12 && b < target * LAMPORTS_PER_SOL; i++) {
+    try { const sig = await conn.requestAirdrop(payer.publicKey, 2 * LAMPORTS_PER_SOL); await conn.confirmTransaction(sig, 'confirmed'); log('airdrop ok', sig.slice(0, 12)); }
+    catch (e) { log('airdrop failed:', e.message.slice(0, 120), '— retrying in 8s'); await sleep(8000); }
+    b = await refreshBal();
+  }
+  return b;
+}
+document.getElementById('b1').onclick = async () => {
+  if (!payer) { payer = Keypair.generate(); localStorage.setItem('rsrct_devnet_payer', JSON.stringify(Array.from(payer.secretKey))); loadPayer(); log('payer created', payer.publicKey.toBase58()); log('PAYER_SECRET_B58=' + bs58(payer.secretKey)); }
+  const b = await airdropUntil(6); log('balance', b / LAMPORTS_PER_SOL, 'SOL');
+};
+function bs58(bytes) { const A = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'; let x = 0n; for (const b of bytes) x = (x << 8n) | BigInt(b); let s = ''; while (x > 0n) { s = A[Number(x % 58n)] + s; x /= 58n; } return s; }
+const u32 = v => { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, v, true); return b; };
+const u64 = v => { const b = new Uint8Array(8); new DataView(b.buffer).setBigUint64(0, BigInt(v), true); return b; };
+const cat = (...a) => { const n = a.reduce((s, x) => s + x.length, 0), o = new Uint8Array(n); let p = 0; for (const x of a) { o.set(x, p); p += x.length; } return o; };
+async function fetchElf() { const r = await fetch('../program/resurrect.so?v=' + Date.now()); if (!r.ok) throw new Error('cannot fetch .so'); return new Uint8Array(await r.arrayBuffer()); }
+async function writeBuffer(elf) {
+  const buffer = Keypair.generate(); const bufLen = elf.length + 37;
+  const rent = await conn.getMinimumBalanceForRentExemption(bufLen);
+  const tx = new Transaction().add(
+    SystemProgram.createAccount({ fromPubkey: payer.publicKey, newAccountPubkey: buffer.publicKey, lamports: rent, space: bufLen, programId: LOADER }),
+    new TransactionInstruction({ programId: LOADER, data: u32(0), keys: [{ pubkey: buffer.publicKey, isSigner: false, isWritable: true }, { pubkey: payer.publicKey, isSigner: false, isWritable: false }] }));
+  await sendAndConfirmTransaction(conn, tx, [payer, buffer]); log('buffer created', buffer.publicKey.toBase58(), 'len', bufLen);
+  const CHUNK = 900; const chunks = []; for (let off = 0; off < elf.length; off += CHUNK) chunks.push(off);
+  let done = 0; const worker = async (idxs) => { for (const off of idxs) {
+    const bytes = elf.slice(off, off + CHUNK);
+    const ix = new TransactionInstruction({ programId: LOADER, data: cat(u32(1), u32(off), u64(bytes.length), bytes), keys: [{ pubkey: buffer.publicKey, isSigner: false, isWritable: true }, { pubkey: payer.publicKey, isSigner: true, isWritable: false }] });
+    for (let attempt = 0; attempt < 6; attempt++) { try { await sendAndConfirmTransaction(conn, new Transaction().add(ix), [payer], { commitment: 'confirmed', skipPreflight: true }); break; } catch (e) { if (attempt === 5) throw e; await sleep(1500 * (attempt + 1)); } }
+    done++; if (done % 25 === 0) log('written', done, '/', chunks.length);
+  } };
+  const P = 8; const lanes = Array.from({ length: P }, (_, i) => chunks.filter((_, j) => j % P === i));
+  await Promise.all(lanes.map(worker)); log('buffer fully written');
+  return buffer.publicKey;
+}
+document.getElementById('b2').onclick = async () => {
+  try {
+    if (!payer) return log('create payer first');
+    const elf = await fetchElf(); log('elf bytes', elf.length);
+    const need = 2 * (await conn.getMinimumBalanceForRentExemption(elf.length + 45)) + 0.3 * LAMPORTS_PER_SOL;
+    if ((await refreshBal()) < need) { log('need ~', (need / LAMPORTS_PER_SOL).toFixed(2), 'SOL, airdropping…'); await airdropUntil(need / LAMPORTS_PER_SOL + 0.5); }
+    const existing = await conn.getAccountInfo(PROGRAM_KP.publicKey); if (existing) return log('program account already exists — use upgrade');
+    const bufferPk = await writeBuffer(elf);
+    const [programData] = PublicKey.findProgramAddressSync([PROGRAM_KP.publicKey.toBuffer()], LOADER);
+    const progRent = await conn.getMinimumBalanceForRentExemption(36);
+    const maxLen = elf.length * 2; // leave room for upgrades
+    const tx = new Transaction().add(
+      SystemProgram.createAccount({ fromPubkey: payer.publicKey, newAccountPubkey: PROGRAM_KP.publicKey, lamports: progRent, space: 36, programId: LOADER }),
+      new TransactionInstruction({ programId: LOADER, data: cat(u32(2), u64(maxLen)), keys: [
+        { pubkey: payer.publicKey, isSigner: true, isWritable: true }, { pubkey: programData, isSigner: false, isWritable: true }, { pubkey: PROGRAM_KP.publicKey, isSigner: false, isWritable: true }, { pubkey: bufferPk, isSigner: false, isWritable: true },
+        { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }, { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, { pubkey: payer.publicKey, isSigner: true, isWritable: false }] }));
+    const sig = await sendAndConfirmTransaction(conn, tx, [payer, PROGRAM_KP]); log('DEPLOYED ✅', sig); await refreshBal();
+  } catch (e) { log('ERROR', e.message, e.logs ? e.logs.join('\n') : ''); }
+};
+document.getElementById('b5').onclick = async () => {
+  try {
+    const elf = await fetchElf(); const bufferPk = await writeBuffer(elf);
+    const [programData] = PublicKey.findProgramAddressSync([PROGRAM_KP.publicKey.toBuffer()], LOADER);
+    const tx = new Transaction().add(new TransactionInstruction({ programId: LOADER, data: u32(3), keys: [
+      { pubkey: programData, isSigner: false, isWritable: true }, { pubkey: PROGRAM_KP.publicKey, isSigner: false, isWritable: true }, { pubkey: bufferPk, isSigner: false, isWritable: true }, { pubkey: payer.publicKey, isSigner: false, isWritable: true },
+      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }, { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false }, { pubkey: payer.publicKey, isSigner: true, isWritable: false }] }));
+    log('UPGRADED ✅', await sendAndConfirmTransaction(conn, tx, [payer]));
+  } catch (e) { log('ERROR', e.message); }
+};
+document.getElementById('b3').onclick = async () => {
+  const a = await conn.getAccountInfo(PROGRAM_KP.publicKey); log('program account:', a ? `owner ${a.owner.toBase58()} executable ${a.executable}` : 'missing');
+  const [pd] = PublicKey.findProgramAddressSync([PROGRAM_KP.publicKey.toBuffer()], LOADER); const d = await conn.getAccountInfo(pd); log('programdata:', d ? d.data.length + ' bytes' : 'missing');
+};
+document.getElementById('b4').onclick = async () => {
+  try {
+    const R = makeRsrct(solanaWeb3, splToken, PROGRAM_KP.publicKey.toBase58());
+    const mintKp = Keypair.generate(); const { ata, ixs } = await R.ixsCreateFixedMint({ connection: conn, payer: payer.publicKey, mintKp });
+    await sendAndConfirmTransaction(conn, new Transaction().add(...ixs), [payer, mintKp]); log('fixed mint', mintKp.publicKey.toBase58());
+    await sendAndConfirmTransaction(conn, new Transaction().add(await R.ixCreateLaunch({ creator: payer.publicKey, mint: mintKp.publicKey, creatorToken: ata, name: 'Resurrect the Trenches', symbol: 'TRENCH', batchSecs: 900, creatorFeeBps: 500 })), [payer]);
+    const L = await R.fetchLaunch(conn, mintKp.publicKey); log('LAUNCH LIVE ✅', L.pubkey.toBase58(), L.symbol, 'ends', new Date(L.endTs * 1000).toISOString());
+  } catch (e) { log('ERROR', e.message, e.logs ? e.logs.join('\n') : ''); }
+};
+</script></body></html>
