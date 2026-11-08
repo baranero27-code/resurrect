@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resurrect Docs — how it works</title>
+<meta name="description" content="How Resurrect launches work: sealed batch auctions, one clearing price, any pairing asset, holder rewards, proof of personhood, liquidity nobody can pull.">
+<meta property="og:type" content="website"><meta property="og:title" content="Resurrect Docs"><meta property="og:description" content="How to launch, bid, trade and earn on Resurrect — and what the program makes impossible."><meta property="og:image" content="https://baranero27-code.github.io/resurrect/brand/og.png"><meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/door-32.png">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#03060A;--bezel:#0A0F13;--panel:#071017;--card:#0A161D;--green:#4AE38A;--green-dim:rgba(74,227,138,.35);--cyan:#5BD3E6;--amber:#F2B134;--red:#FF4747;--text:#CFE6D8;--dim:#5F7A6C;--line:rgba(207,230,216,.12);--grid:rgba(74,227,138,.045);--mono:'Share Tech Mono',ui-monospace,Menlo,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:15px;line-height:1.6;min-height:100vh;padding:18px;-webkit-font-smoothing:antialiased}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+.monitor{max-width:1100px;margin:0 auto;background:var(--bezel);border:1px solid var(--line);border-radius:14px;box-shadow:0 0 0 6px #050709,0 0 60px rgba(74,227,138,.06),inset 0 0 80px rgba(0,0,0,.6);overflow:hidden}
+.screen{background:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),var(--panel);background-size:24px 24px,24px 24px,auto}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.35);font-size:13px;color:var(--dim);flex-wrap:wrap}
+.bar b{color:var(--text);font-weight:400}.bar .l{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.bar img{width:22px;height:22px;filter:drop-shadow(0 0 6px rgba(74,227,138,.6))}
+.tag{border:1px solid var(--green);color:var(--green);padding:2px 8px;font-size:11px;letter-spacing:.08em}
+.wrap{display:grid;grid-template-columns:220px 1fr;gap:0}
+nav.toc{border-right:1px solid var(--line);padding:22px 16px;font-size:12.5px;position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto}
+nav.toc a{display:block;color:var(--dim);padding:5px 0;border-left:2px solid transparent;padding-left:10px}nav.toc a:hover{color:var(--text);text-decoration:none}nav.toc a.h{color:var(--text);margin-top:12px;letter-spacing:.08em;font-size:11px}
+main{padding:10px 30px 40px;min-width:0}
+.sec{padding:26px 0;border-bottom:1px solid var(--line)}
+.sec h2{font-size:13px;font-weight:400;color:var(--dim);margin-bottom:14px;display:flex;align-items:center;gap:12px;letter-spacing:.08em}
+.sec h2::before{content:'';width:8px;height:8px;background:var(--green);box-shadow:0 0 8px var(--green)}.sec h2 span{color:var(--text)}
+h3{font-weight:400;font-size:16px;color:var(--text);margin:18px 0 8px}
+p{color:var(--text);margin:0 0 10px;max-width:78ch}p.d{color:var(--dim);font-size:13px}
+ol,ul{margin:0 0 12px 22px;max-width:78ch}li{margin-bottom:6px}
+.box{border:1px solid var(--line);background:var(--card);padding:14px 16px;margin:12px 0}
+.g{color:var(--green)}.r{color:var(--red)}.a{color:var(--amber)}.c{color:var(--cyan)}
+code{background:#000;border:1px solid var(--line);padding:1px 6px;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{text-align:left;padding:8px 10px;border-bottom:1px dashed var(--line);vertical-align:top}th{color:var(--dim);font-weight:400;letter-spacing:.08em;font-size:11px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0}.kv div{border:1px solid var(--line);padding:12px;background:var(--card)}.kv div b{display:block;font-weight:400;font-size:20px;color:var(--green)}.kv div span{font-size:12px;color:var(--dim)}
+.warn{border:1px solid rgba(242,177,52,.45);background:rgba(242,177,52,.06);color:var(--amber);padding:10px 12px;font-size:13px;margin:10px 0}
+.foot{padding:18px 22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim);background:rgba(0,0,0,.35)}
+@media(max-width:860px){.wrap{grid-template-columns:1fr}nav.toc{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}main{padding:10px 16px 30px}body{padding:8px}}
+</style>
+</head>
+<body>
+<div class="monitor"><div class="screen">
+  <div class="bar">
+    <div class="l"><a href="index.html"><img src="brand/door-64.png" alt=""></a><b>RESURRECT</b><span>DOCS</span><span class="tag">DEVNET</span></div>
+    <div class="l"><a href="app.html">live app</a><a href="launchpad.html">preview</a><a href="program/README.md">program</a><a href="program/AUDIT.md">audit package</a></div>
+  </div>
+  <div class="wrap">
+    <nav class="toc">
+      <a class="h">START</a><a href="#what">What Resurrect is</a><a href="#why">Why a sealed batch</a><a href="#assets">Pairing assets</a>
+      <a class="h">USE IT</a><a href="#launch">Launch a coin</a><a href="#bid">Bid in a batch</a><a href="#reveal">Reveal, settle, claim</a><a href="#trade">Trade</a><a href="#earn">Earn as a holder</a><a href="#creator">Earn as a creator</a><a href="#human">Prove you're human</a>
+      <a class="h">TRUST</a><a href="#cant">What nobody can do</a><a href="#can">What you're still trusting</a><a href="#fees">Fees, in full</a><a href="#faq">FAQ</a><a href="#devnet">Devnet notes</a>
+    </nav>
+    <main>
+      <section class="sec" id="what"><h2><span>WHAT RESURRECT IS</span></h2>
+        <p>A launchpad for memecoins on Solana where the launch itself is fair by construction. Every coin starts in a <b>15-minute sealed batch auction</b>: nobody sees anyone else's bid, everyone pays the <b>same clearing price</b>, and the creator gets <b class="g">zero allocation and no first buy</b>. When the batch ends, the raised funds plus 20% of supply seed a liquidity pool <b>owned by the program with no withdraw instruction</b>. Coins can be paired with SOL, USDC or any of 2,400+ real assets — tokenized stocks, ETFs, commodities. 1% of every trade goes to the people who hold the coin.</p>
+        <div class="kv"><div><b>15 min</b><span>sealed batch, one price for all</span></div><div><b>0%</b><span>creator allocation · no first buy</span></div><div><b>∞</b><span>liquidity lock (no instruction exists to pull it)</span></div><div><b>1 · 1 · 1</b><span>one human, one wallet, one bid</span></div></div>
+      </section>
+
+      <section class="sec" id="why"><h2><span>WHY A SEALED BATCH</span></h2>
+        <p>On a bonding curve the first buyer gets the lowest price. So the first buyer is always a bot, a bundle of wallets controlled by one person, or the dev. Everyone who comes after buys from them. The launch is decided in the first block, before a human can click.</p>
+        <p>A sealed batch removes "first". For 15 minutes bids are hidden hashes. When it closes, every revealed bid is summed and divided by the 800M tokens on sale: that is the price, for everyone. Bidding 1 SOL at second 1 or second 899 gives you exactly the same tokens. There is nothing to snipe, nothing to front-run, and no information to extract from the mempool.</p>
+        <div class="box"><p class="d">Clearing price = total revealed bids ÷ 800,000,000 tokens. Your allocation = your bid ÷ clearing price. The pool opens at exactly that price, so the first trade after launch is at the price you paid — not 50× above it.</p></div>
+      </section>
+
+      <section class="sec" id="assets"><h2><span>PAIRING ASSETS</span></h2>
+        <p>The pairing asset is what your coin trades against and what all bids, fees and holder rewards are paid in. On mainnet you can pick from 2,400+ assets: SOL, USDC, xStocks (Backed) and Ondo Global Markets tokenized stocks and ETFs, Sunrise stocks, PreStocks, commodities. Anything that is an SPL Token or Token-2022 mint works, with one rule enforced on chain: the asset must transfer 1:1 and unconditionally. Mints with a transfer fee, a transfer hook, non-transferable or confidential extensions are rejected when a launch is created.</p>
+        <div class="warn">Tokenized stocks are issued by regulated companies that keep control over their tokens (permanent delegate / pause). That is issuer risk of the stock token itself, not of Resurrect — but it applies to any pool holding it. SOL and USDC pairs do not have it.</div>
+      </section>
+
+      <section class="sec" id="launch"><h2><span>LAUNCH A COIN</span></h2>
+        <ol>
+          <li>Open the <a href="app.html">app</a>, connect Phantom / Solflare / Backpack.</li>
+          <li>Name, ticker, batch length (15 min on mainnet), your creator fee share (0–20% of trading fees), pairing asset, and whether bidders need a human pass.</li>
+          <li>Sign <b>one transaction</b>. It creates the mint, mints 1,000,000,000 to you, <b>revokes the mint authority</b>, moves 100% into the program vault, opens escrow/pool/fee accounts in the pairing asset, and starts the batch.</li>
+        </ol>
+        <p class="d">You end the transaction holding zero tokens. If you want some, bid like everyone else — your bid is sealed too. Cost ≈ 0.02 SOL in rent and fees.</p>
+      </section>
+
+      <section class="sec" id="bid"><h2><span>BID IN A BATCH</span></h2>
+        <ol>
+          <li>Pick a launch in <b>SEALED BATCH</b> phase. Enter your bid in the pairing asset (minimum 0.01 units).</li>
+          <li>Choose an <b>extra deposit</b> (+25% default). You escrow bid + extra; only <code>hash(wallet, amount, salt)</code> goes on chain, so your deposit does not reveal your bid. The extra comes back at claim.</li>
+          <li>Sign. For SOL pairs the app wraps and unwraps SOL inside the same transaction — your wallet only ever shows SOL.</li>
+        </ol>
+        <div class="warn">Your <b>salt is stored in this browser</b>. Reveal from the same device. If you lose it, your bid is excluded and your full deposit is refunded at claim — you never lose funds, you just don't get tokens.</div>
+      </section>
+
+      <section class="sec" id="reveal"><h2><span>REVEAL · SETTLE · CLAIM</span></h2>
+        <ul>
+          <li><b>Reveal</b> (10-minute window after the batch closes): the app sends your amount and salt; the program checks the hash. Unrevealed bids don't count toward the price.</li>
+          <li><b>Settle</b> (anyone, after the reveal window): one clearing price is computed and the pool is seeded with all raised funds + 200M tokens. From this moment nothing can remove liquidity.</li>
+          <li><b>Claim</b>: you receive tokens at the clearing price plus your unused deposit. There is no deadline.</li>
+        </ul>
+      </section>
+
+      <section class="sec" id="trade"><h2><span>TRADE</span></h2>
+        <p>Trading happens against the program's own constant-product pool (x·y=k). 1% fee on the pairing-asset side of every swap, 1% max slippage by default. The app shows a price chart and trade tape parsed directly from on-chain events — there is no indexer to trust.</p>
+      </section>
+
+      <section class="sec" id="earn"><h2><span>EARN AS A HOLDER</span></h2>
+        <p>Every fee is split: the creator's share (what they chose at launch, max 20%) and the rest to holders. Holders earn by <b>staking</b> their coins in the launch's reward vault — <b>no lockup, no fee, unstake any time</b>. Rewards accrue per staked token on every swap and are paid in the pairing asset: pair your coin with TSLA and your holders earn TSLA.</p>
+        <p class="d">Why staking instead of "just holding"? Because a holder list can't be read on chain cheaply and off-chain distribution would mean trusting us. Staking makes rewards pull-based, verifiable and ours to never touch.</p>
+      </section>
+
+      <section class="sec" id="creator"><h2><span>EARN AS A CREATOR</span></h2>
+        <p>You get no tokens. You get a share of fees forever: 0–20%, fixed at launch, visible to everyone. Claim it whenever you like from the launch page. That is the entire creator incentive — build something people trade, not something people exit.</p>
+      </section>
+
+      <section class="sec" id="human"><h2><span>PROVE YOU'RE HUMAN</span></h2>
+        <p>Launches marked <b>verified humans only</b> require a <a href="https://getpass.civic.com" target="_blank" rel="noopener">Civic Uniqueness pass</a> on the bidding wallet. Civic verifies one human → one pass; the program checks the pass on chain (owner, network, active, not expired). Resurrect never sees your identity. Combined with one-bid-per-wallet, this is what makes "one human, one wallet, one bid" true instead of a slogan.</p>
+      </section>
+
+      <section class="sec" id="cant"><h2><span>WHAT NOBODY CAN DO</span></h2>
+        <table><tr><th>action</th><th>why it's impossible</th></tr>
+          <tr><td>Pull liquidity</td><td>No instruction moves tokens out of the pool except the two swaps, which move exactly the x·y=k amount.</td></tr>
+          <tr><td>Mint more supply</td><td>Mint authority is revoked before the program accepts the launch.</td></tr>
+          <tr><td>Freeze holders</td><td>Freeze authority must be <code>None</code>.</td></tr>
+          <tr><td>Creator pre-buy / allocation</td><td>100% of supply must move to the vault in the launch transaction.</td></tr>
+          <tr><td>See bids early</td><td>Only hashes are on chain until the reveal window.</td></tr>
+          <tr><td>Bid twice from one wallet</td><td>Bid account address is derived from (launch, wallet).</td></tr>
+          <tr><td>Change the fee</td><td>1% is a constant in the program; creator share is written once at launch.</td></tr>
+        </table>
+      </section>
+
+      <section class="sec" id="can"><h2><span>WHAT YOU'RE STILL TRUSTING</span></h2>
+        <ul>
+          <li><b class="a">The upgrade authority.</b> Until the program is frozen, whoever holds it could deploy new code. Plan: multisig after mainnet launch, frozen after the audit. Status is shown on the site.</li>
+          <li><b class="a">No audit yet.</b> The <a href="program/AUDIT.md">audit package</a> is public; the program is open source. Do not treat devnet or an unaudited mainnet as safe for real money.</li>
+          <li><b class="a">Issuer risk</b> on tokenized-stock pairs (see above).</li>
+          <li><b class="a">Civic</b> for personhood. If Civic issues two passes to one person, that person can bid twice.</li>
+        </ul>
+      </section>
+
+      <section class="sec" id="fees"><h2><span>FEES, IN FULL</span></h2>
+        <table><tr><th>when</th><th>how much</th><th>goes to</th></tr>
+          <tr><td>Launch</td><td>≈ 0.02 SOL</td><td>Solana rent + fees. Resurrect takes nothing.</td></tr>
+          <tr><td>Bid / reveal / claim</td><td>network fee only</td><td>Solana</td></tr>
+          <tr><td>Swap</td><td>1% of the pairing-asset side</td><td>creator share (0–20%) · the rest to stakers</td></tr>
+          <tr><td>Stake / unstake / claim rewards</td><td>network fee only</td><td>Solana</td></tr>
+        </table>
+        <p class="d">There is no protocol fee on devnet. A protocol share, if introduced on mainnet, will be a constant in the program and listed here before launch.</p>
+      </section>
+
+      <section class="sec" id="faq"><h2><span>FAQ</span></h2>
+        <h3>What if nobody bids?</h3><p>The launch settles empty: the supply stays in the vault forever, no pool opens, nobody paid anything.</p>
+        <h3>Can I cancel a bid?</h3><p>No. You can decline to reveal; then you are excluded and fully refunded at claim.</p>
+        <h3>Why is my bid deposit higher than my bid?</h3><p>You chose an extra deposit to hide the amount. It is refunded at claim.</p>
+        <h3>Where is the chart data from?</h3><p>From the launch's own transactions: the app reads <code>Swapped</code> events emitted by the program.</p>
+        <h3>Is there a Resurrect token?</h3><p>Not yet. Nothing on the site should be read as a promise of one.</p>
+      </section>
+
+      <section class="sec" id="devnet"><h2><span>DEVNET NOTES</span></h2>
+        <p>Everything is live on Solana devnet with test SOL. Switch your wallet to devnet, get SOL from <a href="https://faucet.solana.com" target="_blank" rel="noopener">faucet.solana.com</a>, and use the <a href="app.html">app</a>. Devnet USDC: <code>4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU</code> (faucet at spl-token-faucet.com). Batches can be as short as 1 minute on devnet for testing. Program: <code>5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t</code>.</p>
+      </section>
+    </main>
+  </div>
+  <div class="foot"><span>RESURRECT DOCS · devnet · unaudited · no real funds</span><span><a href="index.html">the ICU</a> · <a href="app.html">live app</a> · <a href="launchpad.html">preview</a> · <a href="wall.html">the wall</a></span></div>
+</div></div>
+</body>
+</html>
