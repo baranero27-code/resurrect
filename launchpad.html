@@ -89,6 +89,14 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .search:focus{border-color:var(--green);outline:none}
 .tool .lbl{font-size:11px;color:var(--dim);letter-spacing:.08em}
 
+/* asset avatars */
+.ast{display:inline-grid;place-items:center;position:relative;width:22px;height:22px;border-radius:50%;flex:none;overflow:hidden;background:var(--c1,#1b2a33);background-image:linear-gradient(135deg,var(--c1,#1b2a33),var(--c2,#0b1419));border:1px solid rgba(255,255,255,.12);font-size:7px;letter-spacing:.02em;color:#fff;vertical-align:middle}
+.ast img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.ast.lg{width:34px;height:34px;font-size:10px}
+.ast.xl{width:52px;height:52px;font-size:14px}
+.ast.sub{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border:2px solid var(--card);font-size:7px}
+.avwrap{position:relative;flex:none}
+.cat-crypto{--c1:#7a3df0;--c2:#2a1a66}.cat-xstock{--c1:#1f6fe5;--c2:#0e2a5c}.cat-prestock{--c1:#e0742a;--c2:#5a2b0a}.cat-basket{--c1:#2bb3a3;--c2:#0b4a44}.cat-commodity{--c1:#d4a017;--c2:#5c4306}.cat-leverage{--c1:#e5365f;--c2:#5c0f22}
 /* token cards */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .tk{border:1px solid var(--line);background:var(--card);padding:14px;cursor:pointer;transition:border-color .12s,transform .12s;position:relative}
@@ -106,7 +114,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:12px;font-size:11.5px}
 .kv div{color:var(--dim)} .kv div b{display:block;font-weight:400;font-size:17px;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums}
 .kv .g b{color:var(--green)}
-.anch{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text);border:1px solid var(--line);padding:2px 8px;margin-top:10px}
+.anch{display:inline-flex;align-items:center;gap:8px;font-size:11px;color:var(--text);border:1px solid var(--line);padding:2px 8px;margin-top:10px}
 .anch i{font-style:normal;color:var(--dim)}
 .prog{height:5px;background:#000;border:1px solid var(--line);margin-top:12px;position:relative;overflow:hidden}
 .prog i{position:absolute;inset:0;width:var(--p,40%);background:var(--green);box-shadow:0 0 10px var(--green)}
@@ -118,6 +126,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .detail.open{display:block}
 .dhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
 .dhead .av{width:52px;height:52px;font-size:16px}
+.dhead .ca b{display:inline-flex;align-items:center;gap:6px}
 .dhead h3{font-weight:400;font-size:24px;line-height:1}
 .dhead .ca{font-size:12px;color:var(--dim)} .dhead .ca a{color:var(--cyan)}
 .dgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}
@@ -165,7 +174,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .cats button{background:transparent;border:1px solid var(--line);color:var(--dim);padding:5px 9px;font-size:11px;cursor:pointer}
 .cats button.on{border-color:var(--green);color:var(--green)}
 .assets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.assets button{background:#000;border:1px solid var(--line);color:var(--text);padding:6px 10px;font-size:12px;cursor:pointer}
+.assets button{display:inline-flex;align-items:center;gap:8px;background:#000;border:1px solid var(--line);color:var(--text);padding:5px 10px 5px 5px;font-size:12px;cursor:pointer}
 .assets button.on{border-color:var(--green);background:rgba(74,227,138,.1);color:var(--green)}
 .assets button small{color:var(--dim);margin-left:6px;font-size:10px}
 .radio{display:flex;gap:8px}
@@ -264,6 +273,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     <div>
       <h1>Launch coins on top of real assets. <b>Without the insiders.</b></h1>
       <p>Pair your coin with SOL, USDC or any of 290+ tokenized stocks. Every launch opens as a sealed 15-minute batch where everyone pays one price, then trades on a curve, then graduates to liquidity nobody can pull. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
+      <div class="cta" style="margin-top:14px;gap:6px" id="heroast"></div>
       <div class="cta"><a class="btn solid" href="#create">Launch a coin</a><a class="btn" href="#launches">Browse launches</a></div>
     </div>
     <div class="stats">
@@ -295,7 +305,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     <!-- DETAIL VIEW -->
     <div class="detail" id="detail">
       <button class="btn ghost sm dback" id="back">← all launches</button>
-      <div class="dhead"><div class="av" id="d-av">TR</div><div><h3 id="d-name">Resurrect the Trenches <span style="color:var(--dim)">$TRENCH</span></h3><div class="ca">CA <a href="#" id="d-ca">7Yx2…kR9f</a> · anchored to <b id="d-anch" style="font-weight:400;color:var(--text)">SOL</b> · <span id="d-phase" style="color:var(--green)">BONDING</span></div></div></div>
+      <div class="dhead"><div class="avwrap"><div class="av" id="d-av">TR</div><span id="d-sub"></span></div><div><h3 id="d-name">Resurrect the Trenches <span style="color:var(--dim)">$TRENCH</span></h3><div class="ca">CA <a href="#" id="d-ca">7Yx2…kR9f</a> · anchored to <b id="d-anch" style="font-weight:400;color:var(--text)">SOL</b> · <span id="d-phase" style="color:var(--green)">BONDING</span></div></div></div>
       <div class="dgrid">
         <div>
           <div class="box">
@@ -313,7 +323,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
             <div class="rows">
               <div class="row"><span>name</span><b>Resurrect the Trenches</b></div>
               <div class="row"><span>ticker</span><b>$TRENCH</b></div>
-              <div class="row"><span>anchored to</span><b>SOL · So1111…111112</b></div>
+              <div class="row"><span>anchored to</span><b id="d-anch2">SOL · So1111…111112</b></div>
               <div class="row"><span>description</span><b>the first coin through the door</b></div>
               <div class="row"><span>social</span><b><a href="#">x.com/trenchonrsrct</a></b></div>
               <div class="row"><span>supply</span><b>1,000,000,000 · fixed</b></div>
@@ -400,7 +410,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
         <div class="rows">
           <div class="row"><span>$TICKER</span><b id="r-tk">—</b></div>
           <div class="row"><span>name</span><b id="r-nm">—</b></div>
-          <div class="row"><span>anchored to</span><b id="r-an">SOL</b></div>
+          <div class="row"><span>anchored to</span><b id="r-an" style="display:inline-flex;align-items:center;gap:6px"><span class="ast cat-crypto">SOL<img src="img/assets/sol.png" alt=""></span> SOL</b></div>
           <div class="row"><span>launch market cap</span><b>≈ $20.0K</b></div>
           <div class="row"><span>supply</span><b>1,000,000,000</b></div>
           <div class="row"><span>trading fee</span><b>1%</b></div>
@@ -535,6 +545,14 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')$('#modal').classList.remove('open');});
   addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').classList.remove('open');});
 
+  /* ---- asset icons ---- */
+  const CAT={SOL:'crypto',USDC:'crypto',USDT:'crypto',WBTC:'crypto',ETH:'crypto',PUMP:'crypto',BONK:'crypto',WIF:'crypto',JUP:'crypto',RAY:'crypto',HYPE:'crypto',PENGU:'crypto',
+    SPY:'xstock',NVDA:'xstock',TSLA:'xstock',AAPL:'xstock',GOOGL:'xstock',QQQ:'xstock',COIN:'xstock',MSTR:'xstock',META:'xstock',MSFT:'xstock',GME:'xstock',GLD:'xstock',
+    ANTHROPIC:'prestock',OPENAI:'prestock',POLYMARKET:'prestock',KALSHI:'prestock',NEURALINK:'prestock',
+    FRONTIER:'basket',MUSK4:'basket',SAMA4:'basket',TRUMP3:'basket',SAYLOR3:'basket',PRIVACY:'basket',GOLD:'commodity',xSOL:'leverage',XBTC:'leverage',XHYPE:'leverage'};
+  const HAS=new Set(['SOL','USDC','USDT','ETH','WBTC','RAY']);
+  const ast=(s,cls='')=>`<span class="ast cat-${CAT[s]||'crypto'} ${cls}" title="${s}">${s.slice(0,4)}${HAS.has(s)?`<img src="img/assets/${s.toLowerCase()}.png" alt="" onerror="this.remove()">`:`<img src="img/assets/${s.toLowerCase()}.png" alt="" onerror="this.remove()">`}</span>`;
+
   /* ---- token data ---- */
   const T=[
     {n:'Resurrect the Trenches',t:'TRENCH',a:'SOL',ph:'bond',fdv:468450,vol:91200,age:2,p:88,h:1204},
@@ -559,7 +577,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     list.innerHTML=r.slice(0,shown).map((x,i)=>`<div class="tk" data-i="${T.indexOf(x)}">
       <div class="top"><div class="av">${x.t.slice(0,2)}</div><div class="nm"><b>$${x.t}</b><span>${x.n}</span></div><span class="chip ${x.ph==='batch'?'live':x.ph==='bond'?'bond':'grad'}">${x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'BONDING':'GRADUATED'}</span></div>
       <div class="kv"><div>${x.ph==='batch'?'closes in':'FDV'}<b class="${x.ph==='batch'?'g':''}" ${x.ph==='batch'?`data-end="${x.end}"`:''}>${x.ph==='batch'?'--:--':fmt(x.fdv)}</b></div><div>${x.ph==='batch'?'sealed bids':'24h volume'}<b>${x.ph==='batch'?x.h+' humans':fmt(x.vol)}</b></div></div>
-      <div class="anch">anchored to <i>${x.a}</i></div>
+      <div class="anch">${ast(x.a)}anchored to <i>${x.a}</i></div>
       <div class="prog ${x.ph==='bond'?'c':''}"><i style="--p:${x.p}%"></i></div>
     </div>`).join('');
     $('#more').style.display=r.length>shown?'':'none';
@@ -574,7 +592,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   /* ---- detail view ---- */
   const det=$('#detail');
   function openDetail(x){
-    $('#d-av').textContent=x.t.slice(0,2);$('#d-name').innerHTML=`${x.n} <span style="color:var(--dim)">$${x.t}</span>`;$('#d-anch').textContent=x.a;
+    $('#d-av').textContent=x.t.slice(0,2);$('#d-name').innerHTML=`${x.n} <span style="color:var(--dim)">$${x.t}</span>`;$('#d-anch').innerHTML=ast(x.a)+x.a;$('#d-sub').innerHTML=ast(x.a,'sub');$('#d-anch2').innerHTML=ast(x.a)+' '+x.a+(x.a==='SOL'?' · So1111…111112':'');
     $('#d-phase').textContent=x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'BONDING':'GRADUATED';
     $('#d-fdv').textContent=fmt(x.fdv);$('#d-liq').textContent=fmt(x.fdv*0.28);$('#d-vol').textContent=fmt(x.vol);$('#d-h').textContent=x.h.toLocaleString('en-US')+' humans';
     $('#d-lock').textContent=x.ph==='grad'?'Graduated to Raydium · liquidity locked forever · pool Bffh…fFXH':x.ph==='bond'?'Graduates to Raydium at $450K FDV · liquidity locks forever · pool address published at graduation':'Sealed batch in progress · bids hidden until close · one clearing price for everyone';
@@ -605,12 +623,14 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     if(Math.random()<.2){const p=$('#d-paid');p.textContent='$'+(parseInt(p.textContent.replace(/[$,]/g,''))+Math.floor(Math.random()*4)).toLocaleString('en-US');}
   },1000);
 
+  $('#heroast').innerHTML=['SOL','USDC','TSLA','NVDA','SPY','ANTHROPIC','OPENAI','GOLD','MUSK4'].map(s=>ast(s,'lg')).join('')+'<span style="font-size:11px;color:var(--dim);align-self:center;margin-left:6px">+ 290 more pairing assets</span>';
+
   /* ---- create form ---- */
   const A={crypto:['SOL','USDC','USDT','WBTC','ETH','PUMP','BONK','WIF','JUP','RAY','HYPE','PENGU'],xstock:['SPY','NVDA','TSLA','AAPL','GOOGL','QQQ','COIN','MSTR','META','MSFT','GME','GLD'],prestock:['ANTHROPIC|1% transfer fee','OPENAI|1% transfer fee','POLYMARKET|1%','KALSHI|1%','NEURALINK|1%'],basket:['FRONTIER','MUSK4','SAMA4','TRUMP3','SAYLOR3','PRIVACY|0.5% transfer fee'],commodity:['GOLD'],leverage:['xSOL|volatile','XBTC|volatile','XHYPE|volatile']};
   let cat='all',anchor='SOL';const assets=$('#assets');
-  function renderAssets(){const keys=cat==='all'?Object.keys(A):[cat];assets.innerHTML=keys.flatMap(k=>A[k]).map(s=>{const [n,note]=s.split('|');return `<button type="button" data-a="${n}" class="${n===anchor?'on':''}">${n}${note?`<small>${note}</small>`:''}</button>`;}).join('');}
+  function renderAssets(){const keys=cat==='all'?Object.keys(A):[cat];assets.innerHTML=keys.flatMap(k=>A[k]).map(s=>{const [n,note]=s.split('|');return `<button type="button" data-a="${n}" class="${n===anchor?'on':''}">${ast(n,'lg')}${n}${note?`<small>${note}</small>`:''}</button>`;}).join('');}
   $('#cats').addEventListener('click',e=>{if(!e.target.dataset.c)return;$$('#cats button').forEach(b=>b.classList.toggle('on',b===e.target));cat=e.target.dataset.c;renderAssets();});
-  assets.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;anchor=b.dataset.a;$('#r-an').textContent=anchor;renderAssets();});
+  assets.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;anchor=b.dataset.a;$('#r-an').innerHTML=ast(anchor)+' '+anchor;renderAssets();});
   renderAssets();
   $('#tk').addEventListener('input',e=>{e.target.value=e.target.value.replace(/[^a-z0-9]/gi,'').toUpperCase();$('#r-tk').textContent=e.target.value?'$'+e.target.value:'—';});
   $('#nmi').addEventListener('input',e=>$('#r-nm').textContent=e.target.value||'—');
