@@ -329,7 +329,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   <section class="hero">
     <div>
       <h1>Launch coins on top of real assets. <b>Without the insiders.</b></h1>
-      <p>Pair your coin with SOL, USDC or any of 290+ tokenized stocks. Every launch opens as a sealed 15-minute batch where everyone pays one price, then trades on a curve, then graduates to liquidity nobody can pull. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
+      <p>Pair your coin with SOL, USDC or any of 250+ real assets: tokenized stocks, pre-IPO tokens, indexes, commodities. Every launch opens as a sealed 15-minute batch where everyone pays one price, then trades on a curve, then graduates to liquidity nobody can pull. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
       <div class="cta" style="margin-top:14px;gap:6px" id="heroast"></div>
       <div class="cta"><a class="btn solid" href="#create">Launch a coin</a><a class="btn" href="#launches">Browse launches</a></div>
     </div>
@@ -436,7 +436,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
         <p class="note" style="margin:0 0 10px">Your coin trades against this asset. Fees and holder rewards are paid in it.</p>
         <div class="picker">
           <div class="pk-list">
-            <div class="pk-search"><span>⌕</span><input id="pk-q" placeholder="search 39 assets · ticker, name or mint" autocomplete="off"><kbd>↑↓ ⏎</kbd></div>
+            <div class="pk-search"><span>⌕</span><input id="pk-q" placeholder="search 252 assets · ticker, name or mint" autocomplete="off"><kbd>↑↓ ⏎</kbd></div>
             <div class="cats" id="cats"></div>
             <div class="pk-pop"><span>POPULAR</span><div id="pk-pop"></div></div>
             <div class="pk-head"><span>asset</span><span>category</span><span class="r">price</span><span class="r">24h</span></div>
@@ -614,49 +614,13 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').classList.remove('open');});
 
   /* ---- pairing assets: real on-chain token metadata (symbol, name, mint, icon) ---- */
-  const AS={
-    SOL:{n:'Wrapped SOL',m:'So11111111111111111111111111111111111111112',i:'img/assets/sol.png',c:'crypto'},
-    USDC:{n:'USD Coin',m:'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',i:'img/assets/usdc.png',c:'crypto'},
-    USDT:{n:'Tether USD',m:'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',i:'img/assets/usdt.png',c:'crypto'},
-    WBTC:{n:'Wrapped BTC (Portal)',m:'3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh',i:'img/assets/wbtc.png',c:'crypto'},
-    ETH:{n:'Ether (Portal)',m:'7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs',i:'img/assets/eth.png',c:'crypto'},
-    PUMP:{n:'Pump',m:'pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn',i:'img/assets/pump.png',c:'crypto'},
-    BONK:{n:'Bonk',m:'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',i:'img/assets/bonk.png',c:'crypto'},
-    WIF:{n:'dogwifhat',m:'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',i:'img/assets/wif.png',c:'crypto'},
-    JUP:{n:'Jupiter',m:'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',i:'img/assets/jup.png',c:'crypto'},
-    RAY:{n:'Raydium',m:'4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',i:'img/assets/ray.png',c:'crypto'},
-    HYPE:{n:'HYPE',m:'98sMhvDwXj1RQi5c5Mndm3vPe9cBqPrbLaufMXFNMh5g',i:'img/assets/hype.png',c:'crypto'},
-    PENGU:{n:'Pudgy Penguins',m:'2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv',i:'img/assets/pengu.png',c:'crypto'},
-    SPYx:{n:'SP500 xStock',m:'XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W',i:'img/assets/spyx.png',c:'xstock'},
-    NVDAx:{n:'NVIDIA xStock',m:'Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh',i:'img/assets/nvdax.png',c:'xstock'},
-    TSLAx:{n:'Tesla xStock',m:'XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB',i:'img/assets/tslax.png',c:'xstock'},
-    AAPLx:{n:'Apple xStock',m:'XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp',i:'img/assets/aaplx.png',c:'xstock'},
-    GOOGLx:{n:'Alphabet xStock',m:'XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN',i:'img/assets/googlx.png',c:'xstock'},
-    QQQx:{n:'Nasdaq xStock',m:'Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ',i:'img/assets/qqqx.png',c:'xstock'},
-    COINx:{n:'Coinbase xStock',m:'Xs7ZdzSHLU9ftNJsii5fCeJhoRWSC32SQGzGQtePxNu',i:'img/assets/coinx.png',c:'xstock'},
-    MSTRx:{n:'MicroStrategy xStock',m:'XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ',i:'img/assets/mstrx.png',c:'xstock'},
-    METAx:{n:'Meta xStock',m:'Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu',i:'img/assets/metax.png',c:'xstock'},
-    MSFTx:{n:'Microsoft xStock',m:'XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX',i:'img/assets/msftx.png',c:'xstock'},
-    GMEx:{n:'Gamestop xStock',m:'Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc',i:'img/assets/gmex.png',c:'xstock'},
-    ANTHROPIC:{n:'Anthropic PreStocks',m:'Pren1FvFX6J3E4kXhJuCiAD5aDmGEb7qJRncwA8Lkhw',i:'img/assets/anthropic.png',c:'prestock',f:'1% transfer fee'},
-    OPENAI:{n:'OpenAI PreStocks',m:'PreweJYECqtQwBtpxHL171nL2K6umo692gTm7Q3rpgF',i:'img/assets/openai.png',c:'prestock',f:'1% transfer fee'},
-    POLYMARKET:{n:'Polymarket PreStocks',m:'Pre8AREmFPtoJFT8mQSXQLh56cwJmM7CFDRuoGBZiUP',i:'img/assets/polymarket.png',c:'prestock',f:'1%'},
-    KALSHI:{n:'Kalshi PreStocks',m:'PreLWGkkeqG1s4HEfFZSy9moCrJ7btsHuUtfcCeoRua',i:'img/assets/kalshi.png',c:'prestock',f:'1%'},
-    NEURALINK:{n:'Neuralink PreStocks',m:'PrekqLJvJ3qVdXmBGDiexvwUTF4rLFDa6HWS4HJbw9S',i:'img/assets/neuralink.png',c:'prestock',f:'1%'},
-    tOpenAI:{n:'T-OpenAI (Tessera)',m:'oPAiAikWTaFj9RYoRFD35ccfwhnMcB3ThgBZRHSkjTZ',i:'img/assets/topenai.png',c:'prestock',f:'0.2% fee'},
-    FRONTIER:{n:'AI Frontier Index',m:'58QyXQ1UDgHh64EiTsCeevVM9cLPqBDNf3qZE6EdfUhZ',i:'img/assets/frontier.png',c:'basket'},
-    MUSK4:{n:'MUSK Index',m:'ysPp2Bt2j2UQu2tZwtSJz7JxyrmQ8GJcNJE5NyDoS5a',i:'img/assets/musk4.png',c:'basket'},
-    SAMA4:{n:'SAMA Index',m:'7V1evjzUMFi4QDK7kAntcfdr9MyYC6S5bvsUCtxX1dSJ',i:'img/assets/sama4.png',c:'basket'},
-    TRUMP3:{n:'Trump Index',m:'6s2umN1sqM8mS8ERRmt9cqcFwAoWu5ofma7DN3KfFiue',i:'img/assets/trump3.png',c:'basket'},
-    SAYLOR3:{n:'Saylor Index',m:'5MQhtwFmgwZugLUaA7JRzGptrdCURormQLERHo7Av3JT',i:'img/assets/saylor3.png',c:'basket'},
-    PRIVACY:{n:'Privacy Index',m:'DGuudmnJZ6yeFJTQEM1FgFeWB7dz2mo8sqjRqDWDfhLn',i:'img/assets/privacy.png',c:'basket',f:'0.5% transfer fee'},
-    GLDx:{n:'Gold xStock',m:'Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re',i:'img/assets/gldx.png',c:'commodity'},
-    xSOL:{n:'Hylo Leveraged SOL',m:'4sWNB8zGWHkh6UnmwiEtzNxL4XrN7uK9tosbESbJFfVs',i:'img/assets/xsol.png',c:'leverage',f:'volatile'},
-    xBTC:{n:'Hylo Leveraged BTC',m:'2zCo6bUowJMvr89ajxuWsPadAqJ2F9akCkxumNsSdgsL',i:'img/assets/xbtc.png',c:'leverage',f:'volatile'},
-    xHYPE:{n:'Hylo Leveraged HYPE',m:'7ga6rtE9qSb3wdEiDCpTu2kHqoGVfT52jD8ign1rYTvx',i:'img/assets/xhype.png',c:'leverage',f:'volatile'}
-  };
+  const AS={}; // filled from js/assets.json (252 pairing assets)
+  const CATN={crypto:'Crypto',xstock:'xStock',sunrise:'Sunrise',prestock:'PreStock',tessera:'Tessera',basket:'Basket',commodity:'Commodity',leverage:'Leverage'};
+  const ALIAS={TSLAx:'TSLA·XST',SPYx:'SPY·XST',NVDAx:'NVDA·XST',GLDx:'GOLD',AAPLx:'AAPL·XST',GOOGLx:'GOOGL·XST',METAx:'META·XST',MSFTx:'MSFT·XST',GMEx:'GME·XST'};
+  const akey=s=>ALIAS[s]||s;
   const short=m=>m.slice(0,4)+'…'+m.slice(-4);
-  const ast=(s,cls='')=>{const a=AS[s]||{c:'crypto',n:s};return `<span class="ast cat-${a.c} ${cls}" title="${a.n}">${s.slice(0,4)}${a.i?`<img src="${a.i}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</span>`;};
+  const ast=(s,cls='')=>{s=akey(s);const a=AS[s]||{c:'crypto',n:s,s:s};return `<span class="ast cat-${a.c} ${cls}" title="${a.n}">${(a.s||s).slice(0,4)}${a.i?`<img src="${a.i}" alt="" loading="lazy" onerror="this.remove()">`:''}</span>`;};
+  const sym=s=>(AS[akey(s)]||{}).s||s;
 
   /* ---- token data ---- */
   const T=[
@@ -682,7 +646,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     list.innerHTML=r.slice(0,shown).map((x,i)=>`<div class="tk" data-i="${T.indexOf(x)}">
       <div class="top"><div class="av">${x.t.slice(0,2)}</div><div class="nm"><b>$${x.t}</b><span>${x.n}</span></div><span class="chip ${x.ph==='batch'?'live':x.ph==='bond'?'bond':'grad'}">${x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'BONDING':'GRADUATED'}</span></div>
       <div class="kv"><div>${x.ph==='batch'?'closes in':'FDV'}<b class="${x.ph==='batch'?'g':''}" ${x.ph==='batch'?`data-end="${x.end}"`:''}>${x.ph==='batch'?'--:--':fmt(x.fdv)}</b></div><div>${x.ph==='batch'?'sealed bids':'24h volume'}<b>${x.ph==='batch'?x.h+' humans':fmt(x.vol)}</b></div></div>
-      <div class="anch">${ast(x.a)}anchored to <i>${x.a}</i></div>
+      <div class="anch">${ast(x.a)}anchored to <i>${sym(x.a)}</i></div>
       <div class="prog ${x.ph==='bond'?'c':''}"><i style="--p:${x.p}%"></i></div>
     </div>`).join('');
     $('#more').style.display=r.length>shown?'':'none';
@@ -697,7 +661,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   /* ---- detail view ---- */
   const det=$('#detail');
   function openDetail(x){
-    $('#d-av').textContent=x.t.slice(0,2);$('#d-name').innerHTML=`${x.n} <span style="color:var(--dim)">$${x.t}</span>`;$('#d-anch').innerHTML=ast(x.a)+x.a;$('#d-sub').innerHTML=ast(x.a,'sub');$('#d-anch2').innerHTML=ast(x.a)+' '+x.a+' · '+(AS[x.a]?short(AS[x.a].m):'');
+    $('#d-av').textContent=x.t.slice(0,2);$('#d-name').innerHTML=`${x.n} <span style="color:var(--dim)">$${x.t}</span>`;$('#d-anch').innerHTML=ast(x.a)+sym(x.a);$('#d-sub').innerHTML=ast(x.a,'sub');$('#d-anch2').innerHTML=ast(x.a)+' '+sym(x.a)+' · '+(AS[akey(x.a)]?short(AS[akey(x.a)].m):'');
     $('#d-phase').textContent=x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'BONDING':'GRADUATED';
     $('#d-fdv').textContent=fmt(x.fdv);$('#d-liq').textContent=fmt(x.fdv*0.28);$('#d-vol').textContent=fmt(x.vol);$('#d-h').textContent=x.h.toLocaleString('en-US')+' humans';
     $('#d-lock').textContent=x.ph==='grad'?'Graduated to Raydium · liquidity locked forever · pool Bffh…fFXH':x.ph==='bond'?'Graduates to Raydium at $450K FDV · liquidity locks forever · pool address published at graduation':'Sealed batch in progress · bids hidden until close · one clearing price for everyone';
@@ -728,52 +692,52 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     if(Math.random()<.2){const p=$('#d-paid');p.textContent='$'+(parseInt(p.textContent.replace(/[$,]/g,''))+Math.floor(Math.random()*4)).toLocaleString('en-US');}
   },1000);
 
-  $('#heroast').innerHTML=['SOL','USDC','TSLAx','NVDAx','SPYx','ANTHROPIC','OPENAI','GLDx','MUSK4'].map(s=>ast(s,'lg')).join('')+'<span style="font-size:11px;color:var(--dim);align-self:center;margin-left:6px">+ 290 more pairing assets</span>';
+  window.renderHero=()=>{$('#heroast').innerHTML=['SOL','USDC','TSLA·XST','NVDA·XST','SPY·XST','ANTHROPIC','OPENAI','GOLD','MUSK4'].map(s=>ast(s,'lg')).join('')+'<span style="font-size:11px;color:var(--dim);align-self:center;margin-left:6px">+ '+(Object.keys(AS).length-9)+' more pairing assets</span>';};
 
   /* ---- create form ---- */
   let cat='all',anchor='SOL',q='',kb=-1;const assets=$('#assets');
-  const CATN={crypto:'Crypto',xstock:'xStock',prestock:'PreStock',basket:'Basket',commodity:'Commodity',leverage:'Leverage'};
   const PX={};
   const fP=v=>v==null?'—':v>=1000?'$'+v.toLocaleString('en-US',{maximumFractionDigits:0}):v>=1?'$'+v.toFixed(2):v>=0.01?'$'+v.toFixed(4):'$'+v.toPrecision(3);
   const fC=c=>c==null?'<span class="fl">—</span>':`<span class="${c>0.05?'up':c<-0.05?'dn':'fl'}">${c>0?'+':''}${c.toFixed(2)}%</span>`;
   const fL=v=>v==null?'—':v>=1e9?'$'+(v/1e9).toFixed(2)+'B':v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+(v/1e3).toFixed(0)+'K';
-  const visible=()=>Object.keys(AS).filter(k=>(cat==='all'||AS[k].c===cat)&&(!q||(k+' '+AS[k].n+' '+AS[k].m).toLowerCase().includes(q)));
+  const visible=()=>Object.keys(AS).filter(k=>(cat==='all'||AS[k].c===cat)&&(!q||(AS[k].s+' '+AS[k].n+' '+AS[k].m).toLowerCase().includes(q)));
   function renderCats(){const cnt={all:Object.keys(AS).length};Object.values(AS).forEach(a=>cnt[a.c]=(cnt[a.c]||0)+1);
     $('#cats').innerHTML=['all',...Object.keys(CATN)].map(c=>`<button type="button" data-c="${c}" class="${c===cat?'on':''}">${c==='all'?'All':CATN[c]}<small>${cnt[c]||0}</small></button>`).join('');}
   function renderAssets(){const v=visible();kb=-1;
     assets.innerHTML=v.length?v.map(k=>{const a=AS[k],p=PX[a.m]||{};return `<button type="button" class="pk-row ${k===anchor?'on':''}" data-a="${k}" role="option" aria-selected="${k===anchor}">
-      <span class="id">${ast(k,'lg')}<span><b>${k}</b><small>${a.n}</small></span></span>
+      <span class="id">${ast(k,'lg')}<span><b>${a.s}</b><small>${a.n}</small></span></span>
       <span class="cat">${CATN[a.c]}</span>
       <span class="r px">${fP(p.usdPrice)}</span>
       <span class="r ch">${fC(p.priceChange24h)}</span></button>`;}).join(''):`<div class="pk-empty">nothing matches “${q}”</div>`;
     $('#pk-count').textContent=v.length+' of '+Object.keys(AS).length+' assets';
     $$('#pk-pop button').forEach(b=>b.classList.toggle('on',b.dataset.a===anchor));}
   function renderSel(){const k=anchor,a=AS[k],p=PX[a.m]||{};
-    const fee=a.f?`<div class="warn">⚠ ${a.f.replace('fee','fee on the underlying asset')}. Buyers of your coin never pay it; it applies only when ${k} itself moves.</div>`:'';
+    const fee=a.f?`<div class="warn">⚠ ${a.f.replace('fee','fee on the underlying asset')}. Buyers of your coin never pay it; it applies only when ${a.s} itself moves.</div>`:'';
     const under=p.stockData?`<div class="row"><span>underlying price</span><b>${fP(p.stockData.price)}</b></div>`:'';
-    $('#pk-sel').innerHTML=`<div class="top">${ast(k,'xl')}<h4>${k}<small>${a.n} · ${CATN[a.c]}</small></h4></div>
+    $('#pk-sel').innerHTML=`<div class="top">${ast(k,'xl')}<h4>${a.s}<small>${a.n} · ${CATN[a.c]}</small></h4></div>
       <div class="k">PRICE</div><div class="price">${fP(p.usdPrice)}${fC(p.priceChange24h)}</div>
       <div class="rows">
         <div class="row"><span>liquidity on Solana</span><b>${fL(p.liquidity)}</b></div>${under}
         <div class="row"><span>mint</span><b class="mint">${short(a.m)}<button type="button" data-copy="${a.m}">copy</button></b></div>
-        <div class="row"><span>your coin trades against</span><b class="g">${k}</b></div>
-        <div class="row"><span>fees &amp; holder rewards paid in</span><b class="g">${k}</b></div>
+        <div class="row"><span>your coin trades against</span><b class="g">${a.s}</b></div>
+        <div class="row"><span>fees &amp; holder rewards paid in</span><b class="g">${a.s}</b></div>
       </div>${fee}
-      <div class="ex">Example: $10,000 of daily volume → $100 in fees → <b>$35 to your holders</b>, paid in ${k}, every few minutes.</div>
+      <div class="ex">Example: $10,000 of daily volume → $100 in fees → <b>$35 to your holders</b>, paid in ${a.s}, every few minutes.</div>
       <div class="links"><a href="https://solscan.io/token/${a.m}" target="_blank" rel="noopener">Solscan →</a><a href="https://dexscreener.com/solana/${a.m}" target="_blank" rel="noopener">DexScreener →</a></div>`;
-    $('#r-an').innerHTML=ast(k)+' '+k+' <span style="color:var(--dim);font-size:11px">'+short(a.m)+'</span>';}
+    $('#r-an').innerHTML=ast(k)+' '+a.s+' <span style="color:var(--dim);font-size:11px">'+short(a.m)+'</span>';}
   function pick(k){anchor=k;renderAssets();renderSel();}
   $('#cats').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cat=b.dataset.c;renderCats();renderAssets();});
   assets.addEventListener('click',e=>{const b=e.target.closest('.pk-row');if(b)pick(b.dataset.a);});
   $('#pk-sel').addEventListener('click',e=>{const b=e.target.closest('[data-copy]');if(!b)return;navigator.clipboard?.writeText(b.dataset.copy);b.textContent='copied';setTimeout(()=>b.textContent='copy',1200);});
-  $('#pk-pop').innerHTML=['SOL','USDC','TSLAx','NVDAx','SPYx','ANTHROPIC','GLDx'].map(k=>`<button type="button" data-a="${k}">${ast(k)}${k}</button>`).join('');
+  const POP=['SOL','USDC','TSLA·XST','NVDA·XST','SPY·XST','ANTHROPIC','GOLD'];
   $('#pk-pop').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cat='all';q='';$('#pk-q').value='';renderCats();pick(b.dataset.a);});
   $('#pk-q').addEventListener('input',e=>{q=e.target.value.trim().toLowerCase();renderAssets();});
   $('#pk-q').addEventListener('keydown',e=>{const rows=$$('.pk-row');if(!rows.length)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();kb=Math.max(0,Math.min(rows.length-1,kb+(e.key==='ArrowDown'?1:-1)));rows.forEach((r,i)=>r.classList.toggle('kb',i===kb));rows[kb].scrollIntoView({block:'nearest'});}
     else if(e.key==='Enter'){e.preventDefault();pick((rows[kb>=0?kb:0]).dataset.a);}});
-  renderCats();renderAssets();renderSel();
-  (async()=>{try{const ids=Object.values(AS).map(a=>a.m).join(',');const r=await fetch('https://lite-api.jup.ag/price/v3?ids='+ids);const j=await r.json();Object.assign(PX,j);renderAssets();renderSel();}catch(e){}})();
-  setInterval(async()=>{try{const ids=Object.values(AS).map(a=>a.m).join(',');const j=await (await fetch('https://lite-api.jup.ag/price/v3?ids='+ids)).json();Object.assign(PX,j);renderAssets();renderSel();}catch(e){}},60000);
+  async function loadPrices(){try{const ms=Object.values(AS).map(a=>a.m);for(let i=0;i<ms.length;i+=100){const j=await (await fetch('https://lite-api.jup.ag/price/v3?ids='+ms.slice(i,i+100).join(','))).json();Object.assign(PX,j);}renderAssets();renderSel();}catch(e){}}
+  fetch('js/assets.json').then(r=>r.json()).then(list=>{for(const a of list){AS[a.k]={s:a.s,n:a.n,m:a.m,c:a.c,f:a.f,i:'img/assets2/'+a.m+'.png'};}
+    $('#pk-pop').innerHTML=POP.filter(k=>AS[k]).map(k=>`<button type="button" data-a="${k}">${ast(k)}${AS[k].s}</button>`).join('');
+    renderCats();renderAssets();renderSel();renderHero();render();loadPrices();setInterval(loadPrices,60000);});
   $('#tk').addEventListener('input',e=>{e.target.value=e.target.value.replace(/[^a-z0-9]/gi,'').toUpperCase();$('#r-tk').textContent=e.target.value?'$'+e.target.value:'—';});
   $('#imgf').addEventListener('change',e=>$('#imgn').textContent=e.target.files[0]?e.target.files[0].name:'PNG, JPG, GIF or WebP · no file chosen');
   $('#nmi').addEventListener('input',e=>$('#r-nm').textContent=e.target.value||'—');
