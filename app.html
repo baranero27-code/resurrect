@@ -136,7 +136,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
     </div>
   </section>
 
-  <div class="foot"><span>RESURRECT APP · <span class="net">devnet</span> · program <a id="pidfoot" target="_blank" rel="noopener"></a> · unaudited · no real funds</span><span><a href="index.html">the ICU</a> · <a href="launchpad.html">preview</a> · <a href="wall.html">the wall</a></span></div>
+  <div class="foot"><span>RESURRECT APP · <span class="net">devnet</span> · program <a id="pidfoot" target="_blank" rel="noopener"></a> · <span id="trust">upgrade authority: checking…</span> · unaudited · no real funds</span><span><a href="index.html">the ICU</a> · <a href="launchpad.html">preview</a> · <a href="wall.html">the wall</a></span></div>
 </div></div>
 <div class="toast" id="toast"></div>
 
@@ -308,6 +308,11 @@ $('#createForm').addEventListener('submit',async e=>{ e.preventDefault(); if(!pu
   const btn=$('#c-go'); btn.disabled=true; try{ const mintKp=Keypair.generate(); const {ata,ixs}=await R.ixsCreateFixedMint({connection:conn,payer:pubkey,mintKp}); ixs.push(await R.ixCreateLaunch({creator:pubkey,mint:mintKp.publicKey,pairMint:pairOk.pk,pairProg:pairOk.prog,creatorToken:ata,name,symbol:sym,batchSecs:batch,creatorFeeBps:fee,requireHuman:$('#c-human').value==='1'}));
     say('Sign to create the mint and open the batch…'); const sig=await sendTx(ixs,[mintKp]); log(`launch $${sym} paired with ${KNOWN[pairOk.pk.toBase58()]||short(pairOk.pk.toBase58())} · mint ${mintKp.publicKey.toBase58()} · ${sig.slice(0,12)}…`,'ok'); say('Launch is live. Sealed batch open.'); refreshBal(); await loadLaunches(); current=launches.find(l=>l.mint.equals(mintKp.publicKey))||null; if(current) openDetail(); }
   catch(err){ log('create failed: '+(err.message||err),'err'); say('Create failed: '+(err.message||err).slice(0,140)); } finally{ btn.disabled=false; } });
+
+// ---------- trust status: who can upgrade the program right now (read from the loader, not from us) ----------
+(async()=>{ try{ const [pd]=PublicKey.findProgramAddressSync([new PublicKey(PROGRAM_ID).toBuffer()],new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111')); const a=await conn.getAccountInfo(pd); const el=$('#trust'); if(!a){ el.textContent='program not deployed on this cluster'; return; }
+  const has=a.data[12]===1; if(!has){ el.innerHTML='<span class="g">program is immutable · no upgrade authority</span>'; return; } const auth=new PublicKey(a.data.slice(13,45)).toBase58();
+  el.innerHTML=`upgrade authority: <a href="${explorer(auth)}" target="_blank" rel="noopener">${short(auth)}</a> <span class="a">(single key — multisig then freeze planned)</span>`; }catch(e){} })();
 
 // ---------- tick ----------
 setInterval(()=>{ document.querySelectorAll('[data-end]').forEach(e=>e.textContent=mmss(+e.dataset.end-now())); },1000);
