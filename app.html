@@ -66,7 +66,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 <body>
 <div class="monitor"><div class="screen">
   <div class="bar">
-    <div class="l"><a href="index.html"><img src="brand/door-64.png" alt=""></a><b>RESURRECT</b><span>APP</span><span class="tag">LIVE · SOLANA DEVNET</span><a href="launchpad.html" style="font-size:12px">preview →</a></div>
+    <div class="l"><a href="index.html"><img src="brand/door-64.png" alt=""></a><b>RESURRECT</b><span>APP</span><span class="tag net">LIVE · SOLANA DEVNET</span><a id="netsw" href="?cluster=mainnet" style="font-size:12px">switch to mainnet</a><a href="launchpad.html" style="font-size:12px">preview →</a></div>
     <div class="l"><span id="bal"></span><button class="btn sm ghost" id="faucet" style="display:none">+1 devnet SOL</button><button class="btn" id="connect">connect wallet</button></div>
   </div>
 
@@ -94,6 +94,14 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
           </div></div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="sec" id="profile">
+    <h2><span>YOUR PROFILE</span> everything this wallet has on chain with the program <i id="p-who">connect a wallet</i></h2>
+    <div class="dgrid">
+      <div class="box"><h4>SUMMARY</h4><div class="rows" id="p-sum"><div class="row"><span>—</span><b>connect a wallet to see your coins, bids, stakes and rewards</b></div></div></div>
+      <div class="box"><h4>POSITIONS <i id="p-n"></i></h4><div class="rows" id="p-rows"></div></div>
     </div>
   </section>
 
@@ -128,7 +136,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
     </div>
   </section>
 
-  <div class="foot"><span>RESURRECT APP · devnet · program <a id="pidfoot" target="_blank" rel="noopener"></a> · unaudited · no real funds</span><span><a href="index.html">the ICU</a> · <a href="launchpad.html">preview</a> · <a href="wall.html">the wall</a></span></div>
+  <div class="foot"><span>RESURRECT APP · <span class="net">devnet</span> · program <a id="pidfoot" target="_blank" rel="noopener"></a> · unaudited · no real funds</span><span><a href="index.html">the ICU</a> · <a href="launchpad.html">preview</a> · <a href="wall.html">the wall</a></span></div>
 </div></div>
 <div class="toast" id="toast"></div>
 
@@ -136,18 +144,21 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 <script>
 (function(){
 const PROGRAM_ID='5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t';
-const RPC=new URLSearchParams(location.search).get('rpc')||'https://api.devnet.solana.com';
+const Q=new URLSearchParams(location.search); const CLUSTER=(Q.get('cluster')||localStorage.getItem('rsrct_cluster')||'devnet')==='mainnet'?'mainnet':'devnet'; localStorage.setItem('rsrct_cluster',CLUSTER);
+const RPC=Q.get('rpc')||(CLUSTER==='mainnet'?'https://api.mainnet-beta.solana.com':'https://api.devnet.solana.com');
+document.querySelectorAll('.net').forEach(e=>{e.textContent=CLUSTER==='mainnet'?'LIVE · SOLANA MAINNET':'LIVE · SOLANA DEVNET'; if(CLUSTER==='mainnet') e.classList.add('a');});
+document.getElementById('netsw').textContent=CLUSTER==='mainnet'?'switch to devnet':'switch to mainnet'; document.getElementById('netsw').href='?cluster='+(CLUSTER==='mainnet'?'devnet':'mainnet');
 const {Connection,PublicKey,Transaction,LAMPORTS_PER_SOL,Keypair}=solanaWeb3; const spl=splToken;
 const conn=new Connection(RPC,'confirmed'); const R=makeRsrct(solanaWeb3,spl,PROGRAM_ID);
 const $=s=>document.querySelector(s);
 const toast=$('#toast');let tt;const say=m=>{toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),3800);};
 const log=(m,c='')=>{const d=document.createElement('div');d.className=c;d.textContent=new Date().toLocaleTimeString('en-GB')+' · '+m;$('#log').prepend(d);};
-const explorer=(k,type='address')=>`https://explorer.solana.com/${type}/${k}?cluster=devnet`;
+const explorer=(k,type='address')=>`https://explorer.solana.com/${type}/${k}`+(CLUSTER==='mainnet'?'':'?cluster=devnet');
 $('#pidlbl').textContent='program '+PROGRAM_ID.slice(0,4)+'…'+PROGRAM_ID.slice(-4); $('#pidfoot').textContent=PROGRAM_ID.slice(0,8)+'…'; $('#pidfoot').href=explorer(PROGRAM_ID);
 const short=k=>k.slice(0,4)+'…'+k.slice(-4);
 const mmss=s=>{s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
 // ---------- pairing assets ----------
-const KNOWN={'So11111111111111111111111111111111111111112':'SOL','4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU':'USDC','Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr':'USDC','EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v':'USDC'};
+const ASSETS=[]; const KNOWN={'So11111111111111111111111111111111111111112':'SOL','4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU':'USDC','Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr':'USDC','EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v':'USDC'};
 const pairSym=l=>KNOWN[l.pairMint.toBase58()]||('pair '+short(l.pairMint.toBase58()));
 const fmtPair=(l,v)=>(Number(v)/10**l.pairDecimals).toLocaleString('en-US',{maximumFractionDigits:Math.min(l.pairDecimals,6)})+' '+pairSym(l);
 const fmtSol=v=>(Number(v)/LAMPORTS_PER_SOL).toLocaleString('en-US',{maximumFractionDigits:4})+' SOL';
@@ -162,9 +173,9 @@ const fmtPx=(l,p)=>p?p.toLocaleString('en-US',{maximumFractionDigits:Math.min(l.
 let wallet=null,pubkey=null;
 function provider(){ if(window.phantom?.solana?.isPhantom) return window.phantom.solana; if(window.solana?.isPhantom) return window.solana; if(window.solflare?.isSolflare) return window.solflare; if(window.backpack) return window.backpack; return window.solana||null; }
 async function connect(){ const p=provider(); if(!p){ say('No Solana wallet found. Install Phantom, then reload.'); window.open('https://phantom.app','_blank'); return; }
-  try{ const r=await p.connect(); wallet=p; pubkey=new PublicKey((r&&r.publicKey)||p.publicKey); $('#connect').textContent=short(pubkey.toBase58()); $('#faucet').style.display=''; log('wallet connected '+pubkey.toBase58(),'ok'); refreshBal(); renderDetail(); }catch(e){ say('Wallet connection rejected.'); } }
+  try{ const r=await p.connect(); wallet=p; pubkey=new PublicKey((r&&r.publicKey)||p.publicKey); $('#connect').textContent=short(pubkey.toBase58()); $('#faucet').style.display=''; log('wallet connected '+pubkey.toBase58(),'ok'); refreshBal(); renderDetail(); renderProfile(); }catch(e){ say('Wallet connection rejected.'); } }
 async function refreshBal(){ if(!pubkey)return; const b=await conn.getBalance(pubkey); $('#bal').textContent=fmtSol(b); }
-$('#connect').addEventListener('click',()=>{ if(pubkey){ wallet.disconnect?.(); wallet=null;pubkey=null;$('#connect').textContent='connect wallet';$('#bal').textContent='';$('#faucet').style.display='none';renderDetail(); } else connect(); });
+$('#connect').addEventListener('click',()=>{ if(pubkey){ wallet.disconnect?.(); wallet=null;pubkey=null;$('#connect').textContent='connect wallet';$('#bal').textContent='';$('#faucet').style.display='none';renderDetail(); renderProfile(); } else connect(); });
 $('#faucet').addEventListener('click',async()=>{ try{ say('Requesting 1 devnet SOL…'); const sig=await conn.requestAirdrop(pubkey,LAMPORTS_PER_SOL); await conn.confirmTransaction(sig,'confirmed'); log('airdrop 1 SOL','ok'); refreshBal(); }catch(e){ say('Faucet is rate-limited. Try faucet.solana.com'); log('airdrop failed: '+e.message,'err'); } });
 async function sendTx(ixs,extraSigners=[]){ if(!pubkey) throw new Error('connect a wallet first'); const tx=new Transaction().add(...ixs); tx.feePayer=pubkey; tx.recentBlockhash=(await conn.getLatestBlockhash('confirmed')).blockhash; if(extraSigners.length) tx.partialSign(...extraSigners);
   let sig; if(wallet.signAndSendTransaction){ const r=await wallet.signAndSendTransaction(tx); sig=r.signature||r; } else { const signed=await wallet.signTransaction(tx); sig=await conn.sendRawTransaction(signed.serialize(),{skipPreflight:false}); }
@@ -179,7 +190,7 @@ async function pairBalance(l){ if(isNative(l)) return BigInt(await conn.getBalan
 let launches=[],current=null,now=()=>Math.floor(Date.now()/1000);
 function phaseOf(l){ const t=now(); if(!l.settled){ if(t<l.endTs) return 'batch'; if(t<l.revealEndTs) return 'reveal'; return 'settle'; } return l.poolTokens>0n?'live':'empty'; }
 const PH={batch:['SEALED BATCH','live'],reveal:['REVEAL WINDOW','rev'],settle:['READY TO SETTLE','set'],live:['TRADING · POOL SEALED','grad'],empty:['NO BIDS · CLOSED','dead']};
-async function loadLaunches(){ try{ const info=await conn.getAccountInfo(new PublicKey(PROGRAM_ID)); if(!info){ $('#list').innerHTML='<div class="empty"><b>Program not deployed on devnet yet.</b></div>'; return; } const [pd]=PublicKey.findProgramAddressSync([new PublicKey(PROGRAM_ID).toBuffer()],new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111')); const pdi=await conn.getAccountInfo(pd); if(pdi&&pdi.data.length<560000){ $('#list').innerHTML='<div class="empty"><b>Program upgrade in progress.</b>Devnet still runs the previous build. The new build (any-asset pairing · holder rewards · proof of personhood) is being deployed — check back shortly.</div>'; return; } launches=await Promise.race([R.fetchLaunches(conn),new Promise((_,rej)=>setTimeout(()=>rej(new Error('RPC timeout')),15000))]); launches.sort((a,b)=>b.startTs-a.startTs); renderList(); if(current){ const c=launches.find(l=>l.pubkey.equals(current.pubkey)); if(c){current=c;renderDetail();} } }catch(e){ $('#list').innerHTML='<div class="empty"><b>Could not read the program.</b>'+e.message+'</div>'; } }
+async function loadLaunches(){ try{ const info=await conn.getAccountInfo(new PublicKey(PROGRAM_ID)); if(!info){ $('#list').innerHTML='<div class="empty"><b>Program not deployed on devnet yet.</b></div>'; return; } const [pd]=PublicKey.findProgramAddressSync([new PublicKey(PROGRAM_ID).toBuffer()],new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111')); const pdi=await conn.getAccountInfo(pd); if(pdi&&pdi.data.length<560000){ $('#list').innerHTML='<div class="empty"><b>Program upgrade in progress.</b>Devnet still runs the previous build. The new build (any-asset pairing · holder rewards · proof of personhood) is being deployed — check back shortly.</div>'; return; } launches=await Promise.race([R.fetchLaunches(conn),new Promise((_,rej)=>setTimeout(()=>rej(new Error('RPC timeout')),15000))]); launches.sort((a,b)=>b.startTs-a.startTs); renderList(); renderProfile(); if(current){ const c=launches.find(l=>l.pubkey.equals(current.pubkey)); if(c){current=c;renderDetail();} } }catch(e){ $('#list').innerHTML='<div class="empty"><b>Could not read the program.</b>'+e.message+'</div>'; } }
 function renderList(){ const list=$('#list'); if(!launches.length){ list.innerHTML='<div class="empty"><b>No launches yet on devnet.</b>Be the first: create one below. Zero allocation, sealed batch, pool sealed forever.</div>'; return; }
   list.innerHTML=launches.map((l,i)=>{ const ph=phaseOf(l); const [lbl,cls]=PH[ph]; const px=tokPrice(l); const fdv=px*1e9;
     const k1=ph==='batch'?['closes in',`<span data-end="${l.endTs}">${mmss(l.endTs-now())}</span>`]:ph==='reveal'?['reveal ends',`<span data-end="${l.revealEndTs}">${mmss(l.revealEndTs-now())}</span>`]:ph==='live'?['FDV',fdv.toLocaleString('en-US',{maximumFractionDigits:2})+' '+pairSym(l)]:['raised',fmtPair(l,l.totalRevealed)];
@@ -241,15 +252,34 @@ async function renderDetail(){ const l=current; if(!l) return; const ph=phaseOf(
   $('#sw-sell')?.addEventListener('click',async()=>{try{ const v=parseFloat($('#sw-tok').value); if(!(v>0)) return; const t=BigInt(Math.round(v*1e6)); const g=cp(t,l.poolTokens,l.poolPair); const out=g-g/100n; const sig=await sendTx([...prep(l),await R.ixSwap({trader:pubkey,...common,pairForTokens:false,amountIn:t,minOut:out*99n/100n}),...unwrap(l)]); log('sold · '+sig.slice(0,12)+'…','ok'); say('Sold.'); refreshBal(); loadLaunches(); }catch(e){ fail('Sell',e); }});
 }
 
+// ---------- profile ----------
+async function renderProfile(){ const who=$('#p-who'); if(!pubkey){ who.textContent='connect a wallet'; return; } who.textContent=short(pubkey.toBase58());
+  const rows=[]; let created=0,bids=0,stakes=0; const pend={}, cfees={};
+  for(const l of launches){ const P=pairSym(l); const mine=l.creator.equals(pubkey); if(mine){ created++; if(l.creatorFeesOwed>0n) cfees[P]=(cfees[P]||0n)+l.creatorFeesOwed; }
+    const [b,st]=await Promise.all([R.fetchBid(conn,l.mint,pubkey),l.settled?R.fetchStake(conn,l.mint,pubkey):null]);
+    if(b){ bids++; const ph=phaseOf(l); rows.push(`<div class="row"><span>$${l.symbol} · bid</span><b>${b.revealed?fmtPair(l,b.amount)+' revealed':'sealed · deposit '+fmtPair(l,b.deposit)}${b.claimed?' · claimed':(ph==='live'||ph==='empty')?' · <span class="g">claim ready</span>':ph==='reveal'&&!b.revealed?' · <span class="a">reveal now</span>':''}</b></div>`); }
+    if(st&&st.amount>0n){ stakes++; const p=R.pendingRewards(l,st); pend[P]=(pend[P]||0n)+p; rows.push(`<div class="row"><span>$${l.symbol} · staked</span><b>${fmtTok(st.amount)} tokens · rewards ${fmtPair(l,p)}</b></div>`); }
+    if(mine) rows.push(`<div class="row"><span>$${l.symbol} · yours</span><b>${PH[phaseOf(l)][0].toLowerCase()} · fees owed to you ${fmtPair(l,l.creatorFeesOwed)}</b></div>`); }
+  const fmtMap=m=>Object.entries(m).map(([k,v])=>(Number(v)/10**(launches.find(l=>pairSym(l)===k)?.pairDecimals||9)).toLocaleString('en-US',{maximumFractionDigits:6})+' '+k).join(' · ')||'—';
+  $('#p-sum').innerHTML=[['coins launched',created+' · 0% allocation on every one'],['sealed bids',bids+''],['active stakes',stakes+''],['holder rewards ready',fmtMap(pend)],['creator fees ready',fmtMap(cfees)],['proof of personhood',(await R.hasHumanPass(conn,pubkey))?'<span class="g">Civic Uniqueness pass found</span>':'no pass on this wallet · <a href="https://getpass.civic.com" target="_blank" rel="noopener">get one</a>']].map(r=>`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+  $('#p-n').textContent=rows.length+' positions'; $('#p-rows').innerHTML=rows.join('')||'<div class="row"><span>nothing yet</span><b>bid in a batch, stake a coin or launch one</b></div>';
+  $('#p-rows').querySelectorAll('.row').forEach((r,i)=>{ r.style.cursor='pointer'; r.addEventListener('click',()=>{ const sym=r.querySelector('span').textContent.split(' ')[0].slice(1); current=launches.find(l=>l.symbol===sym)||current; if(current) openDetail(); }); });
+}
+
 // ---------- create ----------
 $('#c-fee').addEventListener('input',e=>$('#c-feev').textContent=e.target.value+'%');
 $('#c-sym').addEventListener('input',e=>e.target.value=e.target.value.replace(/[^a-z0-9]/gi,'').toUpperCase());
 $('#c-pair').addEventListener('change',e=>{ $('#c-pairmint').style.display=e.target.value==='custom'?'':'none'; checkPair(); });
 $('#c-pairmint').addEventListener('input',checkPair);
+// real asset list (2,400+) — on mainnet it becomes the picker; on every cluster it names known mints
+fetch('js/assets.json').then(r=>r.json()).then(list=>{ list.sort((a,b)=>(a.r||0)-(b.r||0)); for(const a of list){ ASSETS.push(a); if(!KNOWN[a.m]) KNOWN[a.m]=a.s; }
+  if(CLUSTER==='mainnet'){ const sel=$('#c-pair'); sel.innerHTML='<option value="custom">search 2,400+ assets below, or paste a mint</option>'; sel.value='custom'; const inp=$('#c-pairmint'); inp.style.display=''; inp.placeholder='type a ticker: TSLA, NVDA, SPY, GOLD, USDC… or paste a mint'; inp.setAttribute('list','assetlist');
+    const dl=document.createElement('datalist'); dl.id='assetlist'; dl.innerHTML=list.slice(0,2500).map(a=>`<option value="${a.m}">${a.s} — ${a.n} · ${a.c}</option>`).join(''); document.body.appendChild(dl); checkPair(); }
+  if(current) renderDetail(); renderList(); }).catch(()=>{});
 let pairOk=null;
-async function checkPair(){ pairOk=null; const v=$('#c-pair').value; const addr=v==='custom'?$('#c-pairmint').value.trim():v; const info=$('#c-pairinfo'); if(!addr){ info.textContent='Paste a devnet mint address.'; return; }
+async function checkPair(){ pairOk=null; const v=$('#c-pair').value; const addr=v==='custom'?$('#c-pairmint').value.trim():v; const info=$('#c-pairinfo'); if(!addr){ info.textContent=CLUSTER==='mainnet'?'Type a ticker or paste a mint address.':'Paste a devnet mint address.'; return; }
   try{ const pk=new PublicKey(addr); const pi=await R.pairInfo(conn,pk); pairOk={pk,...pi}; info.innerHTML=`✓ ${KNOWN[addr]||short(addr)} · ${pi.prog.equals(R.TOKEN22)?'Token-2022':'SPL Token'} · ${pi.decimals} decimals · minimum bid ${pi.decimals>=2?(10**-2).toFixed(2):'1'} units. Bids, pool, fees and rewards all in this asset.`; }
-  catch(e){ info.textContent='✗ '+(e.message||'not a valid mint on devnet'); } }
+  catch(e){ info.textContent='✗ '+(e.message||'not a valid mint on '+CLUSTER); } }
 checkPair();
 $('#createForm').addEventListener('submit',async e=>{ e.preventDefault(); if(!pubkey) return say('Connect a wallet first.'); if(!pairOk) return say('Pick a valid pairing asset.');
   const name=$('#c-name').value.trim(), sym=$('#c-sym').value.trim(), batch=parseInt($('#c-batch').value), fee=parseInt($('#c-fee').value)*100; if(!name||!sym) return say('Name and ticker required.');

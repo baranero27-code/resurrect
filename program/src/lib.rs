@@ -23,6 +23,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::hash::hashv;
 use anchor_spl::token::{self, Token, Transfer};
 use anchor_spl::token_interface::{self as ti, Mint, TokenAccount, TokenInterface, TransferChecked};
+use anchor_spl::token_2022::spl_token_2022::{self, extension::{BaseStateWithExtensions, ExtensionType, StateWithExtensions}};
 
 declare_id!("5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t");
 
@@ -54,6 +55,7 @@ pub mod resurrect {
         require!(mint.decimals == 6, ErrorCode::BadParams);
         let pair = &ctx.accounts.pair_mint;
         require!(pair.key() != mint.key(), ErrorCode::BadParams);
+        check_pair_mint_extensions(&pair.to_account_info())?;
         // move 100% of supply into the program vault — creator keeps nothing
         token::transfer(
             CpiContext::new(ctx.accounts.token_program.to_account_info(), Transfer {
@@ -115,8 +117,12 @@ pub mod resurrect {
             let gt = ctx.accounts.gateway_token.as_ref().ok_or(ErrorCode::HumanPassRequired)?;
             verify_human(gt, &ctx.accounts.bidder.key(), &l.gatekeeper_network, Clock::get()?.unix_timestamp)?;
         }
+        let before = ctx.accounts.escrow.amount;
         pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.bidder_pair.to_account_info(), &ctx.accounts.escrow.to_account_info(),
             &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.bidder.to_account_info(), deposit, l.pair_decimals, None)?;
+        ctx.accounts.escrow.reload()?;
+        // trust what actually arrived, never the requested amount
+        require!(ctx.accounts.escrow.amount - before == deposit, ErrorCode::TransferShortfall);
         let l = &mut ctx.accounts.launch;
         let b = &mut ctx.accounts.bid;
         b.launch = l.key();
@@ -216,10 +222,13 @@ pub mod resurrect {
         let out = cp_out(net as u128, l.pool_pair as u128, l.pool_tokens as u128);
         require!(out >= min_tokens_out && out > 0, ErrorCode::Slippage);
         let dec = l.pair_decimals;
+        let before = ctx.accounts.pool_pair.amount;
         pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.trader_pair.to_account_info(), &ctx.accounts.pool_pair.to_account_info(),
             &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.trader.to_account_info(), net, dec, None)?;
         pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.trader_pair.to_account_info(), &ctx.accounts.fee_vault.to_account_info(),
             &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.trader.to_account_info(), fee, dec, None)?;
+        ctx.accounts.pool_pair.reload()?;
+        require!(ctx.accounts.pool_pair.amount - before == net, ErrorCode::TransferShortfall);
         let seeds: &[&[u8]] = &[b"launch", l.mint.as_ref(), &[l.bump]];
         token::transfer(
             CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), Transfer {
@@ -374,6 +383,23 @@ fn verify_human(gt: &AccountInfo, owner: &Pubkey, network: &Pubkey, now: i64) ->
     require!(&t.gatekeeper_network == network, ErrorCode::HumanPassInvalid);
     require!(t.state == 0, ErrorCode::HumanPassInvalid);
     if let Some(exp) = t.expire_time { require!(exp > now, ErrorCode::HumanPassExpired); }
+    Ok(())
+}
+
+/// Pair assets must transfer 1:1 and unconditionally. Token-2022 extensions that take a cut, can block transfers,
+/// or make accounts non-transferable would break the escrow/pool accounting, so they are rejected up front.
+fn check_pair_mint_extensions(mint_ai: &AccountInfo) -> Result<()> {
+    if mint_ai.owner == &anchor_spl::token::ID { return Ok(()); } // classic SPL Token: no extensions
+    let data = mint_ai.try_borrow_data()?;
+    let st = StateWithExtensions::<spl_token_2022::state::Mint>::unpack(&data).map_err(|_| ErrorCode::BadPairMint)?;
+    for ext in st.get_extension_types().map_err(|_| ErrorCode::BadPairMint)? {
+        match ext {
+            ExtensionType::TransferFeeConfig | ExtensionType::TransferHook | ExtensionType::NonTransferable
+            | ExtensionType::ConfidentialTransferMint | ExtensionType::ConfidentialTransferFeeConfig
+            | ExtensionType::ConfidentialMintBurn => return err!(ErrorCode::UnsupportedPairExtension),
+            _ => {}
+        }
+    }
     Ok(())
 }
 
@@ -655,4 +681,7 @@ pub enum ErrorCode {
     #[msg("this launch requires a proof-of-personhood pass to bid")] HumanPassRequired,
     #[msg("proof-of-personhood pass is missing, revoked or for another wallet")] HumanPassInvalid,
     #[msg("proof-of-personhood pass has expired")] HumanPassExpired,
+    #[msg("pair mint could not be parsed")] BadPairMint,
+    #[msg("pair asset uses a Token-2022 extension that is not supported (transfer fee, transfer hook, non-transferable or confidential)")] UnsupportedPairExtension,
+    #[msg("fewer tokens arrived than expected")] TransferShortfall,
 }
