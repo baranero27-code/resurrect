@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resurrect App — live on Solana devnet</title>
+<meta name="description" content="Resurrect launchpad, live on Solana devnet: sealed batch auctions, one clearing price, liquidity nobody can pull.">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/door-32.png">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#03060A;--bezel:#0A0F13;--panel:#071017;--card:#0A161D;--green:#4AE38A;--green-dim:rgba(74,227,138,.35);--cyan:#5BD3E6;--amber:#F2B134;--red:#FF4747;--text:#CFE6D8;--dim:#5F7A6C;--line:rgba(207,230,216,.12);--grid:rgba(74,227,138,.045);--mono:'Share Tech Mono',ui-monospace,Menlo,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:15px;line-height:1.55;min-height:100vh;padding:18px;-webkit-font-smoothing:antialiased}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+button,input,select{font-family:var(--mono);font-size:14px}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;opacity:.6}
+.monitor{max-width:1280px;margin:0 auto;background:var(--bezel);border:1px solid var(--line);border-radius:14px;box-shadow:0 0 0 6px #050709,0 0 60px rgba(74,227,138,.06),inset 0 0 80px rgba(0,0,0,.6);overflow:hidden}
+.screen{background:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),var(--panel);background-size:24px 24px,24px 24px,auto}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.35);font-size:13px;color:var(--dim);flex-wrap:wrap}
+.bar b{color:var(--text);font-weight:400}.bar .l{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.bar img{width:22px;height:22px;filter:drop-shadow(0 0 6px rgba(74,227,138,.6))}
+.tag{border:1px solid var(--green);color:var(--green);padding:2px 8px;font-size:11px;letter-spacing:.08em}
+.tag.a{border-color:var(--amber);color:var(--amber)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--green);color:var(--green);background:transparent;padding:9px 14px;cursor:pointer;letter-spacing:.04em;text-decoration:none}
+.btn:hover{background:var(--green);color:#000;text-decoration:none}.btn.solid{background:var(--green);color:#000}.btn.solid:hover{background:#7FF0AE}.btn.sm{padding:6px 10px;font-size:12px}.btn.ghost{border-color:var(--line);color:var(--text)}.btn.ghost:hover{background:rgba(207,230,216,.08);color:var(--text)}
+.btn.red{border-color:var(--red);color:var(--red)}.btn.red:hover{background:var(--red);color:#000}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.sec{padding:30px 22px;border-bottom:1px solid var(--line)}
+.sec h2{font-size:13px;font-weight:400;color:var(--dim);margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sec h2::before{content:'';width:8px;height:8px;background:var(--green);box-shadow:0 0 8px var(--green)}.sec h2 span{color:var(--text)}.sec h2 i{font-style:normal;margin-left:auto;font-size:12px;color:var(--dim)}
+.note{font-size:12px;color:var(--dim);line-height:1.6;max-width:80ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.tk{border:1px solid var(--line);background:var(--card);padding:14px;cursor:pointer;transition:border-color .12s,transform .12s;position:relative}
+.tk:hover{border-color:var(--green-dim);transform:translateY(-2px)}
+.tk .top{display:flex;align-items:center;gap:12px}
+.av{width:42px;height:42px;border-radius:50%;border:1px solid var(--green-dim);display:grid;place-items:center;font-size:13px;color:var(--green);background:rgba(74,227,138,.06);flex:none}
+.nm b{display:block;font-weight:400;color:var(--text);font-size:16px}.nm span{font-size:12px;color:var(--dim)}
+.chip{margin-left:auto;font-size:10.5px;letter-spacing:.08em;padding:3px 8px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.chip.live{border-color:var(--green);color:var(--green);animation:blink 1.4s steps(2) infinite}.chip.rev{border-color:var(--amber);color:var(--amber)}.chip.set{border-color:var(--cyan);color:var(--cyan)}.chip.grad{border-color:var(--green-dim);color:var(--green)}.chip.dead{border-color:var(--red);color:var(--red)}
+@keyframes blink{50%{opacity:.35}}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:12px;font-size:11.5px}.kv div{color:var(--dim)}.kv div b{display:block;font-weight:400;font-size:17px;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums}.kv .g b{color:var(--green)}
+.empty{border:1px dashed var(--line);padding:34px;text-align:center;color:var(--dim)}.empty b{display:block;color:var(--text);font-weight:400;margin-bottom:8px}
+.detail{display:none}.detail.open{display:block}
+.dhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}.dhead .av{width:52px;height:52px;font-size:16px}.dhead h3{font-weight:400;font-size:24px;line-height:1}.dhead .ca{font-size:12px;color:var(--dim)}
+.dgrid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+.box{border:1px solid var(--line);background:var(--card);padding:16px}.box h4{font-weight:400;font-size:12px;color:var(--dim);letter-spacing:.1em;margin-bottom:10px;display:flex;align-items:center;gap:10px}.box h4 i{font-style:normal;margin-left:auto;font-size:11px}.box h4 i.on{color:var(--green)}
+.rows{display:grid}.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13px}.row:last-child{border-bottom:0}.row span{color:var(--dim)}.row b{font-weight:400;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}.row b.g{color:var(--green)}.row b.a{color:var(--amber)}.row b.r{color:var(--red)}
+.big{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}.big div{border-top:1px dashed var(--line);padding-top:8px;font-size:11px;color:var(--dim)}.big div b{display:block;font-weight:400;font-size:22px;color:var(--text);line-height:1.1;margin-top:3px}.big div b.g{color:var(--green)}
+.f{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line)}.f label{font-size:12px;color:var(--dim)}
+.f input,.f select{width:100%;background:#000;border:1px solid var(--line);color:var(--text);padding:10px 12px}.f input:focus{border-color:var(--green);outline:none}
+.f .fixed{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(74,227,138,.05);border:1px solid var(--green-dim);padding:10px 12px;font-size:13px}.f .fixed i{font-style:normal;font-size:10.5px;color:var(--green);letter-spacing:.08em}
+.f .fixed.no{background:rgba(255,71,71,.05);border-color:rgba(255,71,71,.4)}.f .fixed.no i{color:var(--red)}
+.act{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.phase{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}.phase div{border:1px solid var(--line);padding:8px 10px;font-size:11px;color:var(--dim);letter-spacing:.06em}.phase div.on{border-color:var(--green);color:var(--green);background:rgba(74,227,138,.06)}.phase div.done{color:var(--text)}
+.log{background:#000;border:1px solid var(--line);padding:10px 12px;font-size:12px;max-height:200px;overflow:auto;color:var(--dim)}.log div{padding:2px 0;border-bottom:1px dashed rgba(207,230,216,.06)}.log .ok{color:var(--green)}.log .err{color:var(--red)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#000;border:1px solid var(--green);color:var(--text);padding:12px 16px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:120;max-width:92vw}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.warn{border:1px solid rgba(242,177,52,.45);background:rgba(242,177,52,.06);color:var(--amber);padding:10px 12px;font-size:12.5px;margin-top:10px}
+.foot{padding:18px 22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim);background:rgba(0,0,0,.35)}
+@media(max-width:900px){body{padding:8px}.dgrid{grid-template-columns:1fr}.f{grid-template-columns:1fr;gap:6px}.phase{grid-template-columns:1fr 1fr}.sec,.bar{padding-left:14px;padding-right:14px}}
+</style>
+</head>
+<body>
+<div class="monitor"><div class="screen">
+  <div class="bar">
+    <div class="l"><a href="index.html"><img src="brand/door-64.png" alt=""></a><b>RESURRECT</b><span>APP</span><span class="tag">LIVE · SOLANA DEVNET</span><a href="launchpad.html" style="font-size:12px">preview →</a></div>
+    <div class="l"><span id="bal"></span><button class="btn sm ghost" id="faucet" style="display:none">+1 devnet SOL</button><button class="btn" id="connect">connect wallet</button></div>
+  </div>
+
+  <section class="sec" id="launches">
+    <h2><span>LAUNCHES</span> on chain, read live from the program <i id="pidlbl"></i></h2>
+    <div class="grid" id="list"><div class="empty">loading launches…</div></div>
+    <div class="detail" id="detail">
+      <button class="btn ghost sm" id="back" style="margin-bottom:14px">← all launches</button>
+      <div class="dhead"><div class="av" id="d-av"></div><div><h3 id="d-name"></h3><div class="ca">mint <a id="d-mint" target="_blank" rel="noopener"></a> · launch <a id="d-launch" target="_blank" rel="noopener"></a></div></div></div>
+      <div class="phase" id="phase"></div>
+      <div class="dgrid">
+        <div>
+          <div class="box"><h4>STATE <i id="d-phase" class="on"></i></h4><div class="rows" id="d-rows"></div></div>
+          <div class="box" style="margin-top:14px"><h4>POOL · SEALED, PROGRAM-OWNED, NO WITHDRAW INSTRUCTION</h4><div class="big" id="d-pool"></div><p class="note" style="margin-top:10px">20% of supply + all SOL raised in the batch seed a constant-product pool inside the program. There is no instruction that can remove it. 1% fee on every swap accrues to the fee vault.</p></div>
+        </div>
+        <div>
+          <div class="box" id="actbox"><h4>YOUR ACTIONS <i id="d-you"></i></h4><div id="actions"></div></div>
+          <div class="box" style="margin-top:14px"><h4>RULES · ENFORCED BY PROGRAM</h4><div class="rows">
+            <div class="row"><span>supply</span><b>1,000,000,000 · mint & freeze authority revoked</b></div>
+            <div class="row"><span>launch</span><b>sealed commit-reveal batch · one clearing price</b></div>
+            <div class="row"><span>bids</span><b>one per wallet · hidden until close</b></div>
+            <div class="row"><span>creator</span><b class="g">0% allocation · no first buy</b></div>
+            <div class="row"><span>liquidity</span><b class="g">locked in program forever</b></div>
+            <div class="row"><span>proof of personhood</span><b class="a">devnet: not enforced yet</b></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="create">
+    <h2><span>CREATE A LAUNCH</span> real token, real auction, on devnet</h2>
+    <div class="dgrid">
+      <form id="createForm" class="box">
+        <div class="f"><label>name</label><input id="c-name" maxlength="32" placeholder="e.g. Lazarus" required></div>
+        <div class="f"><label>ticker</label><input id="c-sym" maxlength="10" placeholder="1–10 letters or numbers" required></div>
+        <div class="f"><label>batch length</label><select id="c-batch"><option value="60">1 minute (test)</option><option value="300">5 minutes</option><option value="900" selected>15 minutes</option></select></div>
+        <div class="f"><label>creator fee share</label><div style="display:flex;gap:12px;align-items:center"><input type="range" id="c-fee" min="0" max="20" value="5" style="padding:0;border:0;background:transparent;accent-color:var(--green)"><b id="c-feev" style="font-weight:400;color:var(--green)">5%</b></div></div>
+        <div class="f"><label>pairing asset</label><div class="fixed">SOL <i>DEVNET · MORE ASSETS AT MAINNET</i></div></div>
+        <div class="f"><label>supply</label><div class="fixed">1,000,000,000 · authorities revoked in the same transaction <i>FIXED</i></div></div>
+        <div class="f"><label>allocation</label><div class="fixed">80% sold in the batch · 20% + all raised SOL → sealed pool <i>FIXED</i></div></div>
+        <div class="f"><label>dev allocation</label><div class="fixed no">0% · creator keeps nothing <i>NOT NEGOTIABLE</i></div></div>
+        <div class="f"><label>first buy</label><div class="fixed no">none · creator bids like everyone else <i>NOT AVAILABLE</i></div></div>
+        <div class="act"><button class="btn solid" id="c-go" type="submit">create mint + open sealed batch</button></div>
+        <p class="note" style="margin-top:10px">One transaction: creates the mint, mints 1B to you, revokes mint authority, then hands 100% to the program vault and opens the batch. Cost ≈ 0.01 devnet SOL.</p>
+      </form>
+      <div>
+        <div class="box"><h4>HOW A BATCH WORKS</h4><div class="rows">
+          <div class="row"><span>1 · commit</span><b>escrow SOL + hash(amount, salt). Deposit more than your bid to hide it.</b></div>
+          <div class="row"><span>2 · reveal</span><b>10-minute window after close. Your salt is stored in this browser.</b></div>
+          <div class="row"><span>3 · settle</span><b>anyone. price = total SOL ÷ 800M tokens. Pool seeds and seals.</b></div>
+          <div class="row"><span>4 · claim</span><b>tokens at the clearing price + refund of extra deposit.</b></div>
+          <div class="row"><span>5 · trade</span><b>swap against the sealed pool. 1% fee.</b></div>
+        </div></div>
+        <div class="box" style="margin-top:14px"><h4>ACTIVITY</h4><div class="log" id="log"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot"><span>RESURRECT APP · devnet · program <a id="pidfoot" target="_blank" rel="noopener"></a> · unaudited · no real funds</span><span><a href="index.html">the ICU</a> · <a href="launchpad.html">preview</a> · <a href="wall.html">the wall</a></span></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="js/rsrct-bundle.js"></script>
+<script>
+(function(){
+const PROGRAM_ID='5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t';
+const RPC=new URLSearchParams(location.search).get('rpc')||'https://api.devnet.solana.com';
+const {Connection,PublicKey,Transaction,LAMPORTS_PER_SOL,Keypair}=solanaWeb3; const spl=splToken;
+const conn=new Connection(RPC,'confirmed'); const R=makeRsrct(solanaWeb3,spl,PROGRAM_ID);
+const $=s=>document.querySelector(s);
+const toast=$('#toast');let tt;const say=m=>{toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),3800);};
+const log=(m,c='')=>{const d=document.createElement('div');d.className=c;d.textContent=new Date().toLocaleTimeString('en-GB')+' · '+m;$('#log').prepend(d);};
+const explorer=(k,type='address')=>`https://explorer.solana.com/${type}/${k}?cluster=devnet`;
+$('#pidlbl').textContent='program '+PROGRAM_ID.slice(0,4)+'…'+PROGRAM_ID.slice(-4); $('#pidfoot').textContent=PROGRAM_ID.slice(0,8)+'…'; $('#pidfoot').href=explorer(PROGRAM_ID);
+const fmtSol=l=>(Number(l)/LAMPORTS_PER_SOL).toLocaleString('en-US',{maximumFractionDigits:4})+' SOL';
+const fmtTok=b=>(Number(b)/1e6).toLocaleString('en-US',{maximumFractionDigits:2});
+const short=k=>k.slice(0,4)+'…'+k.slice(-4);
+const mmss=s=>{s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+
+// ---------- wallet ----------
+let wallet=null,pubkey=null;
+function provider(){ if(window.phantom?.solana?.isPhantom) return window.phantom.solana; if(window.solana?.isPhantom) return window.solana; if(window.solflare?.isSolflare) return window.solflare; if(window.backpack) return window.backpack; return window.solana||null; }
+async function connect(){ const p=provider(); if(!p){ say('No Solana wallet found. Install Phantom, then reload.'); window.open('https://phantom.app','_blank'); return; }
+  try{ const r=await p.connect(); wallet=p; pubkey=new PublicKey((r&&r.publicKey)||p.publicKey); $('#connect').textContent=short(pubkey.toBase58()); $('#faucet').style.display=''; log('wallet connected '+pubkey.toBase58(),'ok'); refreshBal(); renderDetail(); }catch(e){ say('Wallet connection rejected.'); } }
+async function refreshBal(){ if(!pubkey)return; const b=await conn.getBalance(pubkey); $('#bal').textContent=fmtSol(b); }
+$('#connect').addEventListener('click',()=>{ if(pubkey){ wallet.disconnect?.(); wallet=null;pubkey=null;$('#connect').textContent='connect wallet';$('#bal').textContent='';$('#faucet').style.display='none';renderDetail(); } else connect(); });
+$('#faucet').addEventListener('click',async()=>{ try{ say('Requesting 1 devnet SOL…'); const sig=await conn.requestAirdrop(pubkey,LAMPORTS_PER_SOL); await conn.confirmTransaction(sig,'confirmed'); log('airdrop 1 SOL','ok'); refreshBal(); }catch(e){ say('Faucet is rate-limited. Try faucet.solana.com'); log('airdrop failed: '+e.message,'err'); } });
+async function sendTx(ixs,extraSigners=[]){ if(!pubkey) throw new Error('connect a wallet first'); const tx=new Transaction().add(...ixs); tx.feePayer=pubkey; tx.recentBlockhash=(await conn.getLatestBlockhash('confirmed')).blockhash; if(extraSigners.length) tx.partialSign(...extraSigners);
+  let sig; if(wallet.signAndSendTransaction){ const r=await wallet.signAndSendTransaction(tx); sig=r.signature||r; } else { const signed=await wallet.signTransaction(tx); sig=await conn.sendRawTransaction(signed.serialize(),{skipPreflight:false}); }
+  await conn.confirmTransaction(sig,'confirmed'); return sig; }
+async function ensureAta(mint){ const ata=spl.getAssociatedTokenAddressSync(mint,pubkey); const info=await conn.getAccountInfo(ata); return {ata, ix: info?null:spl.createAssociatedTokenAccountIdempotentInstruction(pubkey,ata,pubkey,mint)}; }
+
+// ---------- launches ----------
+let launches=[],current=null,now=()=>Math.floor(Date.now()/1000);
+function phaseOf(l){ const t=now(); if(!l.settled){ if(t<l.endTs) return 'batch'; if(t<l.revealEndTs) return 'reveal'; return 'settle'; } return l.poolTokens>0n?'live':'empty'; }
+const PH={batch:['SEALED BATCH','live'],reveal:['REVEAL WINDOW','rev'],settle:['READY TO SETTLE','set'],live:['TRADING · POOL SEALED','grad'],empty:['NO BIDS · CLOSED','dead']};
+async function loadLaunches(){ try{ launches=await R.fetchLaunches(conn); launches.sort((a,b)=>b.startTs-a.startTs); renderList(); if(current){ const c=launches.find(l=>l.pubkey.equals(current.pubkey)); if(c){current=c;renderDetail();} } }catch(e){ $('#list').innerHTML='<div class="empty"><b>Could not read the program.</b>'+e.message+'</div>'; } }
+function renderList(){ const list=$('#list'); if(!launches.length){ list.innerHTML='<div class="empty"><b>No launches yet on devnet.</b>Be the first: create one below. Zero allocation, sealed batch, pool sealed forever.</div>'; return; }
+  list.innerHTML=launches.map((l,i)=>{ const ph=phaseOf(l); const [lbl,cls]=PH[ph]; const price=l.settled&&l.poolTokens>0n?Number(l.poolSol)/Number(l.poolTokens):0; const fdv=price*1e15/LAMPORTS_PER_SOL;
+    const k1=ph==='batch'?['closes in',`<span data-end="${l.endTs}">${mmss(l.endTs-now())}</span>`]:ph==='reveal'?['reveal ends',`<span data-end="${l.revealEndTs}">${mmss(l.revealEndTs-now())}</span>`]:ph==='live'?['FDV',fdv.toFixed(2)+' SOL']:['raised',fmtSol(l.totalRevealedLamports)];
+    const k2=ph==='batch'?['sealed bids',l.bids+' wallets']:ph==='reveal'?['revealed',l.revealed+' / '+l.bids]:ph==='live'?['pool',fmtSol(l.poolSol)]:['bids',l.bids+''];
+    return `<div class="tk" data-i="${i}"><div class="top"><div class="av">${l.symbol.slice(0,2)}</div><div class="nm"><b>$${l.symbol}</b><span>${l.name}</span></div><span class="chip ${cls}">${lbl}</span></div>
+      <div class="kv"><div>${k1[0]}<b class="${ph==='batch'?'g':''}">${k1[1]}</b></div><div>${k2[0]}<b>${k2[1]}</b></div></div></div>`; }).join('');
+  list.querySelectorAll('.tk').forEach(el=>el.addEventListener('click',()=>{current=launches[+el.dataset.i];openDetail();})); }
+function openDetail(){ $('#list').style.display='none'; $('#detail').classList.add('open'); renderDetail(); $('#detail').scrollIntoView({behavior:'smooth',block:'start'}); }
+$('#back').addEventListener('click',()=>{ $('#detail').classList.remove('open'); $('#list').style.display=''; current=null; });
+
+const bidKey=l=>'rsrct_bid_'+l.pubkey.toBase58()+'_'+(pubkey?pubkey.toBase58():'');
+async function renderDetail(){ const l=current; if(!l) return; const ph=phaseOf(l); const [lbl]=PH[ph];
+  $('#d-av').textContent=l.symbol.slice(0,2); $('#d-name').innerHTML=`${l.name} <span style="color:var(--dim)">$${l.symbol}</span>`; $('#d-mint').textContent=short(l.mint.toBase58()); $('#d-mint').href=explorer(l.mint.toBase58()); $('#d-launch').textContent=short(l.pubkey.toBase58()); $('#d-launch').href=explorer(l.pubkey.toBase58());
+  $('#d-phase').textContent=lbl;
+  const steps=['SEALED BATCH','REVEAL','SETTLE','TRADE']; const idx={batch:0,reveal:1,settle:2,live:3,empty:3}[ph]; $('#phase').innerHTML=steps.map((s,i)=>`<div class="${i===idx?'on':i<idx?'done':''}">${i+1} · ${s}</div>`).join('');
+  const price=l.settled&&l.poolTokens>0n?Number(l.poolSol)/Number(l.poolTokens):0; const clearing=l.clearingPriceQ32>0n?R.priceFromQ32(l.clearingPriceQ32):0;
+  $('#d-rows').innerHTML=[['creator',short(l.creator.toBase58())+' · 0% allocation'],['batch window',new Date(l.startTs*1000).toLocaleTimeString('en-GB')+' → '+new Date(l.endTs*1000).toLocaleTimeString('en-GB')],['reveal window ends',new Date(l.revealEndTs*1000).toLocaleTimeString('en-GB')],['sealed bids',l.bids+' wallets · one per wallet'],['revealed',l.revealed+' · '+fmtSol(l.totalRevealedLamports)],['clearing price',clearing?(clearing*1e6/LAMPORTS_PER_SOL).toFixed(9)+' SOL / token':'— (set at settle)'],['creator fee share',(l.creatorFeeBps/100)+'% of fees'],['fees accrued',fmtSol(l.feeLamports)]].map(r=>`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+  $('#d-pool').innerHTML=l.settled?`<div>SOL in pool<b>${fmtSol(l.poolSol)}</b></div><div>tokens in pool<b>${fmtTok(l.poolTokens)}</b></div><div>spot price<b class="g">${price?(price*1e6/LAMPORTS_PER_SOL).toFixed(9):'—'} SOL</b></div>`:`<div>status<b>seeds at settle</b></div><div>will receive<b>${fmtTok(200000000000000n)} tokens</b></div><div>plus<b>all raised SOL</b></div>`;
+  // actions
+  const A=$('#actions'); $('#d-you').textContent=pubkey?short(pubkey.toBase58()):'not connected';
+  if(!pubkey){ A.innerHTML='<p class="note">Connect a wallet to bid, reveal, settle, claim or trade.</p>'; return; }
+  const bid=await R.fetchBid(conn,l.mint,pubkey); const local=JSON.parse(localStorage.getItem(bidKey(l))||'null');
+  let html='';
+  if(ph==='batch'){ if(bid){ html+=`<div class="row"><span>your sealed bid</span><b class="g">committed · deposit ${fmtSol(bid.deposit)}</b></div><p class="note" style="margin-top:8px">Amount is hidden on chain${local?' and saved in this browser for the reveal.':'. ⚠ No salt found in this browser — reveal from the device you bid on.'}</p>`; }
+    else { html+=`<div class="f"><label>bid (SOL)</label><input id="b-amt" type="number" min="0.01" step="0.01" placeholder="0.50"></div><div class="f"><label>extra deposit</label><select id="b-extra"><option value="0">none (bid is guessable)</option><option value="25" selected>+25% (hides amount)</option><option value="50">+50%</option><option value="100">+100%</option></select></div><p class="note" style="margin:8px 0">You escrow bid + extra. The extra comes back at claim. Only hash(amount, salt) is stored on chain until you reveal.</p><div class="act"><button class="btn solid" id="b-go">commit sealed bid</button></div>`; } }
+  if(ph==='reveal'){ if(!bid) html+='<p class="note">You did not bid in this batch.</p>'; else if(bid.revealed) html+=`<div class="row"><span>revealed</span><b class="g">${fmtSol(bid.amount)}</b></div><p class="note" style="margin-top:8px">Wait for the reveal window to close, then anyone can settle.</p>`; else if(local) html+=`<div class="row"><span>your bid</span><b>${fmtSol(local.amount)} · deposit ${fmtSol(bid.deposit)}</b></div><div class="act"><button class="btn solid" id="r-go">reveal bid</button></div>`; else html+='<div class="warn">Bid found on chain but no salt in this browser. Unrevealed bids are excluded and fully refunded at claim.</div>'; }
+  if(ph==='settle'){ html+=`<p class="note">Reveal window closed. Anyone can settle: one clearing price, pool seeds and seals.</p><div class="act"><button class="btn solid" id="s-go">settle launch</button></div>`; }
+  if(ph==='live'||ph==='empty'){ if(bid&&!bid.claimed){ const tok=bid.revealed&&clearing?Number(bid.amount)/clearing:0; html+=`<div class="row"><span>your claim</span><b class="g">${tok?fmtTok(tok)+' tokens':'—'} + refund ${fmtSol(bid.revealed?bid.deposit-bid.amount:bid.deposit)}</b></div><div class="act"><button class="btn solid" id="cl-go">claim</button></div>`; } else if(bid) html+='<div class="row"><span>your claim</span><b>done</b></div>';
+    if(ph==='live'){ html+=`<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:10px"><div class="f"><label>buy with SOL</label><input id="sw-sol" type="number" min="0.001" step="0.001" placeholder="0.10"></div><div class="row"><span>you receive ≈</span><b id="sw-q1">—</b></div><div class="act"><button class="btn solid" id="sw-buy">buy</button></div>
+      <div class="f" style="margin-top:8px"><label>sell tokens</label><input id="sw-tok" type="number" min="1" step="1" placeholder="1000"></div><div class="row"><span>you receive ≈</span><b id="sw-q2">—</b></div><div class="act"><button class="btn red" id="sw-sell">sell</button></div><p class="note" style="margin-top:8px">1% fee on the SOL side goes to the fee vault. Max 1% slippage.</p></div>`; } }
+  A.innerHTML=html;
+  // handlers
+  const cp=(ain,rin,rout)=>{ain=BigInt(ain);rin=BigInt(rin);rout=BigInt(rout);const nin=rin+ain;return rout-(rin*rout)/nin;};
+  $('#b-go')?.addEventListener('click',async e=>{e.preventDefault();try{ const amt=parseFloat($('#b-amt').value); if(!(amt>=0.01)) return say('Minimum bid 0.01 SOL'); const lam=BigInt(Math.round(amt*LAMPORTS_PER_SOL)); const extra=lam*BigInt($('#b-extra').value)/100n; const salt=R.randomSalt();
+    localStorage.setItem(bidKey(l),JSON.stringify({amount:lam.toString(),salt:Array.from(salt)})); say('Sign the sealed bid…'); const sig=await sendTx([await R.ixCommitBid({bidder:pubkey,mint:l.mint,lamports:lam,salt,deposit:lam+extra})]); log('sealed bid committed · '+sig.slice(0,12)+'…','ok'); say('Bid sealed. Come back after close to reveal.'); refreshBal(); loadLaunches(); }catch(e){ log('commit failed: '+(e.message||e),'err'); say('Bid failed: '+(e.message||e).slice(0,120)); }});
+  $('#r-go')?.addEventListener('click',async()=>{try{ const sig=await sendTx([await R.ixRevealBid({bidder:pubkey,mint:l.mint,lamports:BigInt(local.amount),salt:Uint8Array.from(local.salt)})]); log('bid revealed · '+sig.slice(0,12)+'…','ok'); say('Revealed.'); loadLaunches(); }catch(e){ log('reveal failed: '+(e.message||e),'err'); say('Reveal failed: '+(e.message||e).slice(0,120)); }});
+  $('#s-go')?.addEventListener('click',async()=>{try{ const sig=await sendTx([await R.ixSettle({mint:l.mint})]); log('settled · '+sig.slice(0,12)+'…','ok'); say('Settled. Pool is sealed.'); loadLaunches(); }catch(e){ log('settle failed: '+(e.message||e),'err'); say('Settle failed: '+(e.message||e).slice(0,120)); }});
+  $('#cl-go')?.addEventListener('click',async()=>{try{ const {ata,ix}=await ensureAta(l.mint); const ixs=[]; if(ix)ixs.push(ix); ixs.push(await R.ixClaim({bidder:pubkey,mint:l.mint,bidderToken:ata})); const sig=await sendTx(ixs); log('claimed · '+sig.slice(0,12)+'…','ok'); say('Claimed.'); refreshBal(); loadLaunches(); }catch(e){ log('claim failed: '+(e.message||e),'err'); say('Claim failed: '+(e.message||e).slice(0,120)); }});
+  $('#sw-sol')?.addEventListener('input',e=>{ const v=parseFloat(e.target.value)||0; const lam=BigInt(Math.round(v*LAMPORTS_PER_SOL)); const net=lam-lam/100n; const out=v>0?cp(net,l.poolSol,l.poolTokens):0n; $('#sw-q1').textContent=v>0?fmtTok(out)+' tokens':'—'; });
+  $('#sw-tok')?.addEventListener('input',e=>{ const v=parseFloat(e.target.value)||0; const t=BigInt(Math.round(v*1e6)); const g=v>0?cp(t,l.poolTokens,l.poolSol):0n; $('#sw-q2').textContent=v>0?fmtSol(g-g/100n):'—'; });
+  $('#sw-buy')?.addEventListener('click',async()=>{try{ const v=parseFloat($('#sw-sol').value); if(!(v>0)) return; const lam=BigInt(Math.round(v*LAMPORTS_PER_SOL)); const net=lam-lam/100n; const out=cp(net,l.poolSol,l.poolTokens); const {ata,ix}=await ensureAta(l.mint); const ixs=[]; if(ix)ixs.push(ix); ixs.push(await R.ixSwap({trader:pubkey,mint:l.mint,traderToken:ata,solForTokens:true,amountIn:lam,minOut:out*99n/100n})); const sig=await sendTx(ixs); log('bought · '+sig.slice(0,12)+'…','ok'); say('Bought.'); refreshBal(); loadLaunches(); }catch(e){ log('buy failed: '+(e.message||e),'err'); say('Buy failed: '+(e.message||e).slice(0,120)); }});
+  $('#sw-sell')?.addEventListener('click',async()=>{try{ const v=parseFloat($('#sw-tok').value); if(!(v>0)) return; const t=BigInt(Math.round(v*1e6)); const g=cp(t,l.poolTokens,l.poolSol); const out=g-g/100n; const ata=spl.getAssociatedTokenAddressSync(l.mint,pubkey); const sig=await sendTx([await R.ixSwap({trader:pubkey,mint:l.mint,traderToken:ata,solForTokens:false,amountIn:t,minOut:out*99n/100n})]); log('sold · '+sig.slice(0,12)+'…','ok'); say('Sold.'); refreshBal(); loadLaunches(); }catch(e){ log('sell failed: '+(e.message||e),'err'); say('Sell failed: '+(e.message||e).slice(0,120)); }});
+}
+
+// ---------- create ----------
+$('#c-fee').addEventListener('input',e=>$('#c-feev').textContent=e.target.value+'%');
+$('#c-sym').addEventListener('input',e=>e.target.value=e.target.value.replace(/[^a-z0-9]/gi,'').toUpperCase());
+$('#createForm').addEventListener('submit',async e=>{ e.preventDefault(); if(!pubkey) return say('Connect a wallet first.');
+  const name=$('#c-name').value.trim(), sym=$('#c-sym').value.trim(), batch=parseInt($('#c-batch').value), fee=parseInt($('#c-fee').value)*100; if(!name||!sym) return say('Name and ticker required.');
+  const btn=$('#c-go'); btn.disabled=true; try{ const mintKp=Keypair.generate(); const {ata,ixs}=await R.ixsCreateFixedMint({connection:conn,payer:pubkey,mintKp}); ixs.push(await R.ixCreateLaunch({creator:pubkey,mint:mintKp.publicKey,creatorToken:ata,name,symbol:sym,batchSecs:batch,creatorFeeBps:fee}));
+    say('Sign to create the mint and open the batch…'); const sig=await sendTx(ixs,[mintKp]); log(`launch $${sym} created · mint ${mintKp.publicKey.toBase58()} · ${sig.slice(0,12)}…`,'ok'); say('Launch is live. Sealed batch open.'); refreshBal(); await loadLaunches(); current=launches.find(l=>l.mint.equals(mintKp.publicKey))||null; if(current) openDetail(); }
+  catch(err){ log('create failed: '+(err.message||err),'err'); say('Create failed: '+(err.message||err).slice(0,140)); } finally{ btn.disabled=false; } });
+
+// ---------- tick ----------
+setInterval(()=>{ document.querySelectorAll('[data-end]').forEach(e=>e.textContent=mmss(+e.dataset.end-now())); },1000);
+setInterval(loadLaunches,15000); loadLaunches();
+const p=provider(); if(p&&p.isPhantom){ p.on?.('accountChanged',()=>{ if(pubkey) connect(); }); }
+})();
+</script>
+</body>
+</html>
