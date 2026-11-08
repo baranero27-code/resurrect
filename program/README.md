@@ -59,3 +59,11 @@ solana program set-upgrade-authority 5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7
 solana program set-upgrade-authority 5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t --final -u m   # signed through Squads
 ```
 Until step 3, the upgrade authority is the single trust assumption of the system and must be disclosed on the site.
+
+## Builds
+- `resurrect.so` — devnet build (batches 60–900 s), what is deployed on devnet.
+- `resurrect-mainnet.so` — built with `--features mainnet`: batch length is fixed at 15 minutes. This is the binary to deploy on mainnet.
+```
+cargo +solana-152 build --release --target sbpf-solana-solana --manifest-path programs/resurrect/Cargo.toml -Zbuild-std=std,panic_abort [--features mainnet]
+llvm-objcopy --strip-all target/sbpf-solana-solana/release/resurrect.so resurrect.so
+```

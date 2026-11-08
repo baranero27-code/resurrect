@@ -9,6 +9,7 @@ name = "resurrect"
 default = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
+mainnet = []
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 [dependencies]
 anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }

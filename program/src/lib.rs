@@ -30,7 +30,8 @@ declare_id!("5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t");
 pub const SUPPLY: u64 = 1_000_000_000_000_000; // 1,000,000,000 tokens with 6 decimals
 pub const SALE_BPS: u64 = 8_000;               // 80% of supply sold in the batch
 pub const FEE_BPS: u64 = 100;                  // 1% swap fee
-pub const MIN_BATCH_SECS: i64 = 60;
+#[cfg(feature = "mainnet")] pub const MIN_BATCH_SECS: i64 = 15 * 60;   // mainnet: batches are always 15 minutes
+#[cfg(not(feature = "mainnet"))] pub const MIN_BATCH_SECS: i64 = 60; // devnet: short batches for testing
 pub const MAX_BATCH_SECS: i64 = 15 * 60;
 pub const REVEAL_SECS: i64 = 10 * 60;
 pub const MAX_CREATOR_FEE_BPS: u16 = 2_000;    // creator may take at most 20% of fees
