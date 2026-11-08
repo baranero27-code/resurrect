@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Resurrect Launchpad — sealed batch launches on Solana</title>
-<meta name="description" content="Sealed 15-minute batch auctions. One clearing price. Verified humans only. Immutable liquidity. Zero dev allocation.">
+<meta name="description" content="Sealed 15-minute batch auctions, then bonding, then graduation to immutable liquidity. Pair with SOL, USDC or tokenized stocks. Holders earn a share of every trade. Verified humans only. Zero dev allocation.">
 <link rel="icon" type="image/png" sizes="32x32" href="brand/door-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="brand/door-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="brand/door-180.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Resurrect Launchpad">
-<meta property="og:description" content="Sealed batch launches. One clearing price. Verified humans only. Nothing to pull.">
+<meta property="og:description" content="Sealed batch launches. One clearing price. Verified humans only. Holders earn on every trade. Nothing to pull.">
 <meta property="og:image" content="https://baranero27-code.github.io/resurrect/brand/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,102 +31,178 @@ a{color:var(--cyan);text-decoration:none} a:hover{text-decoration:underline}
 button,input,select{font-family:var(--mono);font-size:14px}
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;opacity:.6}
-
-.monitor{max-width:1240px;margin:0 auto;background:var(--bezel);border:1px solid var(--line);border-radius:14px;box-shadow:0 0 0 6px #050709,0 0 60px rgba(74,227,138,.06),inset 0 0 80px rgba(0,0,0,.6);overflow:hidden}
+.monitor{max-width:1280px;margin:0 auto;background:var(--bezel);border:1px solid var(--line);border-radius:14px;box-shadow:0 0 0 6px #050709,0 0 60px rgba(74,227,138,.06),inset 0 0 80px rgba(0,0,0,.6);overflow:hidden}
 .screen{background:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),var(--panel);background-size:24px 24px,24px 24px,auto}
 
-/* bar */
+/* bar + tabs */
 .bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.35);font-size:13px;color:var(--dim)}
 .bar b{color:var(--text);font-weight:400}
 .bar .l{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .bar img{display:block;width:22px;height:22px;filter:drop-shadow(0 0 6px rgba(74,227,138,.6))}
 .tag{border:1px solid var(--amber);color:var(--amber);padding:2px 8px;font-size:11px;letter-spacing:.08em}
-.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--green);color:var(--green);background:transparent;padding:9px 14px;cursor:pointer;letter-spacing:.04em;transition:background .12s,color .12s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--green);color:var(--green);background:transparent;padding:9px 14px;cursor:pointer;letter-spacing:.04em;transition:background .12s,color .12s;text-decoration:none}
 .btn:hover{background:var(--green);color:#000;text-decoration:none}
-.btn.solid{background:var(--green);color:#000}
-.btn.solid:hover{background:#7FF0AE}
-.btn[disabled]{opacity:.45;cursor:not-allowed}
-.btn[disabled]:hover{background:transparent;color:var(--green)}
-
-/* tabs */
-.tabs{display:flex;gap:4px;padding:0 22px;border-bottom:1px solid var(--line);overflow-x:auto}
-.tabs a{color:var(--dim);padding:14px 14px;border-bottom:2px solid transparent;font-size:13px;white-space:nowrap}
+.btn.solid{background:var(--green);color:#000} .btn.solid:hover{background:#7FF0AE}
+.btn.sm{padding:6px 10px;font-size:12px}
+.btn.ghost{border-color:var(--line);color:var(--text)} .btn.ghost:hover{background:rgba(207,230,216,.08);color:var(--text)}
+.tabs{display:flex;gap:2px;padding:0 22px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs a{color:var(--dim);padding:14px 13px;border-bottom:2px solid transparent;font-size:13px;white-space:nowrap}
 .tabs a:hover{color:var(--text);text-decoration:none}
 .tabs a.on{color:var(--green);border-color:var(--green)}
 
-/* hero strip */
-.hero{display:grid;grid-template-columns:1.3fr 1fr;gap:22px;padding:34px 22px;border-bottom:1px solid var(--line)}
-.hero h1{font-weight:400;font-size:clamp(24px,3.4vw,40px);line-height:1.1;color:var(--text)}
+/* hero */
+.hero{display:grid;grid-template-columns:1.25fr 1fr;gap:22px;padding:34px 22px;border-bottom:1px solid var(--line)}
+.hero h1{font-weight:400;font-size:clamp(24px,3.3vw,40px);line-height:1.1}
 .hero h1 b{font-weight:400;color:var(--green)}
-.hero p{margin-top:12px;color:var(--dim);max-width:60ch}
+.hero p{margin-top:12px;color:var(--dim);max-width:62ch}
+.hero .cta{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-self:center}
 .stat{border:1px solid var(--line);background:rgba(0,0,0,.35);padding:14px 14px 12px}
-.stat b{display:block;font-weight:400;font-size:30px;line-height:1;color:var(--green)}
+.stat b{display:block;font-weight:400;font-size:28px;line-height:1;color:var(--green)}
 .stat.r b{color:var(--red)}
 .stat span{display:block;font-size:11px;color:var(--dim);margin-top:6px;letter-spacing:.04em}
 
 /* sections */
 .sec{padding:34px 22px;border-bottom:1px solid var(--line)}
-.sec h2{font-size:13px;font-weight:400;color:var(--dim);margin-bottom:18px;display:flex;align-items:center;gap:12px}
+.sec h2{font-size:13px;font-weight:400;color:var(--dim);margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .sec h2::before{content:'';width:8px;height:8px;background:var(--green);box-shadow:0 0 8px var(--green)}
 .sec h2 span{color:var(--text)}
 .sec h2 i{font-style:normal;margin-left:auto;font-size:12px;color:var(--dim)}
+.note{font-size:12px;color:var(--dim);margin-top:14px;line-height:1.6;max-width:80ch}
 
-/* batch cards */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-.batch{border:1px solid var(--line);background:var(--card);padding:16px;position:relative}
-.batch .top{display:flex;align-items:center;gap:12px}
-.av{width:42px;height:42px;border-radius:50%;border:1px solid var(--green-dim);display:grid;place-items:center;font-size:14px;color:var(--green);background:rgba(74,227,138,.06)}
-.nm{line-height:1.2}
-.nm b{display:block;font-weight:400;color:var(--text);font-size:16px}
+/* lifecycle strip */
+.life{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ph{border:1px solid var(--line);background:rgba(0,0,0,.35);padding:14px 16px;position:relative}
+.ph::after{content:'→';position:absolute;right:-16px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:18px}
+.ph:last-child::after{display:none}
+.ph .k{font-size:11px;color:var(--amber);letter-spacing:.1em}
+.ph b{display:block;font-weight:400;font-size:17px;color:var(--green);margin:6px 0 4px}
+.ph p{font-size:12.5px;color:var(--text)}
+
+/* toolbar */
+.tool{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--line)}
+.seg button{background:transparent;border:0;color:var(--dim);padding:8px 12px;cursor:pointer;font-size:12px;letter-spacing:.04em;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:rgba(74,227,138,.12);color:var(--green)}
+.search{flex:1;min-width:180px;background:#000;border:1px solid var(--line);color:var(--text);padding:9px 12px}
+.search:focus{border-color:var(--green);outline:none}
+.tool .lbl{font-size:11px;color:var(--dim);letter-spacing:.08em}
+
+/* token cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.tk{border:1px solid var(--line);background:var(--card);padding:14px;cursor:pointer;transition:border-color .12s,transform .12s;position:relative}
+.tk:hover{border-color:var(--green-dim);transform:translateY(-2px)}
+.tk .top{display:flex;align-items:center;gap:12px}
+.av{width:42px;height:42px;border-radius:50%;border:1px solid var(--green-dim);display:grid;place-items:center;font-size:13px;color:var(--green);background:rgba(74,227,138,.06);flex:none}
+.nm{line-height:1.2;min-width:0}
+.nm b{display:block;font-weight:400;color:var(--text);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nm span{font-size:12px;color:var(--dim)}
-.chip{margin-left:auto;font-size:11px;letter-spacing:.08em;padding:3px 8px;border:1px solid var(--line);color:var(--dim)}
+.chip{margin-left:auto;font-size:10.5px;letter-spacing:.08em;padding:3px 8px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
 .chip.live{border-color:var(--green);color:var(--green);animation:blink 1.4s steps(2) infinite}
-.chip.soon{border-color:var(--amber);color:var(--amber)}
+.chip.bond{border-color:var(--cyan);color:var(--cyan)}
+.chip.grad{border-color:var(--green-dim);color:var(--green)}
 @keyframes blink{50%{opacity:.35}}
-.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:14px;font-size:12px}
-.kv div{color:var(--dim)} .kv div b{display:block;font-weight:400;font-size:18px;color:var(--text);line-height:1.1}
-.kv .cd b{color:var(--green);font-variant-numeric:tabular-nums}
-.prog{height:6px;background:#000;border:1px solid var(--line);margin-top:14px;position:relative;overflow:hidden}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:12px;font-size:11.5px}
+.kv div{color:var(--dim)} .kv div b{display:block;font-weight:400;font-size:17px;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums}
+.kv .g b{color:var(--green)}
+.anch{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text);border:1px solid var(--line);padding:2px 8px;margin-top:10px}
+.anch i{font-style:normal;color:var(--dim)}
+.prog{height:5px;background:#000;border:1px solid var(--line);margin-top:12px;position:relative;overflow:hidden}
 .prog i{position:absolute;inset:0;width:var(--p,40%);background:var(--green);box-shadow:0 0 10px var(--green)}
-.vit{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
-.v{border-top:1px dashed var(--line);padding-top:8px;font-size:11px;color:var(--dim)}
-.v b{display:block;font-weight:400;font-size:15px;color:var(--text)}
-.v.g b{color:var(--green)} .v.c b{color:var(--cyan)} .v.a b{color:var(--amber)}
-.spark{display:block;width:100%;height:22px;margin-top:4px}
-.spark path{fill:none;stroke:currentColor;stroke-width:1.4}
-.act{display:flex;gap:8px;margin-top:14px}
-.act .btn{flex:1;justify-content:center;padding:10px}
-.rules{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}
-.rules span{font-size:10.5px;letter-spacing:.06em;color:var(--green);border:1px solid var(--green-dim);padding:2px 6px}
+.prog.c i{background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+.more{display:flex;justify-content:center;margin-top:14px}
 
-/* tables */
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{font-weight:400;color:var(--dim);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.08em}
-td{padding:11px 10px;border-bottom:1px dashed var(--line);color:var(--text)}
-td.g{color:var(--green)} td.d{color:var(--dim)}
-tr:hover td{background:rgba(74,227,138,.04)}
-.lock{color:var(--green)}
+/* token detail */
+.detail{display:none}
+.detail.open{display:block}
+.dhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.dhead .av{width:52px;height:52px;font-size:16px}
+.dhead h3{font-weight:400;font-size:24px;line-height:1}
+.dhead .ca{font-size:12px;color:var(--dim)} .dhead .ca a{color:var(--cyan)}
+.dgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}
+.box{border:1px solid var(--line);background:var(--card);padding:16px}
+.box h4{font-weight:400;font-size:12px;color:var(--dim);letter-spacing:.1em;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.box h4 i{font-style:normal;margin-left:auto;font-size:11px}
+.box h4 i.on{color:var(--green)}
+.chart{position:relative;height:260px;background:#02050a;border:1px solid var(--line)}
+.chart canvas{display:block;width:100%;height:100%}
+.chart .fdv{position:absolute;left:12px;top:10px;font-size:26px;color:var(--green);font-variant-numeric:tabular-nums}
+.chart .fdv small{display:block;font-size:11px;color:var(--dim);letter-spacing:.08em}
+.tf{display:flex;gap:4px;margin-bottom:10px;align-items:center}
+.tf button{background:transparent;border:1px solid var(--line);color:var(--dim);padding:5px 9px;cursor:pointer;font-size:11px}
+.tf button.on{border-color:var(--green);color:var(--green)}
+.tf .sw{margin-left:auto;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:8px}
+.tf .sw input{accent-color:var(--green)}
+.rows{display:grid;gap:0}
+.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.row:last-child{border-bottom:0}
+.row span{color:var(--dim)} .row b{font-weight:400;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+.row b.g{color:var(--green)} .row b.c{color:var(--cyan)}
+.big{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+.big div{border-top:1px dashed var(--line);padding-top:8px;font-size:11px;color:var(--dim)}
+.big div b{display:block;font-weight:400;font-size:20px;color:var(--text);line-height:1.1;margin-top:3px}
+.big div b.g{color:var(--green)}
+.lockline{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--green);margin-top:10px}
+.lockline::before{content:'';width:8px;height:8px;background:var(--green);box-shadow:0 0 8px var(--green)}
+.dback{margin-bottom:14px}
 
-/* create form */
-.create{display:grid;grid-template-columns:1.1fr .9fr;gap:22px}
+/* create */
+.create{display:grid;grid-template-columns:1.15fr .85fr;gap:22px}
 .form{border:1px solid var(--line);background:var(--card);padding:20px}
-.f{display:grid;grid-template-columns:170px 1fr;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}
-.f:last-of-type{border-bottom:0}
+.stepn{font-size:11px;color:var(--amber);letter-spacing:.1em;margin:14px 0 6px}
+.stepn:first-child{margin-top:0}
+.f{display:grid;grid-template-columns:170px 1fr;gap:12px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line)}
 .f label{font-size:12px;color:var(--dim);letter-spacing:.04em}
 .f input,.f select{width:100%;background:#000;border:1px solid var(--line);color:var(--text);padding:10px 12px}
-.f input:focus,.f select:focus{border-color:var(--green)}
-.f .fixed{display:flex;align-items:center;justify-content:space-between;background:rgba(74,227,138,.05);border:1px solid var(--green-dim);padding:10px 12px;color:var(--text)}
-.f .fixed i{font-style:normal;font-size:11px;color:var(--green);letter-spacing:.08em}
+.f input:focus,.f select:focus{border-color:var(--green);outline:none}
+.f .fixed{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(74,227,138,.05);border:1px solid var(--green-dim);padding:10px 12px;color:var(--text);font-size:13px}
+.f .fixed i{font-style:normal;font-size:10.5px;color:var(--green);letter-spacing:.08em;white-space:nowrap}
+.f .fixed.no{background:rgba(255,71,71,.05);border-color:rgba(255,71,71,.4)} .f .fixed.no i{color:var(--red)}
 .f input[type=range]{padding:0;accent-color:var(--green);background:transparent;border:0}
 .f .rng{display:flex;align-items:center;gap:12px} .f .rng b{font-weight:400;color:var(--green);min-width:48px;text-align:right}
-.note{font-size:12px;color:var(--dim);margin-top:14px;line-height:1.6}
-.side{border:1px solid var(--line);background:rgba(0,0,0,.35);padding:20px}
-.side h3{font-weight:400;font-size:15px;color:var(--text);margin-bottom:10px}
-.side ol{list-style:none;counter-reset:s}
-.side li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13px;color:var(--text)}
-.side li::before{content:counter(s,decimal-leading-zero);color:var(--green);font-size:12px;padding-top:2px}
-.side li small{display:block;color:var(--dim);font-size:12px;margin-top:3px}
+.cats{display:flex;flex-wrap:wrap;gap:6px}
+.cats button{background:transparent;border:1px solid var(--line);color:var(--dim);padding:5px 9px;font-size:11px;cursor:pointer}
+.cats button.on{border-color:var(--green);color:var(--green)}
+.assets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.assets button{background:#000;border:1px solid var(--line);color:var(--text);padding:6px 10px;font-size:12px;cursor:pointer}
+.assets button.on{border-color:var(--green);background:rgba(74,227,138,.1);color:var(--green)}
+.assets button small{color:var(--dim);margin-left:6px;font-size:10px}
+.radio{display:flex;gap:8px}
+.radio button{background:#000;border:1px solid var(--line);color:var(--text);padding:8px 12px;font-size:12px;cursor:pointer}
+.radio button.on{border-color:var(--green);color:var(--green)}
+.side{border:1px solid var(--line);background:rgba(0,0,0,.35);padding:20px;align-self:start;position:sticky;top:12px}
+.side h3{font-weight:400;font-size:13px;color:var(--dim);letter-spacing:.1em;margin-bottom:10px}
+.side .row b{color:var(--text)}
+.side .act{margin-top:14px;display:grid;gap:8px}
+
+/* rewards */
+.split{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+.barsplit{display:flex;height:34px;border:1px solid var(--line);overflow:hidden;margin-bottom:12px}
+.barsplit i{display:block;height:100%}
+.legend{display:grid;gap:8px}
+.legend div{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;font-size:13px}
+.legend div i{width:14px;height:14px;display:block}
+.legend div span{color:var(--text)} .legend div small{color:var(--dim);display:block;font-size:11.5px}
+.legend div b{font-weight:400;color:var(--green);font-size:16px}
+.rew{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:14px}
+.rw{border:1px solid var(--line);background:rgba(0,0,0,.35);padding:16px}
+.rw h3{font-weight:400;font-size:16px;color:var(--green);margin-bottom:8px}
+.rw p{font-size:13px;color:var(--text)} .rw p+p{margin-top:8px;color:var(--dim);font-size:12px}
+
+/* analytics */
+.an{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.an .stat b{font-size:24px}
+.burns{margin-top:14px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-weight:400;color:var(--dim);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.08em}
+td{padding:10px;border-bottom:1px dashed var(--line);color:var(--text);font-variant-numeric:tabular-nums}
+td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
+
+/* profile */
+.prof{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.empty{border:1px dashed var(--line);padding:30px;text-align:center;color:var(--dim)}
+.empty b{display:block;color:var(--text);font-weight:400;margin-bottom:8px}
 
 /* how */
 .how{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
@@ -135,8 +211,9 @@ tr:hover td{background:rgba(74,227,138,.04)}
 .rx h3{font-weight:400;font-size:17px;color:var(--green);margin-bottom:8px}
 .rx p{font-size:13px;color:var(--text)}
 .rx .ind{margin-top:10px;font-size:11px;color:var(--dim)} .rx .ind b{font-weight:400;color:var(--red)}
+.vs{margin-top:14px;border:1px solid var(--line)}
+.vs th:first-child,.vs td:first-child{color:var(--dim)}
 
-/* footer */
 .foot{padding:18px 22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim);background:rgba(0,0,0,.35)}
 
 /* toast + modal */
@@ -145,24 +222,24 @@ tr:hover td{background:rgba(74,227,138,.04)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;padding:20px;z-index:110}
 .modal.open{display:flex}
 .mbox{width:min(560px,100%);background:var(--panel);border:1px solid var(--green);padding:24px;box-shadow:0 0 60px rgba(74,227,138,.15)}
-.mbox h3{font-weight:400;font-size:18px;color:var(--text)}
-.mbox h3 span{color:var(--green)}
+.mbox h3{font-weight:400;font-size:18px} .mbox h3 span{color:var(--green)}
 .mbox p{color:var(--dim);font-size:13px;margin-top:10px;line-height:1.6}
 .steps{margin:16px 0;display:grid;gap:8px}
 .step{display:flex;align-items:center;gap:10px;border:1px solid var(--line);padding:10px 12px;font-size:13px}
-.step i{width:10px;height:10px;border:1px solid var(--green);display:inline-block}
+.step i{width:10px;height:10px;border:1px solid var(--green);display:inline-block;flex:none}
 .step.done i{background:var(--green);box-shadow:0 0 8px var(--green)}
-.mbox .act{margin-top:10px}
+.mbox .act{display:flex;gap:8px;margin-top:10px}
 
-@media(max-width:860px){
+@media(max-width:900px){
   body{padding:8px}
-  .hero,.create{grid-template-columns:1fr}
-  .stats{grid-template-columns:repeat(3,1fr)}
+  .hero,.create,.dgrid,.split,.prof{grid-template-columns:1fr}
+  .life{grid-template-columns:1fr} .ph::after{display:none}
   .f{grid-template-columns:1fr;gap:6px}
+  .side{position:static}
   .bar{padding:12px 14px} .sec,.hero,.tabs{padding-left:14px;padding-right:14px}
   .hidem{display:none}
 }
-@media(prefers-reduced-motion:reduce){.chip.live,.prog i{animation:none}}
+@media(prefers-reduced-motion:reduce){.chip.live{animation:none}}
 </style>
 </head>
 <body>
@@ -171,91 +248,234 @@ tr:hover td{background:rgba(74,227,138,.04)}
   <div class="bar">
     <div class="l">
       <a href="index.html" aria-label="Back to Resurrect"><img src="brand/door-64.png" alt=""></a>
-      <b>RESURRECT</b><span>LAUNCHPAD</span><span class="tag">DEVNET PREVIEW</span>
+      <b>RESURRECT</b><span>LAUNCHPAD</span><span class="tag">DEVNET PREVIEW</span><span class="hidem">Solana</span>
     </div>
     <div class="l">
       <span class="hidem" id="clock">--:--:--</span>
-      <button class="btn" id="connect">connect wallet</button>
+      <button class="btn" id="connect">select wallet</button>
     </div>
   </div>
 
   <nav class="tabs">
-    <a href="#live" class="on">Live batches</a><a href="#upcoming">Upcoming</a><a href="#graduated">Graduated</a><a href="#create">Create a launch</a><a href="#how">How it works</a><a href="wall.html">The wall</a>
+    <a href="#launches" class="on">Launches</a><a href="#create">Create</a><a href="#rewards">Rewards</a><a href="#analytics">Analytics</a><a href="#profile">Profile</a><a href="#how">How it works</a><a href="wall.html">The wall</a>
   </nav>
 
   <section class="hero">
     <div>
-      <h1>Sealed batch auctions. <b>Fifteen minutes. One clearing price.</b></h1>
-      <p>Bids are sealed until the window closes, then everyone settles at the same price. Being first in the block is worth nothing. Every wallet is one verified human. Liquidity locks forever at graduation. Creators get zero allocation.</p>
+      <h1>Launch coins on top of real assets. <b>Without the insiders.</b></h1>
+      <p>Pair your coin with SOL, USDC or any of 290+ tokenized stocks. Every launch opens as a sealed 15-minute batch where everyone pays one price, then trades on a curve, then graduates to liquidity nobody can pull. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
+      <div class="cta"><a class="btn solid" href="#create">Launch a coin</a><a class="btn" href="#launches">Browse launches</a></div>
     </div>
     <div class="stats">
-      <div class="stat"><b id="s1">3</b><span>batches live</span></div>
+      <div class="stat"><b id="s1">3</b><span>sealed batches live</span></div>
       <div class="stat"><b id="s2">1,248</b><span>verified humans</span></div>
       <div class="stat r"><b>0</b><span>rugs possible</span></div>
     </div>
   </section>
 
-  <!-- LIVE -->
-  <section class="sec" id="live">
-    <h2><span>LIVE BATCHES</span> sealed · settles at close <i>devnet data</i></h2>
-    <div class="grid" id="batches"></div>
-  </section>
+  <!-- LAUNCHES -->
+  <section class="sec" id="launches">
+    <h2><span>LAUNCHES</span> every coin passes through three phases <i>devnet data</i></h2>
+    <div class="life">
+      <div class="ph"><div class="k">PHASE 1 · 15 MIN</div><b>Sealed batch</b><p>Bids hidden until close. One clearing price. Nobody is first.</p></div>
+      <div class="ph"><div class="k">PHASE 2</div><b>Bonding</b><p>Open trading on the curve. Holders already earning from every trade.</p></div>
+      <div class="ph"><div class="k">PHASE 3</div><b>Graduated</b><p>Liquidity seeds on Raydium and locks forever. No admin key.</p></div>
+    </div>
 
-  <!-- UPCOMING -->
-  <section class="sec" id="upcoming">
-    <h2><span>UPCOMING</span> scheduled windows</h2>
-    <table>
-      <thead><tr><th>token</th><th>pair</th><th>opens in</th><th>creator fee share</th><th class="hidem">verification</th><th></th></tr></thead>
-      <tbody>
-        <tr><td>WARD <span class="d">· the ward</span></td><td>SOL</td><td class="g" data-open="2520">42:00</td><td>30%</td><td class="hidem">humans only</td><td><a href="#" class="remind">remind me</a></td></tr>
-        <tr><td>LAZARUS <span class="d">· lazarus protocol</span></td><td>USDC</td><td class="g" data-open="5400">1:30:00</td><td>0%</td><td class="hidem">humans only</td><td><a href="#" class="remind">remind me</a></td></tr>
-        <tr><td>CLEAR <span class="d">· clear</span></td><td>SOL</td><td class="g" data-open="9900">2:45:00</td><td>50%</td><td class="hidem">humans only</td><td><a href="#" class="remind">remind me</a></td></tr>
-      </tbody>
-    </table>
-  </section>
+    <div class="tool" style="margin-top:22px">
+      <span class="lbl">FILTER</span>
+      <div class="seg" id="filter"><button class="on" data-f="all">All</button><button data-f="batch">Sealed batch</button><button data-f="bond">Bonding</button><button data-f="grad">Graduated</button></div>
+      <span class="lbl">SORT</span>
+      <div class="seg" id="sort"><button class="on" data-s="fdv">FDV</button><button data-s="recent">Recent</button><button data-s="vol">24h volume</button></div>
+      <input class="search" id="q" placeholder="search ticker, name, pairing asset">
+    </div>
+    <div class="grid" id="list"></div>
+    <div class="more"><button class="btn ghost sm" id="more">show more tokens</button></div>
 
-  <!-- GRADUATED -->
-  <section class="sec" id="graduated">
-    <h2><span>GRADUATED</span> settled · liquidity immutable</h2>
-    <table>
-      <thead><tr><th>token</th><th>clearing price</th><th>humans</th><th>max wallet</th><th class="hidem">dev alloc</th><th>liquidity</th></tr></thead>
-      <tbody>
-        <tr><td>PULSE</td><td class="g">0.000412 SOL</td><td>812</td><td>0.9%</td><td class="hidem">0%</td><td class="lock">locked forever</td></tr>
-        <tr><td>SINUS</td><td class="g">0.001180 SOL</td><td>1,204</td><td>0.8%</td><td class="hidem">0%</td><td class="lock">locked forever</td></tr>
-        <tr><td>BED01</td><td class="g">0.000090 SOL</td><td>455</td><td>1.0%</td><td class="hidem">0%</td><td class="lock">locked forever</td></tr>
-      </tbody>
-    </table>
-    <p class="note">Max wallet is a result, not a cap: when every bidder is one human paying one price, no wallet ends up with more than ~1% of supply.</p>
+    <!-- DETAIL VIEW -->
+    <div class="detail" id="detail">
+      <button class="btn ghost sm dback" id="back">← all launches</button>
+      <div class="dhead"><div class="av" id="d-av">TR</div><div><h3 id="d-name">Resurrect the Trenches <span style="color:var(--dim)">$TRENCH</span></h3><div class="ca">CA <a href="#" id="d-ca">7Yx2…kR9f</a> · anchored to <b id="d-anch" style="font-weight:400;color:var(--text)">SOL</b> · <span id="d-phase" style="color:var(--green)">BONDING</span></div></div></div>
+      <div class="dgrid">
+        <div>
+          <div class="box">
+            <div class="tf"><button class="on">1H</button><button>4H</button><button>1D</button><button>7D</button><button>ALL</button><label class="sw"><input type="checkbox" id="insol"> show in SOL</label></div>
+            <div class="chart"><div class="fdv"><span id="d-fdv">$468.45K</span><small>FDV</small></div><canvas id="cv"></canvas></div>
+            <div class="big">
+              <div>liquidity<b id="d-liq">$132.3K</b></div>
+              <div>24h volume<b id="d-vol">$91.2K</b></div>
+              <div>holders<b class="g" id="d-h">1,204 humans</b></div>
+            </div>
+            <div class="lockline" id="d-lock">Graduates to Raydium at $450K FDV · liquidity locks forever · pool address published at graduation</div>
+          </div>
+          <div class="box" style="margin-top:14px">
+            <h4>ABOUT</h4>
+            <div class="rows">
+              <div class="row"><span>name</span><b>Resurrect the Trenches</b></div>
+              <div class="row"><span>ticker</span><b>$TRENCH</b></div>
+              <div class="row"><span>anchored to</span><b>SOL · So1111…111112</b></div>
+              <div class="row"><span>description</span><b>the first coin through the door</b></div>
+              <div class="row"><span>social</span><b><a href="#">x.com/trenchonrsrct</a></b></div>
+              <div class="row"><span>supply</span><b>1,000,000,000 · fixed</b></div>
+              <div class="row"><span>mint</span><b class="g">no mint authority · no freeze authority</b></div>
+              <div class="row"><span>dev allocation</span><b class="g">0% · no first buy</b></div>
+              <div class="row"><span>launch</span><b>sealed batch · 2,114 bids · cleared at 0.000091 SOL</b></div>
+              <div class="row"><span>chart</span><b><a href="#">DexScreener →</a></b></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="box">
+            <h4>FEES <i class="on">● CYCLING</i></h4>
+            <div class="rows">
+              <div class="row"><span>trading fee</span><b>1% every buy and sell</b></div>
+              <div class="row"><span>paid in</span><b>SOL (the pairing asset)</b></div>
+              <div class="row"><span>fee receiver</span><b>C9pN…9zpbT</b></div>
+              <div class="row"><span>claimed</span><b class="g">$3,771</b></div>
+              <div class="row"><span>unclaimed in vault</span><b id="d-unc">$212</b></div>
+            </div>
+            <div class="act" style="display:flex;gap:8px;margin-top:12px"><button class="btn sm cycle">cycle fees</button><span style="font-size:11px;color:var(--dim);align-self:center">anyone can press this. the payout bot does it automatically.</span></div>
+          </div>
+          <div class="box" style="margin-top:14px">
+            <h4>HOLDER REWARDS <i class="on">● ACTIVE</i></h4>
+            <div class="big" style="grid-template-columns:1fr 1fr">
+              <div>paid to holders<b class="g" id="d-paid">$2,241</b></div>
+              <div>waiting in pot<b id="d-pot">6.51 SOL</b></div>
+              <div>to creator<b>$941</b></div>
+              <div>next payout<b id="d-next">02:41</b></div>
+            </div>
+            <p class="note" style="margin-top:12px">Paid in SOL every few minutes to everyone holding $TRENCH, in proportion to how much they hold. Sell before a payout and your pending share goes to the holders who stayed.</p>
+          </div>
+          <div class="box" style="margin-top:14px">
+            <h4>DISTRIBUTION</h4>
+            <div class="rows">
+              <div class="row"><span>largest wallet</span><b class="g">0.91%</b></div>
+              <div class="row"><span>top 10 wallets</span><b class="g">7.4%</b></div>
+              <div class="row"><span>bundle risk</span><b class="g">0.0% by design</b></div>
+              <div class="row"><span>verified humans</span><b>1,204 / 1,204</b></div>
+            </div>
+          </div>
+          <div class="act" style="display:grid;gap:8px;margin-top:14px"><button class="btn solid buy">buy $TRENCH</button><button class="btn sell">sell</button></div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- CREATE -->
   <section class="sec" id="create">
-    <h2><span>CREATE A LAUNCH</span> the parts you can change, and the parts you can’t</h2>
+    <h2><span>CREATE A LAUNCH</span> five steps · the parts you can change and the parts you can’t</h2>
     <div class="create">
       <form class="form" id="createForm">
-        <div class="f"><label>token name</label><input placeholder="e.g. Lazarus" required></div>
-        <div class="f"><label>ticker</label><input placeholder="LAZ" maxlength="8" required></div>
-        <div class="f"><label>image</label><input type="file" accept="image/*"></div>
-        <div class="f"><label>pairing asset</label><select><option>SOL</option><option>USDC</option><option>xStock · TSLA</option><option>xStock · NVDA</option></select></div>
-        <div class="f"><label>batch window</label><div class="fixed">15 minutes, sealed <i>FIXED</i></div></div>
-        <div class="f"><label>supply</label><div class="fixed">1,000,000,000 <i>FIXED</i></div></div>
-        <div class="f"><label>dev allocation</label><div class="fixed">0% <i>NOT NEGOTIABLE</i></div></div>
-        <div class="f"><label>liquidity</label><div class="fixed">immutable at graduation, no admin key <i>FIXED</i></div></div>
-        <div class="f"><label>who can bid</label><div class="fixed">verified humans, one wallet each <i>FIXED</i></div></div>
-        <div class="f"><label>creator fee share</label><div class="rng"><input type="range" min="0" max="80" value="30" id="fee"><b id="feev">30%</b></div></div>
-        <div class="f"><label>opens</label><input type="datetime-local"></div>
-        <div class="act"><button type="submit" class="btn solid">verify &amp; schedule launch</button></div>
-        <p class="note">Fee share is the only lever. Everything else is the same for every launch, by contract. That is the point.</p>
+        <div class="stepn">STEP 1 · PICK YOUR PAIRING ASSET</div>
+        <p class="note" style="margin:0 0 10px">Your coin trades against this asset. Fees and holder rewards are paid in it.</p>
+        <div class="cats" id="cats"><button class="on" data-c="all">All</button><button data-c="crypto">Crypto</button><button data-c="xstock">xStock</button><button data-c="prestock">PreStock</button><button data-c="basket">Basket</button><button data-c="commodity">Commodity</button><button data-c="leverage">Leverage</button></div>
+        <div class="assets" id="assets"></div>
+
+        <div class="stepn">STEP 2 · NAME YOUR COIN</div>
+        <div class="f"><label>ticker</label><input id="tk" placeholder="1–10 letters or numbers, unique" maxlength="10" required></div>
+        <div class="f"><label>name</label><input id="nmi" placeholder="e.g. Lazarus" required></div>
+        <div class="f"><label>image</label><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"></div>
+        <div class="f"><label>description</label><input maxlength="100" placeholder="up to 100 characters"></div>
+        <div class="f"><label>social links</label><input placeholder="website · x · telegram (optional)"></div>
+
+        <div class="stepn">STEP 3 · WHO GETS THE CREATOR FEE</div>
+        <div class="f"><label>fee recipient</label><div class="radio" id="recip"><button type="button" class="on">me</button><button type="button">other wallet</button><button type="button">donate to holders</button></div></div>
+        <div class="f"><label>creator share</label><div class="rng"><input type="range" min="0" max="20" value="5" id="fee"><b id="feev">5%</b></div></div>
+
+        <div class="stepn">STEP 4 · WHAT NOBODY CAN CHANGE</div>
+        <div class="f"><label>trading fee</label><div class="fixed">1% on every buy and sell <i>FIXED</i></div></div>
+        <div class="f"><label>launch</label><div class="fixed">15-minute sealed batch, then bonding <i>FIXED</i></div></div>
+        <div class="f"><label>supply</label><div class="fixed">1,000,000,000 · no mint · no freeze <i>FIXED</i></div></div>
+        <div class="f"><label>liquidity</label><div class="fixed">locks forever at graduation · no admin key <i>FIXED</i></div></div>
+        <div class="f"><label>who can trade</label><div class="fixed">verified humans · one wallet each <i>FIXED</i></div></div>
+        <div class="f"><label>first buy</label><div class="fixed no">none. the creator bids in the batch like everyone else <i>NOT AVAILABLE</i></div></div>
+        <div class="f"><label>dev allocation</label><div class="fixed no">0% <i>NOT NEGOTIABLE</i></div></div>
+
+        <div class="stepn">STEP 5 · SCHEDULE</div>
+        <div class="f"><label>batch opens</label><input type="datetime-local"></div>
+        <p class="note">Tickers are case-insensitive and launched once for free. Re-launching a taken ticker costs 1 SOL to the treasury, refunded if the coin graduates within 48 hours.</p>
       </form>
       <aside class="side">
-        <h3>What happens when you submit</h3>
-        <ol>
-          <li>Proof of personhood <small>One human, one wallet. Fifty wallets costs fifty verifications and a permanent ban.</small></li>
-          <li>Contract deploys from the template <small>Same bytecode for every token. No custom code, no hidden functions.</small></li>
-          <li>Window opens, bids are sealed <small>Nobody sees the book. Bots have nothing to race.</small></li>
-          <li>Settlement at one price <small>Everyone pays the clearing price. Liquidity seeds and locks in the same transaction.</small></li>
-        </ol>
+        <h3>REVIEW</h3>
+        <div class="rows">
+          <div class="row"><span>$TICKER</span><b id="r-tk">—</b></div>
+          <div class="row"><span>name</span><b id="r-nm">—</b></div>
+          <div class="row"><span>anchored to</span><b id="r-an">SOL</b></div>
+          <div class="row"><span>launch market cap</span><b>≈ $20.0K</b></div>
+          <div class="row"><span>supply</span><b>1,000,000,000</b></div>
+          <div class="row"><span>trading fee</span><b>1%</b></div>
+          <div class="row"><span>creator share</span><b id="r-fee">5% → me</b></div>
+          <div class="row"><span>first buy</span><b class="g">none</b></div>
+          <div class="row"><span>dev allocation</span><b class="g">0%</b></div>
+          <div class="row"><span>liquidity</span><b class="g">locked forever</b></div>
+          <div class="row"><span>traders</span><b class="g">verified humans</b></div>
+        </div>
+        <div class="act"><button class="btn solid" id="review">verify &amp; schedule</button><button class="btn" id="connect2">select wallet</button></div>
       </aside>
+    </div>
+  </section>
+
+  <!-- REWARDS -->
+  <section class="sec" id="rewards">
+    <h2><span>REWARDS</span> where every 1% goes</h2>
+    <div class="split">
+      <div class="box">
+        <div class="barsplit"><i style="width:35%;background:var(--green)"></i><i style="width:25%;background:#2fbf71"></i><i style="width:20%;background:var(--cyan)"></i><i style="width:10%;background:var(--amber)"></i><i style="width:10%;background:#3a4a44"></i></div>
+        <div class="legend">
+          <div><i style="background:var(--green)"></i><span>Holders<small>paid pro rata every few minutes, in the pairing asset</small></span><b>35%</b></div>
+          <div><i style="background:#2fbf71"></i><span>Buyback &amp; burn RSRCT<small>swapped to SOL, buys of ~5 SOL, 1% price-impact cap, on chain</small></span><b>25%</b></div>
+          <div><i style="background:var(--cyan)"></i><span>Verified traders<small>USDC airdrop by volume. only verified humans count, so wash trading earns nothing</small></span><b>20%</b></div>
+          <div><i style="background:var(--amber)"></i><span>Creator<small>0–20%, set at launch. anything below 20% flows to holders</small></span><b>≤10%</b></div>
+          <div><i style="background:#3a4a44"></i><span>Treasury<small>audits, infra, payout bot</small></span><b>10%</b></div>
+        </div>
+      </div>
+      <div class="rew" style="margin-top:0;grid-template-columns:1fr">
+        <div class="rw"><h3>Holder rewards</h3><p>A token account opens once you are owed $2; smaller amounts roll over. Selling before a payout forfeits your pending share to the holders who stayed.</p><p>Claim, swap to SOL via Jupiter, or let it accumulate from the Profile tab.</p></div>
+        <div class="rw"><h3>Trader airdrops</h3><p>Weekly USDC snapshot to the top verified traders by volume. Because every wallet is one human, there is no bot volume to exclude and no list to review.</p></div>
+        <div class="rw"><h3>RSRCT buyback</h3><p>Every launch feeds the flagship. Buys are automatic, capped at 1% price impact, and listed on the Burns table under Analytics.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section class="sec" id="analytics">
+    <h2><span>ANALYTICS</span> where the fees went · read live from the program <i>devnet totals</i></h2>
+    <div class="an">
+      <div class="stat"><b>$184.2K</b><span>fees collected, all time</span></div>
+      <div class="stat"><b>$64.5K</b><span>paid to holders</span></div>
+      <div class="stat"><b>$46.0K</b><span>RSRCT bought &amp; burned</span></div>
+      <div class="stat"><b>$36.8K</b><span>airdropped to verified traders</span></div>
+      <div class="stat"><b>41</b><span>launches</span></div>
+      <div class="stat"><b>29</b><span>graduated</span></div>
+      <div class="stat"><b>0.9%</b><span>median largest wallet</span></div>
+      <div class="stat r"><b>0</b><span>bundles detected</span></div>
+    </div>
+    <div class="burns">
+      <h4 style="font-weight:400;font-size:12px;color:var(--dim);letter-spacing:.1em;margin:18px 0 8px">BURNS · latest</h4>
+      <table><thead><tr><th>time</th><th>SOL spent</th><th>RSRCT burned</th><th>price impact</th><th class="hidem">tx</th></tr></thead>
+      <tbody>
+        <tr><td class="d">12 min ago</td><td>5.02 SOL</td><td class="g">1,204,882</td><td>0.6%</td><td class="hidem"><a href="#">4kQ…p2m</a></td></tr>
+        <tr><td class="d">4 h ago</td><td>5.00 SOL</td><td class="g">1,198,310</td><td>0.7%</td><td class="hidem"><a href="#">9zR…aa1</a></td></tr>
+        <tr><td class="d">8 h ago</td><td>4.41 SOL</td><td class="g">1,067,005</td><td>0.5%</td><td class="hidem"><a href="#">Tn7…0xc</a></td></tr>
+      </tbody></table>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="sec" id="profile">
+    <h2><span>PROFILE</span> your coins, the fees they pay you, your holder rewards</h2>
+    <div class="prof">
+      <div class="empty"><b>Select a wallet to see your profile.</b>Coins you launched · creator fees claimed and pending · holder rewards across every coin you hold · your verification status.</div>
+      <div class="box">
+        <h4>VERIFICATION</h4>
+        <div class="rows">
+          <div class="row"><span>status</span><b class="c">not verified</b></div>
+          <div class="row"><span>what it unlocks</span><b>bidding in sealed batches · trading · trader airdrops</b></div>
+          <div class="row"><span>how</span><b>one liveness check, one uniqueness proof, once</b></div>
+          <div class="row"><span>cost of 50 wallets</span><b class="g">50 verifications and a permanent ban</b></div>
+        </div>
+        <div class="act" style="margin-top:12px"><button class="btn solid verify">verify as human</button></div>
+      </div>
     </div>
   </section>
 
@@ -264,14 +484,25 @@ tr:hover td{background:rgba(74,227,138,.04)}
     <h2><span>HOW IT WORKS</span> four rules, enforced by contract</h2>
     <div class="how">
       <div class="rx"><div class="k">Rx 01</div><h3>Sealed batch auction</h3><p>Fifteen minutes. Bids hidden until close. One clearing price for every participant.</p><div class="ind">removes: <b>sniper bots</b></div></div>
-      <div class="rx"><div class="k">Rx 02</div><h3>One human, one wallet</h3><p>Proof-of-personhood gates every bid. Sybil wallets cost a verification each, then a ban.</p><div class="ind">removes: <b>bundlers</b></div></div>
-      <div class="rx"><div class="k">Rx 03</div><h3>Immutable liquidity</h3><p>LP seeds and locks at settlement. No admin key, no pull function, no upgrade path.</p><div class="ind">removes: <b>rug pulls</b></div></div>
-      <div class="rx"><div class="k">Rx 04</div><h3>Zero dev allocation</h3><p>Full supply enters the auction. No pre-mint, no team wallet, no marketing budget to dump.</p><div class="ind">removes: <b>insider dumps</b></div></div>
+      <div class="rx"><div class="k">Rx 02</div><h3>One human, one wallet</h3><p>Proof-of-personhood gates every bid and trade. Sybil wallets cost a verification each, then a ban.</p><div class="ind">removes: <b>bundlers · wash volume</b></div></div>
+      <div class="rx"><div class="k">Rx 03</div><h3>Immutable liquidity</h3><p>LP seeds and locks at graduation. No admin key, no pull function, no upgrade path.</p><div class="ind">removes: <b>rug pulls</b></div></div>
+      <div class="rx"><div class="k">Rx 04</div><h3>Zero dev allocation</h3><p>No pre-mint, no team wallet, no first buy. The creator bids in the batch like everyone else.</p><div class="ind">removes: <b>insider dumps</b></div></div>
     </div>
+    <table class="vs"><thead><tr><th></th><th>typical launchpad</th><th>Resurrect</th></tr></thead>
+    <tbody>
+      <tr><td>launch</td><td>bonding curve from block one</td><td class="g">15-min sealed batch, then bonding</td></tr>
+      <tr><td>creator first buy</td><td>up to 3% before anyone else</td><td class="g">none</td></tr>
+      <tr><td>who can trade</td><td>any wallet, bots included</td><td class="g">verified humans, one wallet each</td></tr>
+      <tr><td>bot and wash volume</td><td>filtered by hand before airdrops</td><td class="g">cannot exist</td></tr>
+      <tr><td>pairing assets</td><td>SOL, USDC, tokenized stocks</td><td class="g">same, plus baskets and commodities</td></tr>
+      <tr><td>holder rewards</td><td>yes</td><td class="g">yes, 35% of fees</td></tr>
+      <tr><td>liquidity</td><td>locked on Raydium</td><td class="g">locked on Raydium, no admin key</td></tr>
+      <tr><td>audit</td><td>often none</td><td class="g">audited before mainnet, or no mainnet</td></tr>
+    </tbody></table>
   </section>
 
   <div class="foot">
-    <span>RESURRECT LAUNCHPAD · devnet preview · built on Solana</span>
+    <span>RESURRECT LAUNCHPAD · devnet preview · built on Solana · program not yet deployed to mainnet</span>
     <span><a href="index.html">the ICU</a> &nbsp;·&nbsp; <a href="wall.html">the wall</a> &nbsp;·&nbsp; <a href="index.html#wl">get on the list</a></span>
   </div>
 
@@ -280,76 +511,121 @@ tr:hover td{background:rgba(74,227,138,.04)}
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" role="dialog" aria-modal="true">
   <div class="mbox">
-    <h3>Proof of personhood <span>· devnet preview</span></h3>
-    <p>Before a launch can be scheduled, the creator verifies once. Bidders verify once too. One human, one wallet, every time.</p>
+    <h3 id="m-title">Proof of personhood <span>· devnet preview</span></h3>
+    <p id="m-text">Before you can bid, trade or launch, you verify once. One human, one wallet, every time.</p>
     <div class="steps">
-      <div class="step done"><i></i>Wallet connected (preview)</div>
+      <div class="step done"><i></i>Wallet selected (preview)</div>
       <div class="step" id="st2"><i></i>Liveness check</div>
       <div class="step" id="st3"><i></i>Uniqueness proof issued</div>
-      <div class="step" id="st4"><i></i>Launch template deployed</div>
+      <div class="step" id="st4"><i></i>Ready to bid, trade and launch</div>
     </div>
-    <p>Real verification opens with the first mainnet launch in early 2026. Until then, this is a walkthrough.</p>
+    <p>Real verification and the program go live with the first mainnet launch in early 2026. Until then, this is a walkthrough.</p>
     <div class="act"><a class="btn solid" href="index.html#wl">get on the list</a><button class="btn" id="close">close</button></div>
   </div>
 </div>
 
 <script>
 (function(){
-  const $=s=>document.querySelector(s);
+  const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
   const clock=$('#clock');const tick=()=>{const d=new Date();clock.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');};tick();setInterval(tick,1000);
-
-  const toast=$('#toast');let tt;
-  function say(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),3200);}
-  $('#connect').addEventListener('click',()=>say('Devnet preview — wallet connection opens with the first mainnet launch.'));
-  document.querySelectorAll('.remind').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();say('Reminders open with the first launch. Join the list on the ICU page.');}));
-
-  /* batches */
-  const spark=()=>{let d='M0,16',x=0;for(let i=0;i<14;i++){x+=7.6;d+=` L${x.toFixed(1)},${(6+Math.random()*12).toFixed(1)}`;}return d;};
-  const data=[
-    {n:'Resurrect the Trenches',t:'TRENCH',pair:'SOL',end:452,bids:338,price:0.000871,p:70},
-    {n:'Asystole',t:'ASYS',pair:'USDC',end:731,bids:194,price:0.000212,p:19},
-    {n:'Defib',t:'DEFIB',pair:'SOL',end:188,bids:612,price:0.001403,p:79},
-  ];
-  const wrap=$('#batches');
-  data.forEach((b,i)=>{
-    const el=document.createElement('div');el.className='batch';
-    el.innerHTML=`<div class="top"><div class="av">${b.t.slice(0,2)}</div><div class="nm"><b>${b.n}</b><span>$${b.t} · pair ${b.pair} · batch #${1040+i}</span></div><span class="chip live">LIVE</span></div>
-      <div class="kv"><div class="cd">closes in<b data-end="${b.end}">--:--</b></div><div>sealed bids<b data-bids="${b.bids}">${b.bids}</b> <span style="font-size:11px">humans</span></div><div>indicative clearing<b data-price="${b.price}">${b.price.toFixed(6)}</b> <span style="font-size:11px">${b.pair}</span></div><div>max per wallet<b>1.0%</b></div></div>
-      <div class="prog"><i style="--p:${b.p}%"></i></div>
-      <div class="vit"><div class="v g">PULSE · bids/min<b>${(b.bids/9).toFixed(1)}</b><svg class="spark" viewBox="0 0 110 22" preserveAspectRatio="none"><path d="${spark()}"/></svg></div><div class="v c">SAT · spread<b>${(97+Math.random()*2).toFixed(1)}%</b><svg class="spark" viewBox="0 0 110 22" preserveAspectRatio="none"><path d="${spark()}"/></svg></div><div class="v a">TEMP · bundle risk<b>0.0%</b><svg class="spark" viewBox="0 0 110 22" preserveAspectRatio="none"><path d="M0,16 L110,16"/></svg></div></div>
-      <div class="rules"><span>SEALED</span><span>HUMANS ONLY</span><span>LP IMMUTABLE</span><span>0% DEV</span></div>
-      <div class="act"><button class="btn solid bid">place sealed bid</button><button class="btn det">details</button></div>`;
-    wrap.appendChild(el);
-  });
-  document.querySelectorAll('.bid').forEach(b=>b.addEventListener('click',()=>{$('#modal').classList.add('open');walk();}));
-  document.querySelectorAll('.det').forEach(b=>b.addEventListener('click',()=>say('Sealed book: bids are hidden until the window closes. Details page opens on mainnet.')));
-
-  /* countdowns + live-ish numbers */
-  const t0=Date.now();
-  function fmt(s){s=Math.max(0,Math.floor(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':':'')+String(m).padStart(2,'0')+':'+String(x).padStart(2,'0');}
-  setInterval(()=>{
-    const el=(Date.now()-t0)/1000;
-    document.querySelectorAll('[data-end]').forEach(e=>{e.textContent=fmt(+e.dataset.end-el);});
-    document.querySelectorAll('[data-open]').forEach(e=>{e.textContent=fmt(+e.dataset.open-el);});
-    if(Math.random()<.35){const bs=document.querySelectorAll('[data-bids]');const e=bs[Math.floor(Math.random()*bs.length)];e.dataset.bids=+e.dataset.bids+1;e.textContent=e.dataset.bids;}
-    document.querySelectorAll('[data-price]').forEach(e=>{if(Math.random()<.3){const p=+e.dataset.price*(1+(Math.random()-.5)*.004);e.dataset.price=p;e.textContent=p.toFixed(6);}});
-    const s2=$('#s2');if(Math.random()<.15){s2.textContent=(parseInt(s2.textContent.replace(/,/g,''))+1).toLocaleString('en-US');}
-  },1000);
-
-  /* fee slider */
-  const fee=$('#fee'),feev=$('#feev');fee.addEventListener('input',()=>feev.textContent=fee.value+'%');
-
-  /* create → modal walkthrough */
-  function walk(){['#st2','#st3','#st4'].forEach((s,i)=>{const e=$(s);e.classList.remove('done');setTimeout(()=>e.classList.add('done'),700+i*800);});}
-  $('#createForm').addEventListener('submit',e=>{e.preventDefault();$('#modal').classList.add('open');walk();});
+  const toast=$('#toast');let tt;const say=m=>{toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),3200);};
+  const openModal=()=>{$('#modal').classList.add('open');['#st2','#st3','#st4'].forEach((s,i)=>{const e=$(s);e.classList.remove('done');setTimeout(()=>e.classList.add('done'),700+i*800);});};
+  ['#connect','#connect2'].forEach(s=>$(s).addEventListener('click',()=>say('Devnet preview — wallet selection opens with the first mainnet launch.')));
   $('#close').addEventListener('click',()=>$('#modal').classList.remove('open'));
   $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')$('#modal').classList.remove('open');});
   addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').classList.remove('open');});
 
-  /* tab highlight on scroll */
-  const tabs=[...document.querySelectorAll('.tabs a[href^="#"]')];
-  const io=new IntersectionObserver(en=>{en.forEach(x=>{if(x.isIntersecting){tabs.forEach(t=>t.classList.toggle('on',t.getAttribute('href')==='#'+x.target.id));}});},{rootMargin:'-40% 0px -55% 0px'});
-  ['live','upcoming','graduated','create','how'].forEach(id=>io.observe(document.getElementById(id)));
+  /* ---- token data ---- */
+  const T=[
+    {n:'Resurrect the Trenches',t:'TRENCH',a:'SOL',ph:'bond',fdv:468450,vol:91200,age:2,p:88,h:1204},
+    {n:'Asystole',t:'ASYS',a:'USDC',ph:'batch',fdv:20000,vol:0,age:0.1,p:19,h:194,end:731},
+    {n:'Defib',t:'DEFIB',a:'SOL',ph:'batch',fdv:20000,vol:0,age:0.05,p:79,h:612,end:188},
+    {n:'Lazarus Protocol',t:'LAZ',a:'ANTHROPIC',ph:'grad',fdv:351290,vol:44100,age:9,p:100,h:980},
+    {n:'Sinus Rhythm',t:'SINUS',a:'SOL',ph:'grad',fdv:323990,vol:38800,age:14,p:100,h:1120},
+    {n:'Pulse',t:'PULSE',a:'TSLA',ph:'grad',fdv:207230,vol:22900,age:21,p:100,h:812},
+    {n:'Bed 01',t:'BED01',a:'SOL',ph:'bond',fdv:143530,vol:19400,age:1,p:41,h:455},
+    {n:'Clear',t:'CLEAR',a:'GOLD',ph:'batch',fdv:20000,vol:0,age:0.02,p:52,h:338,end:452},
+    {n:'Ward',t:'WARD',a:'SPY',ph:'bond',fdv:129310,vol:12100,age:3,p:36,h:402},
+    {n:'Night Shift',t:'NIGHT',a:'USDC',ph:'grad',fdv:106630,vol:9900,age:30,p:100,h:618},
+    {n:'Vitals',t:'VITALS',a:'NVDA',ph:'bond',fdv:93910,vol:8200,age:5,p:27,h:290},
+    {n:'Rounds',t:'ROUNDS',a:'SOL',ph:'grad',fdv:69620,vol:5100,age:40,p:100,h:377},
+  ];
+  const fmt=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(2)+'K':'$'+n;
+  let F='all',S='fdv',Q='',shown=8;
+  const list=$('#list');
+  function render(){
+    let r=T.filter(x=>F==='all'||x.ph===F).filter(x=>!Q||(x.t+x.n+x.a).toLowerCase().includes(Q));
+    r.sort((a,b)=>S==='fdv'?((b.ph==='batch')-(a.ph==='batch'))||b.fdv-a.fdv:S==='recent'?a.age-b.age:b.vol-a.vol);
+    list.innerHTML=r.slice(0,shown).map((x,i)=>`<div class="tk" data-i="${T.indexOf(x)}">
+      <div class="top"><div class="av">${x.t.slice(0,2)}</div><div class="nm"><b>$${x.t}</b><span>${x.n}</span></div><span class="chip ${x.ph==='batch'?'live':x.ph==='bond'?'bond':'grad'}">${x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'BONDING':'GRADUATED'}</span></div>
+      <div class="kv"><div>${x.ph==='batch'?'closes in':'FDV'}<b class="${x.ph==='batch'?'g':''}" ${x.ph==='batch'?`data-end="${x.end}"`:''}>${x.ph==='batch'?'--:--':fmt(x.fdv)}</b></div><div>${x.ph==='batch'?'sealed bids':'24h volume'}<b>${x.ph==='batch'?x.h+' humans':fmt(x.vol)}</b></div></div>
+      <div class="anch">anchored to <i>${x.a}</i></div>
+      <div class="prog ${x.ph==='bond'?'c':''}"><i style="--p:${x.p}%"></i></div>
+    </div>`).join('');
+    $('#more').style.display=r.length>shown?'':'none';
+    $$('.tk').forEach(el=>el.addEventListener('click',()=>openDetail(T[+el.dataset.i])));
+  }
+  $('#filter').addEventListener('click',e=>{if(!e.target.dataset.f)return;$$('#filter button').forEach(b=>b.classList.toggle('on',b===e.target));F=e.target.dataset.f;render();});
+  $('#sort').addEventListener('click',e=>{if(!e.target.dataset.s)return;$$('#sort button').forEach(b=>b.classList.toggle('on',b===e.target));S=e.target.dataset.s;render();});
+  $('#q').addEventListener('input',e=>{Q=e.target.value.trim().toLowerCase();render();});
+  $('#more').addEventListener('click',()=>{shown+=4;render();});
+  render();
+
+  /* ---- detail view ---- */
+  const det=$('#detail');
+  function openDetail(x){
+    $('#d-av').textContent=x.t.slice(0,2);$('#d-name').innerHTML=`${x.n} <span style="color:var(--dim)">$${x.t}</span>`;$('#d-anch').textContent=x.a;
+    $('#d-phase').textContent=x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'BONDING':'GRADUATED';
+    $('#d-fdv').textContent=fmt(x.fdv);$('#d-liq').textContent=fmt(x.fdv*0.28);$('#d-vol').textContent=fmt(x.vol);$('#d-h').textContent=x.h.toLocaleString('en-US')+' humans';
+    $('#d-lock').textContent=x.ph==='grad'?'Graduated to Raydium · liquidity locked forever · pool Bffh…fFXH':x.ph==='bond'?'Graduates to Raydium at $450K FDV · liquidity locks forever · pool address published at graduation':'Sealed batch in progress · bids hidden until close · one clearing price for everyone';
+    det.classList.add('open');list.style.display='none';$('#more').style.display='none';$('.tool').style.display='none';
+    drawChart(x);det.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  $('#back').addEventListener('click',()=>{det.classList.remove('open');list.style.display='';$('.tool').style.display='';render();$('#launches').scrollIntoView({behavior:'smooth'});});
+  const cv=$('#cv');let series=[];
+  function drawChart(x){
+    const ctx=cv.getContext('2d');const dpr=Math.min(2,devicePixelRatio||1);const W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+    let v=x.fdv*0.12,s=[];for(let i=0;i<120;i++){v*=1+(Math.random()-0.47)*0.06;s.push(v);} const k=x.fdv/s[s.length-1];series=s.map(y=>y*k);
+    const mx=Math.max(...series),mn=Math.min(...series);
+    ctx.clearRect(0,0,W,H);ctx.strokeStyle='rgba(74,227,138,.08)';for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,H*i/5);ctx.lineTo(W,H*i/5);ctx.stroke();}
+    ctx.beginPath();series.forEach((y,i)=>{const px=i/(series.length-1)*W,py=H-14-(y-mn)/(mx-mn)*(H-60);i?ctx.lineTo(px,py):ctx.moveTo(px,py);});
+    ctx.strokeStyle='#4AE38A';ctx.lineWidth=1.8;ctx.shadowColor='#4AE38A';ctx.shadowBlur=8;ctx.stroke();ctx.shadowBlur=0;
+    ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fillStyle='rgba(74,227,138,.07)';ctx.fill();
+    ctx.fillStyle='#5F7A6C';ctx.font='10px "Share Tech Mono",monospace';['01:53','04:28','07:04','09:39','12:14'].forEach((t,i)=>ctx.fillText(t,10+i*(W-60)/4,H-4));
+  }
+  $$('.tf button').forEach(b=>b.addEventListener('click',()=>{$$('.tf button').forEach(x=>x.classList.toggle('on',x===b));drawChart(T[0]);}));
+  $('#insol').addEventListener('change',e=>say(e.target.checked?'Showing values in SOL.':'Showing values in USD.'));
+  $$('.cycle').forEach(b=>b.addEventListener('click',()=>{$('#d-unc').textContent='$0';say('Fees cycled: vault swept to holders, buyback, traders and creator.');}));
+  $$('.buy,.sell,.verify').forEach(b=>b.addEventListener('click',openModal));
+
+  /* ---- live numbers ---- */
+  const t0=Date.now();const f=s=>{s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+  setInterval(()=>{const el=(Date.now()-t0)/1000;$$('[data-end]').forEach(e=>e.textContent=f(+e.dataset.end-el));$('#d-next').textContent=f(161-(el%161));
+    if(Math.random()<.15){const s2=$('#s2');s2.textContent=(parseInt(s2.textContent.replace(/,/g,''))+1).toLocaleString('en-US');}
+    if(Math.random()<.2){const p=$('#d-paid');p.textContent='$'+(parseInt(p.textContent.replace(/[$,]/g,''))+Math.floor(Math.random()*4)).toLocaleString('en-US');}
+  },1000);
+
+  /* ---- create form ---- */
+  const A={crypto:['SOL','USDC','USDT','WBTC','ETH','PUMP','BONK','WIF','JUP','RAY','HYPE','PENGU'],xstock:['SPY','NVDA','TSLA','AAPL','GOOGL','QQQ','COIN','MSTR','META','MSFT','GME','GLD'],prestock:['ANTHROPIC|1% transfer fee','OPENAI|1% transfer fee','POLYMARKET|1%','KALSHI|1%','NEURALINK|1%'],basket:['FRONTIER','MUSK4','SAMA4','TRUMP3','SAYLOR3','PRIVACY|0.5% transfer fee'],commodity:['GOLD'],leverage:['xSOL|volatile','XBTC|volatile','XHYPE|volatile']};
+  let cat='all',anchor='SOL';const assets=$('#assets');
+  function renderAssets(){const keys=cat==='all'?Object.keys(A):[cat];assets.innerHTML=keys.flatMap(k=>A[k]).map(s=>{const [n,note]=s.split('|');return `<button type="button" data-a="${n}" class="${n===anchor?'on':''}">${n}${note?`<small>${note}</small>`:''}</button>`;}).join('');}
+  $('#cats').addEventListener('click',e=>{if(!e.target.dataset.c)return;$$('#cats button').forEach(b=>b.classList.toggle('on',b===e.target));cat=e.target.dataset.c;renderAssets();});
+  assets.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;anchor=b.dataset.a;$('#r-an').textContent=anchor;renderAssets();});
+  renderAssets();
+  $('#tk').addEventListener('input',e=>{e.target.value=e.target.value.replace(/[^a-z0-9]/gi,'').toUpperCase();$('#r-tk').textContent=e.target.value?'$'+e.target.value:'—';});
+  $('#nmi').addEventListener('input',e=>$('#r-nm').textContent=e.target.value||'—');
+  const fee=$('#fee'),feev=$('#feev');let rec='me';
+  const updFee=()=>{feev.textContent=fee.value+'%';$('#r-fee').textContent=rec==='donate'?'0% → holders':fee.value+'% → '+rec;};
+  fee.addEventListener('input',updFee);
+  $('#recip').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#recip button').forEach(x=>x.classList.toggle('on',x===b));rec=b.textContent.includes('other')?'other wallet':b.textContent.includes('donate')?'donate':'me';if(rec==='donate'){fee.value=0;}updFee();});
+  $('#review').addEventListener('click',e=>{e.preventDefault();if(!$('#tk').value||!$('#nmi').value){say('Give the coin a ticker and a name first.');return;}openModal();});
+  $('#createForm').addEventListener('submit',e=>{e.preventDefault();$('#review').click();});
+
+  /* tabs highlight */
+  const tabs=$$('.tabs a[href^="#"]');
+  new IntersectionObserver(en=>{en.forEach(x=>{if(x.isIntersecting)tabs.forEach(t=>t.classList.toggle('on',t.getAttribute('href')==='#'+x.target.id));});},{rootMargin:'-40% 0px -55% 0px'}).observe;
+  const io=new IntersectionObserver(en=>{en.forEach(x=>{if(x.isIntersecting)tabs.forEach(t=>t.classList.toggle('on',t.getAttribute('href')==='#'+x.target.id));});},{rootMargin:'-40% 0px -55% 0px'});
+  ['launches','create','rewards','analytics','profile','how'].forEach(id=>io.observe(document.getElementById(id)));
 })();
 </script>
 </body>
