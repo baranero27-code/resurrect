@@ -21,9 +21,14 @@
     // all PDAs hang off the launched coin's mint
     const seedsFor = (mint) => {
       const m = mint.toBuffer();
-      return { launch: pda([enc.encode('launch'), m]), vault: pda([enc.encode('vault'), m]), escrow: pda([enc.encode('escrow'), m]), pool: pda([enc.encode('pool'), m]), fees: pda([enc.encode('fees'), m]) };
+      return { launch: pda([enc.encode('launch'), m]), vault: pda([enc.encode('vault'), m]), escrow: pda([enc.encode('escrow'), m]), pool: pda([enc.encode('pool'), m]), fees: pda([enc.encode('fees'), m]), stakeVault: pda([enc.encode('stake'), m]) };
     };
     const bidPda = (launch, bidder) => pda([enc.encode('bid'), launch.toBuffer(), bidder.toBuffer()]);
+    const stakePda = (launch, owner) => pda([enc.encode('stake'), launch.toBuffer(), owner.toBuffer()]);
+    // Civic gateway: pass account for a wallet on a gatekeeper network
+    const GATEWAY = new PublicKey('gatem74V238djXdzWnJf94Wo1DcnuGkfijbf3AuBhfs');
+    const UNIQUENESS = new PublicKey('uniqobk8oGh4XBLMqM68K8M2zNu3CdYX7q5go7whQiv');
+    const gatewayTokenPda = (owner, network = UNIQUENESS) => PublicKey.findProgramAddressSync([owner.toBuffer(), enc.encode('gateway'), new Uint8Array(8), network.toBuffer()], GATEWAY)[0];
     const meta = (pk, s = false, w = false) => ({ pubkey: pk, isSigner: s, isWritable: w });
     const ata = (mint, owner, prog = TOKEN) => spl.getAssociatedTokenAddressSync(mint, owner, false, prog);
 
@@ -52,21 +57,30 @@
     }
 
     // ---- instructions ----
-    async function ixCreateLaunch({ creator, mint, pairMint, pairProg, creatorToken, name, symbol, batchSecs, creatorFeeBps }) {
+    async function ixCreateLaunch({ creator, mint, pairMint, pairProg, creatorToken, name, symbol, batchSecs, creatorFeeBps, requireHuman = false }) {
       const k = seedsFor(mint);
-      const data = concat(await disc('create_launch'), str(name), str(symbol), i64(batchSecs), u16(creatorFeeBps));
+      const data = concat(await disc('create_launch'), str(name), str(symbol), i64(batchSecs), u16(creatorFeeBps), new Uint8Array([requireHuman ? 1 : 0]));
       return new TransactionInstruction({ programId: PROGRAM_ID, data, keys: [
         meta(creator, true, true), meta(mint), meta(pairMint), meta(k.launch, false, true), meta(k.vault, false, true),
-        meta(k.escrow, false, true), meta(k.pool, false, true), meta(k.fees, false, true), meta(creatorToken, false, true),
+        meta(k.escrow, false, true), meta(k.pool, false, true), meta(k.fees, false, true), meta(k.stakeVault, false, true), meta(creatorToken, false, true),
         meta(TOKEN), meta(pairProg), meta(SystemProgram.programId), meta(SYSVAR_RENT_PUBKEY)] });
     }
     async function commitment(bidder, amount, salt) { return sha256(concat(bidder.toBytes(), u64(amount), salt)); }
-    async function ixCommitBid({ bidder, mint, pairMint, pairProg, amount, salt, deposit }) {
+    async function ixCommitBid({ bidder, mint, pairMint, pairProg, amount, salt, deposit, gatewayToken = null }) {
       const k = seedsFor(mint); const c = await commitment(bidder, amount, salt);
       const data = concat(await disc('commit_bid'), c, u64(deposit));
       return new TransactionInstruction({ programId: PROGRAM_ID, data, keys: [
         meta(bidder, true, true), meta(k.launch, false, true), meta(bidPda(k.launch, bidder), false, true), meta(pairMint), meta(k.escrow, false, true),
-        meta(ata(pairMint, bidder, pairProg), false, true), meta(pairProg), meta(SystemProgram.programId)] });
+        meta(ata(pairMint, bidder, pairProg), false, true), meta(pairProg), meta(SystemProgram.programId), meta(gatewayToken || PROGRAM_ID)] });
+    }
+    async function ixStake({ staker, mint, amount, unstake = false }) {
+      const k = seedsFor(mint);
+      const data = concat(await disc(unstake ? 'unstake' : 'stake'), u64(amount));
+      return new TransactionInstruction({ programId: PROGRAM_ID, data, keys: [meta(staker, true, true), meta(k.launch, false, true), meta(stakePda(k.launch, staker), false, true), meta(k.stakeVault, false, true), meta(ata(mint, staker), false, true), meta(TOKEN), meta(SystemProgram.programId)] });
+    }
+    async function ixClaimRewards({ staker, mint, pairMint, pairProg }) {
+      const k = seedsFor(mint);
+      return new TransactionInstruction({ programId: PROGRAM_ID, data: await disc('claim_rewards'), keys: [meta(staker, true, true), meta(k.launch, false, true), meta(stakePda(k.launch, staker), false, true), meta(pairMint), meta(k.fees, false, true), meta(ata(pairMint, staker, pairProg), false, true), meta(pairProg)] });
     }
     async function ixRevealBid({ bidder, mint, amount, salt }) {
       const k = seedsFor(mint);
@@ -108,7 +122,13 @@
       creator: r.pk(), mint: r.pk(), vault: r.pk(), pairMint: r.pk(), pairTokenProgram: r.pk(), escrow: r.pk(), poolPairAccount: r.pk(), feeVault: r.pk(),
       name: r.str(), symbol: r.str(), startTs: Number(r.i64()), endTs: Number(r.i64()), revealEndTs: Number(r.i64()),
       creatorFeeBps: r.u16(), pairDecimals: r.u8(), minBid: r.u64(), bids: r.u32(), revealed: r.u32(), totalRevealed: r.u64(), clearingPriceQ32: r.u128(),
-      settled: r.bool(), poolPair: r.u64(), poolTokens: r.u64(), feesAccrued: r.u64(), creatorFeesOwed: r.u64(), creatorFeesClaimed: r.u64(), bump: r.u8() }; }
+      settled: r.bool(), poolPair: r.u64(), poolTokens: r.u64(), feesAccrued: r.u64(), creatorFeesOwed: r.u64(), creatorFeesClaimed: r.u64(),
+      requireHuman: r.bool(), gatekeeperNetwork: r.pk(), stakeVault: r.pk(), totalStaked: r.u64(), rewardIndex: r.u128(), rewardsPending: r.u64(), rewardsDistributed: r.u64(), bump: r.u8() }; }
+    function decodeStake(buf) { const r = rd(buf); return { launch: r.pk(), owner: r.pk(), amount: r.u64(), index: r.u128(), owed: r.u64(), claimed: r.u64(), bump: r.u8() }; }
+    async function fetchStake(connection, mint, owner) { const k = seedsFor(mint); const a = await connection.getAccountInfo(stakePda(k.launch, owner)); return a ? decodeStake(new Uint8Array(a.data)) : null; }
+    /// pending rewards for a stake given the current launch state (same math as the program)
+    const pendingRewards = (l, s) => s ? s.owed + (l.rewardIndex > s.index ? ((l.rewardIndex - s.index) * s.amount) >> 64n : 0n) : 0n;
+    async function hasHumanPass(connection, owner, network = UNIQUENESS) { const a = await connection.getAccountInfo(gatewayTokenPda(owner, network)); if (!a || !a.owner.equals(GATEWAY)) return false; const d = a.data; let o = 1; o += d[o] ? 33 : 1; const w = new PublicKey(d.slice(o, o + 32)); o += 32; o += d[o] ? 33 : 1; o += 64; const state = d[o]; o += 1; const exp = d[o] ? Number(new DataView(d.buffer, d.byteOffset + o + 1, 8).getBigInt64(0, true)) : null; return w.equals(owner) && state === 0 && (exp === null || exp > Date.now() / 1000); }
     function decodeBid(buf) { const r = rd(buf); return { launch: r.pk(), bidder: r.pk(), commitment: r.bytes(32), deposit: r.u64(), amount: r.u64(), revealed: r.bool(), claimed: r.bool(), bump: r.u8() }; }
     async function accountDisc(name) { return (await sha256(enc.encode('account:' + name))).slice(0, 8); }
     async function fetchLaunches(connection) {
@@ -135,8 +155,8 @@
       ] };
     }
     const priceFromQ32 = (q) => Number(q) / 2 ** 32; // pair base units per token base unit
-    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, seedsFor, bidPda, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
-      ixCreateLaunch, ixCommitBid, ixRevealBid, ixSettle, ixClaim, ixSwap, ixClaimCreatorFees,
-      decodeLaunch, decodeBid, fetchLaunches, fetchLaunch, fetchBid, ixsCreateFixedMint, SUPPLY, priceFromQ32, randomSalt: () => globalThis.crypto.getRandomValues(new Uint8Array(32)) };
+    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, GATEWAY, UNIQUENESS, seedsFor, bidPda, stakePda, gatewayTokenPda, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
+      ixCreateLaunch, ixCommitBid, ixRevealBid, ixSettle, ixClaim, ixSwap, ixClaimCreatorFees, ixStake, ixClaimRewards,
+      decodeLaunch, decodeBid, decodeStake, fetchLaunches, fetchLaunch, fetchBid, fetchStake, pendingRewards, hasHumanPass, ixsCreateFixedMint, SUPPLY, priceFromQ32, randomSalt: () => globalThis.crypto.getRandomValues(new Uint8Array(32)) };
   };
 });

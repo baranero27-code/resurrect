@@ -1,4 +1,4 @@
-# Resurrect program (devnet v2 — any-asset pairing)
+# Resurrect program (devnet v3 — any-asset pairing · holder rewards · proof of personhood)
 
 Program id (devnet): `5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t`
 
@@ -22,18 +22,28 @@ Minimum bid = 0.01 units of the pair asset.
    pair tokens + 20% of supply seed a constant-product pool owned by the program. There is no withdraw/close instruction for the pool.
 5. `claim` — tokens at the clearing price + refund of (deposit − bid). Unrevealed bids: full refund, no tokens.
 6. `swap_pair_for_tokens` / `swap_tokens_for_pair` — 1% fee on the pair side → fee vault.
-7. `claim_creator_fees` — creator withdraws `creator_fee_bps` (≤20%) of accrued fees. The remainder stays in the fee vault
-   for holder rewards. Nothing lets the creator touch the pool.
+7. `claim_creator_fees` — creator withdraws `creator_fee_bps` (≤20%) of accrued fees. Nothing lets the creator touch the pool.
+8. `stake(amount)` / `unstake(amount)` / `claim_rewards` — holders deposit launch tokens into the stake vault (no lockup, no fee)
+   and earn the holder share (100% − creator share) of every swap fee, paid in the pair asset. Accounting is a per-token reward
+   index (Q64) updated on every swap; stakers pull what they are owed. Fees that accrue while nobody is staked are held and
+   released into the index when the first stake arrives.
+
+## Proof of personhood
+`create_launch(..., require_human: bool)`. When set, `commit_bid` requires the bidder's **Civic Gateway token** on the
+Uniqueness gatekeeper network (`uniqobk8oGh4XBLMqM68K8M2zNu3CdYX7q5go7whQiv`, one pass per human). The program checks that the
+account is owned by the Gateway program (`gatem74V238djXdzWnJf94Wo1DcnuGkfijbf3AuBhfs`), belongs to the bidder, is on the
+expected network, is Active and not expired. Combined with the one-bid-PDA-per-wallet rule: one human, one wallet, one bid.
+Passes are issued by Civic (getpass.civic.com); the launchpad never sees identity data.
 
 ## PDAs (all seeded by the launched coin's mint)
-`launch`, `vault` (coin), `escrow`, `pool`, `fees` (pair asset) → `[seed, mint]`; `bid` → `["bid", launch, bidder]`.
+`launch`, `vault`, `stake` (coin), `escrow`, `pool`, `fees` (pair asset) → `[seed, mint]`; `bid` → `["bid", launch, bidder]`; stake position → `["stake", launch, owner]`.
 
-## Tested (local validator, `client/e2e3.js`)
-- Launch paired with SOL (wrapped SOL, 9 dec, SPL Token) and launch paired with a mock Token-2022 stock (8 dec):
-  create → 3 sealed bids → duplicate bid rejected → reveal → settle → claims with refunds → buy/sell → fee accrual →
-  creator fee claim → double claim rejected.
+## Tested (local validator, `e2e4.js`)
+- Launch paired with SOL with `require_human`: bid without a pass → rejected; bid with another wallet's pass → rejected;
+  bid with own pass → accepted. Launch paired with a mock Token-2022 stock (8 dec): create → 3 sealed bids → duplicate bid
+  rejected → reveal → settle → claims with refunds → buy/sell → fee accrual → creator fee claim → double claim rejected →
+  stake → swap → rewards claim → unstake.
 
-## Not in v2 (planned)
-- Proof of personhood gate (Civic Pass / World ID) on bids and swaps
-- Holder reward distribution / buyback from the fee vault remainder
+## Not yet
 - Independent audit — **required before any mainnet deployment**
+- Upgrade authority → multisig, then freeze

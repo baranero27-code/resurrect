@@ -4,10 +4,11 @@ const web3 = require('@solana/web3.js'); const spl = require('@solana/spl-token'
 const makeClient = require('./rsrct.js');
 const R = makeClient(web3, spl, '5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t');
 const conn = new web3.Connection(process.env.RPC || 'http://127.0.0.1:8899', 'confirmed');
-const payer = web3.Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync('/home/claude/sol/resurrect-program/keys/payer.json'))));
-const ST = '/tmp/e2e3_state.json';
-const send = async (ixs, signers) => web3.sendAndConfirmTransaction(conn, new web3.Transaction().add(...ixs), signers, { commitment: 'confirmed' });
 const kp = (a) => web3.Keypair.fromSecretKey(Uint8Array.from(a));
+const payer = web3.Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync('/home/claude/sol/resurrect-program/keys/payer.json'))));
+const ST = '/tmp/e2e4_state.json';
+const human = kp(JSON.parse(fs.readFileSync('/tmp/human.json')));
+const send = async (ixs, signers) => web3.sendAndConfirmTransaction(conn, new web3.Transaction().add(...ixs), signers, { commitment: 'confirmed' });
 const fmt = (v, d) => (Number(v) / 10 ** d).toLocaleString('en-US', { maximumFractionDigits: 6 });
 
 async function phase1() {
@@ -26,29 +27,40 @@ async function phase1() {
     const mintKp = web3.Keypair.generate();
     const { ata, ixs } = await R.ixsCreateFixedMint({ connection: conn, payer: payer.publicKey, mintKp });
     const sym = tag === 'SOL' ? 'LAZ' : 'TSLZ';
-    ixs.push(await R.ixCreateLaunch({ creator: payer.publicKey, mint: mintKp.publicKey, pairMint, pairProg: info.prog, creatorToken: ata, name: 'Lazarus on ' + tag, symbol: sym, batchSecs: 60, creatorFeeBps: 500 }));
+    ixs.push(await R.ixCreateLaunch({ creator: payer.publicKey, mint: mintKp.publicKey, pairMint, pairProg: info.prog, creatorToken: ata, name: 'Lazarus on ' + tag, symbol: sym, batchSecs: 60, creatorFeeBps: 500, requireHuman: tag === 'SOL' }));
     await send(ixs, [payer, mintKp]);
     const L = await R.fetchLaunch(conn, mintKp.publicKey);
     console.log(`launch ${sym} paired with ${tag} · pair prog ${info.prog.equals(spl.TOKEN_2022_PROGRAM_ID) ? 'Token-2022' : 'SPL'} · min bid ${fmt(L.minBid, L.pairDecimals)} ${tag} · vault holds ${fmt((await conn.getTokenAccountBalance(R.seedsFor(mintKp.publicKey).vault)).value.amount, 6)} tokens`);
     // creator must hold zero
-    console.log('  creator balance after create:', (await conn.getTokenAccountBalance(ata)).value.uiAmountString);
+    console.log('  creator balance after create:', (await conn.getTokenAccountBalance(ata)).value.uiAmountString, '· requires human pass:', L.requireHuman);
+    if (tag === 'SOL') {
+      // a wallet WITHOUT a Civic pass must be rejected; the wallet WITH one passes
+      const nobody = web3.Keypair.generate(); await conn.confirmTransaction(await conn.requestAirdrop(nobody.publicKey, 3 * web3.LAMPORTS_PER_SOL));
+      let rej = ''; try { const pr = R.ixsPreparePair({ owner: nobody.publicKey, pairMint, prog: info.prog, lamports: 200_000_000n }); await send([...pr.ixs, await R.ixCommitBid({ bidder: nobody.publicKey, mint: mintKp.publicKey, pairMint, pairProg: info.prog, amount: 100_000_000n, salt: R.randomSalt(), deposit: 200_000_000n })], [nobody]); } catch (e) { rej = /HumanPassRequired|6015|requires a proof/.test(JSON.stringify(e.logs || e.message)) ? 'HumanPassRequired' : 'other:' + (e.message || '').slice(0, 80); }
+      console.log('  bid without pass →', rej || 'ACCEPTED (BUG)');
+      rej = ''; try { const pr = R.ixsPreparePair({ owner: nobody.publicKey, pairMint, prog: info.prog, lamports: 200_000_000n }); await send([...pr.ixs, await R.ixCommitBid({ bidder: nobody.publicKey, mint: mintKp.publicKey, pairMint, pairProg: info.prog, amount: 100_000_000n, salt: R.randomSalt(), deposit: 200_000_000n, gatewayToken: R.gatewayTokenPda(human.publicKey) })], [nobody]); } catch (e) { rej = 'rejected'; }
+      console.log("  bid with someone else's pass →", rej || 'ACCEPTED (BUG)');
+      await conn.confirmTransaction(await conn.requestAirdrop(human.publicKey, 6 * web3.LAMPORTS_PER_SOL));
+      console.log('  client sees pass for human:', await R.hasHumanPass(conn, human.publicKey), '· for nobody:', await R.hasHumanPass(conn, nobody.publicKey));
+    }
 
     // three bidders
     const bidders = [], bids = [], salts = [];
     const amounts = tag === 'SOL' ? [1_000_000_000n, 2_500_000_000n, 500_000_000n] : [300_000_000n, 1_200_000_000n, 50_000_000n]; // SOL: 1/2.5/0.5 · stock: 3/12/0.5 shares
-    for (let i = 0; i < 3; i++) {
-      const b = web3.Keypair.generate(); await conn.confirmTransaction(await conn.requestAirdrop(b.publicKey, 6 * web3.LAMPORTS_PER_SOL));
+    const nb = tag === 'SOL' ? 1 : 3;
+    for (let i = 0; i < nb; i++) {
+      const b = tag === 'SOL' ? human : web3.Keypair.generate(); if (tag !== 'SOL') await conn.confirmTransaction(await conn.requestAirdrop(b.publicKey, 6 * web3.LAMPORTS_PER_SOL));
       const salt = R.randomSalt(); const amount = amounts[i]; const deposit = amount + (tag === 'SOL' ? 500_000_000n : 100_000_000n);
       const prep = R.ixsPreparePair({ owner: b.publicKey, pairMint, prog: info.prog, lamports: deposit });
       const ixs = [...prep.ixs];
       if (tag !== 'SOL') ixs.push(spl.createMintToInstruction(pairMint, prep.ata, payer.publicKey, deposit, [], spl.TOKEN_2022_PROGRAM_ID)); // give the bidder some mock stock
-      ixs.push(await R.ixCommitBid({ bidder: b.publicKey, mint: mintKp.publicKey, pairMint, pairProg: info.prog, amount, salt, deposit }));
+      ixs.push(await R.ixCommitBid({ bidder: b.publicKey, mint: mintKp.publicKey, pairMint, pairProg: info.prog, amount, salt, deposit, gatewayToken: tag === 'SOL' ? R.gatewayTokenPda(b.publicKey) : null }));
       ixs.push(...R.ixsUnwrap({ owner: b.publicKey, pairMint, prog: info.prog }));
       await send(ixs, tag === 'SOL' ? [b] : [b, payer]);
       bidders.push(Array.from(b.secretKey)); bids.push(amount.toString()); salts.push(Array.from(salt));
     }
     const esc = await conn.getTokenAccountBalance(R.seedsFor(mintKp.publicKey).escrow);
-    console.log(`  3 bids committed · escrow holds ${fmt(esc.value.amount, info.decimals)} ${tag}`);
+    console.log(`  ${nb} bid(s) committed · escrow holds ${fmt(esc.value.amount, info.decimals)} ${tag}`);
     // second bid from same wallet must fail
     let dup = false; try { const b0 = kp(bidders[0]); const prep = R.ixsPreparePair({ owner: b0.publicKey, pairMint, prog: info.prog, lamports: 100_000_000n }); await send([...prep.ixs, await R.ixCommitBid({ bidder: b0.publicKey, mint: mintKp.publicKey, pairMint, pairProg: info.prog, amount: 100_000_000n, salt: R.randomSalt(), deposit: 100_000_000n })], [b0]); } catch (e) { dup = true; }
     console.log('  second bid from same wallet rejected:', dup);
@@ -63,7 +75,7 @@ async function phase2() {
   for (const L of S.launches) {
     const now = Math.floor(Date.now() / 1000); if (now < L.endTs) { console.log('batch still open', L.endTs - now, 's'); process.exit(2); }
     const mint = new web3.PublicKey(L.mint);
-    for (let i = 0; i < 3; i++) { const b = kp(L.bidders[i]); await send([await R.ixRevealBid({ bidder: b.publicKey, mint, amount: BigInt(L.bids[i]), salt: Uint8Array.from(L.salts[i]) })], [b]); }
+    for (let i = 0; i < L.bidders.length; i++) { const b = kp(L.bidders[i]); await send([await R.ixRevealBid({ bidder: b.publicKey, mint, amount: BigInt(L.bids[i]), salt: Uint8Array.from(L.salts[i]) })], [b]); }
     const l = await R.fetchLaunch(conn, mint);
     console.log(`${L.sym}: ${l.revealed}/${l.bids} revealed · total ${fmt(l.totalRevealed, L.dec)} ${L.tag}`);
   }
@@ -79,7 +91,7 @@ async function phase3() {
     const price = R.priceFromQ32(l.clearingPriceQ32) * 1e6 / 10 ** L.dec;
     console.log(`\n${L.sym} settled · clearing price ${price.toFixed(9)} ${L.tag}/token · pool ${fmt(l.poolPair, L.dec)} ${L.tag} + ${fmt(l.poolTokens, 6)} tokens`);
     console.log('  pool token account:', fmt((await conn.getTokenAccountBalance(k.pool)).value.amount, L.dec), L.tag, '· escrow left:', fmt((await conn.getTokenAccountBalance(k.escrow)).value.amount, L.dec));
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < L.bidders.length; i++) {
       const b = kp(L.bidders[i]);
       const prep = R.ixsPreparePair({ owner: b.publicKey, pairMint, prog });
       const before = await conn.getBalance(b.publicKey);
@@ -112,6 +124,27 @@ async function phase3() {
     console.log(`  creator claimed ${fmt(l.creatorFeesClaimed, L.dec)} ${L.tag} · owed now ${l.creatorFeesOwed} · vault keeps ${fmt((await conn.getTokenAccountBalance(k.fees)).value.amount, L.dec)} for holders`);
     let again = false; try { await send([await R.ixClaimCreatorFees({ creator: payer.publicKey, mint, pairMint, pairProg: prog })], [payer]); } catch (e) { again = true; }
     console.log('  double fee claim rejected:', again);
+    // ---- holder rewards: bidder 0 stakes, trades generate fees, bidder 0 claims ----
+    const st = kp(L.bidders[0]); const stBal = BigInt((await conn.getTokenAccountBalance(R.ata(mint, st.publicKey))).value.amount); const stakeAmt = stBal / 2n;
+    await send([await R.ixStake({ staker: st.publicKey, mint, amount: stakeAmt })], [st]);
+    l = await R.fetchLaunch(conn, mint); let sa = await R.fetchStake(conn, mint, st.publicKey);
+    console.log(`  bidder 0 staked ${fmt(stakeAmt, 6)} tokens · total staked ${fmt(l.totalStaked, 6)} · pending-before-stake ${fmt(l.rewardsPending, L.dec)} ${L.tag} moved into index`);
+    // trader buys again -> fee -> 95% to stakers
+    const buy2 = L.tag === 'SOL' ? 500_000_000n : 200_000_000n; const p3 = R.ixsPreparePair({ owner: t.publicKey, pairMint, prog, lamports: buy2 });
+    const ixs2 = [...p3.ixs]; if (L.tag !== 'SOL') ixs2.push(spl.createMintToInstruction(pairMint, p3.ata, payer.publicKey, buy2, [], spl.TOKEN_2022_PROGRAM_ID));
+    ixs2.push(await R.ixSwap({ trader: t.publicKey, mint, pairMint, pairProg: prog, pairForTokens: true, amountIn: buy2, minOut: 1n }), ...R.ixsUnwrap({ owner: t.publicKey, pairMint, prog }));
+    await send(ixs2, L.tag === 'SOL' ? [t] : [t, payer]);
+    l = await R.fetchLaunch(conn, mint); sa = await R.fetchStake(conn, mint, st.publicKey);
+    const pend = R.pendingRewards(l, sa); const feeOfBuy = buy2 / 100n;
+    console.log(`  trader bought with ${fmt(buy2, L.dec)} ${L.tag} → fee ${fmt(feeOfBuy, L.dec)} · staker pending ${fmt(pend, L.dec)} ${L.tag} (expect ≈ 95% of all holder fees so far: ${fmt((l.feesAccrued * 95n) / 100n, L.dec)})`);
+    const sp = R.ixsPreparePair({ owner: st.publicKey, pairMint, prog }); const sb0 = await conn.getBalance(st.publicKey);
+    await send([...sp.ixs, await R.ixClaimRewards({ staker: st.publicKey, mint, pairMint, pairProg: prog }), ...R.ixsUnwrap({ owner: st.publicKey, pairMint, prog })], [st]);
+    const gotR = L.tag === 'SOL' ? ((await conn.getBalance(st.publicKey) - sb0) / 1e9).toFixed(6) + ' SOL' : fmt((await conn.getTokenAccountBalance(sp.ata)).value.amount, L.dec) + ' ' + L.tag;
+    l = await R.fetchLaunch(conn, mint); sa = await R.fetchStake(conn, mint, st.publicKey);
+    console.log(`  staker claimed rewards ≈ ${gotR} · distributed ${fmt(l.rewardsDistributed, L.dec)} · fee vault left ${fmt((await conn.getTokenAccountBalance(k.fees)).value.amount, L.dec)} (= unclaimed creator ${fmt(l.creatorFeesOwed, L.dec)} + dust)`);
+    let nothing = false; try { await send([...sp.ixs, await R.ixClaimRewards({ staker: st.publicKey, mint, pairMint, pairProg: prog })], [st]); } catch (e) { nothing = true; } console.log('  second claim with nothing owed rejected:', nothing);
+    await send([await R.ixStake({ staker: st.publicKey, mint, amount: stakeAmt, unstake: true })], [st]);
+    console.log(`  unstaked all · wallet tokens back to ${fmt((await conn.getTokenAccountBalance(R.ata(mint, st.publicKey))).value.amount, 6)} · total staked ${(await R.fetchLaunch(conn, mint)).totalStaked}`);
   }
   console.log('\nlaunches on chain:', (await R.fetchLaunches(conn)).map(l => l.symbol + '/' + (l.pairMint.equals(spl.NATIVE_MINT) ? 'SOL' : l.pairMint.toBase58().slice(0, 4))));
 }

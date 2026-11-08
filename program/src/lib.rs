@@ -1,4 +1,4 @@
-//! Resurrect — sealed-batch launchpad (devnet v2: any-asset pairing)
+//! Resurrect — sealed-batch launchpad (devnet v3: any-asset pairing · holder rewards · proof of personhood)
 //!
 //! Every launch is paired with a `pair_mint`: SOL (as wrapped SOL), USDC, a tokenized stock,
 //! an ETF, a commodity token… any SPL Token or Token-2022 mint. Bids, the pool, fees and
@@ -15,7 +15,10 @@
 //!                     by the program. There is no withdraw instruction: liquidity cannot be pulled.
 //!   claim          -> bidder receives tokens + refund of escrow above their bid
 //!   swap           -> trade against the pool, 1% fee (in the pair asset) accrues to the fee vault
-//!   claim_creator_fees -> creator pulls their share of accrued fees; the rest stays for holders
+//!   claim_creator_fees -> creator pulls their share of accrued fees; the rest goes to holders
+//!   stake / unstake / claim_rewards -> holders deposit launch tokens (no lockup, no fee) and earn the holder
+//!                     share of every swap fee, paid in the pair asset, pull-based
+//!   Launches may require a Civic "Uniqueness" pass (one per human) to bid: one human, one wallet, one bid.
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::hash::hashv;
 use anchor_spl::token::{self, Token, Transfer};
@@ -30,12 +33,16 @@ pub const MIN_BATCH_SECS: i64 = 60;
 pub const MAX_BATCH_SECS: i64 = 15 * 60;
 pub const REVEAL_SECS: i64 = 10 * 60;
 pub const MAX_CREATOR_FEE_BPS: u16 = 2_000;    // creator may take at most 20% of fees
+/// Civic Gateway program — proof-of-personhood passes live here
+pub const GATEWAY_PROGRAM: Pubkey = anchor_lang::solana_program::pubkey!("gatem74V238djXdzWnJf94Wo1DcnuGkfijbf3AuBhfs");
+/// Civic "Uniqueness" gatekeeper network: one pass per human (same key on devnet and mainnet)
+pub const UNIQUENESS_NETWORK: Pubkey = anchor_lang::solana_program::pubkey!("uniqobk8oGh4XBLMqM68K8M2zNu3CdYX7q5go7whQiv");
 
 #[program]
 pub mod resurrect {
     use super::*;
 
-    pub fn create_launch(ctx: Context<CreateLaunch>, name: String, symbol: String, batch_secs: i64, creator_fee_bps: u16) -> Result<()> {
+    pub fn create_launch(ctx: Context<CreateLaunch>, name: String, symbol: String, batch_secs: i64, creator_fee_bps: u16, require_human: bool) -> Result<()> {
         require!(name.len() <= 32 && symbol.len() >= 1 && symbol.len() <= 10, ErrorCode::BadParams);
         require!(batch_secs >= MIN_BATCH_SECS && batch_secs <= MAX_BATCH_SECS, ErrorCode::BadParams);
         require!(creator_fee_bps <= MAX_CREATOR_FEE_BPS, ErrorCode::BadParams);
@@ -86,6 +93,13 @@ pub mod resurrect {
         l.fees_accrued = 0;
         l.creator_fees_owed = 0;
         l.creator_fees_claimed = 0;
+        l.require_human = require_human;
+        l.gatekeeper_network = UNIQUENESS_NETWORK;
+        l.stake_vault = ctx.accounts.stake_vault.key();
+        l.total_staked = 0;
+        l.reward_index = 0;
+        l.rewards_pending = 0;
+        l.rewards_distributed = 0;
         l.bump = ctx.bumps.launch;
         emit!(LaunchCreated { launch: l.key(), mint: l.mint, pair_mint: l.pair_mint, end_ts: l.end_ts });
         Ok(())
@@ -97,6 +111,10 @@ pub mod resurrect {
         let now = Clock::get()?.unix_timestamp;
         require!(now < l.end_ts, ErrorCode::BatchClosed);
         require!(deposit >= l.min_bid, ErrorCode::BidTooSmall);
+        if l.require_human {
+            let gt = ctx.accounts.gateway_token.as_ref().ok_or(ErrorCode::HumanPassRequired)?;
+            verify_human(gt, &ctx.accounts.bidder.key(), &l.gatekeeper_network, Clock::get()?.unix_timestamp)?;
+        }
         pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.bidder_pair.to_account_info(), &ctx.accounts.escrow.to_account_info(),
             &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.bidder.to_account_info(), deposit, l.pair_decimals, None)?;
         let l = &mut ctx.accounts.launch;
@@ -258,12 +276,104 @@ pub mod resurrect {
         l.creator_fees_claimed += owed;
         Ok(())
     }
+
+    /// Deposit launch tokens into the rewards vault to earn the holder share of swap fees (paid in the pair asset).
+    /// No lockup, no fee: unstake any time.
+    pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+        require!(amount > 0, ErrorCode::BadParams);
+        let l = &mut ctx.accounts.launch;
+        require!(l.settled, ErrorCode::NotSettled);
+        let s = &mut ctx.accounts.stake;
+        settle_rewards(l, s);
+        token::transfer(
+            CpiContext::new(ctx.accounts.token_program.to_account_info(), Transfer {
+                from: ctx.accounts.staker_token.to_account_info(), to: ctx.accounts.stake_vault.to_account_info(),
+                authority: ctx.accounts.staker.to_account_info(),
+            }), amount)?;
+        if s.owner == Pubkey::default() { s.owner = ctx.accounts.staker.key(); s.launch = l.key(); s.bump = ctx.bumps.stake; }
+        s.amount = s.amount.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+        l.total_staked = l.total_staked.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+        // if fees piled up while nobody was staked, the first stakers start earning them from now on
+        if l.rewards_pending > 0 { let p = l.rewards_pending; l.rewards_pending = 0; l.reward_index += ((p as u128) << 64) / l.total_staked as u128; }
+        Ok(())
+    }
+
+    pub fn unstake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+        let l = &mut ctx.accounts.launch;
+        let s = &mut ctx.accounts.stake;
+        require!(amount > 0 && amount <= s.amount, ErrorCode::BadParams);
+        settle_rewards(l, s);
+        let (mint_key, bump) = (l.mint, l.bump);
+        let seeds: &[&[u8]] = &[b"launch", mint_key.as_ref(), &[bump]];
+        token::transfer(
+            CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), Transfer {
+                from: ctx.accounts.stake_vault.to_account_info(), to: ctx.accounts.staker_token.to_account_info(),
+                authority: ctx.accounts.launch.to_account_info(),
+            }, &[seeds]), amount)?;
+        let l = &mut ctx.accounts.launch; let s = &mut ctx.accounts.stake;
+        s.amount -= amount;
+        l.total_staked -= amount;
+        Ok(())
+    }
+
+    /// Pull accrued holder rewards (pair asset) out of the fee vault.
+    pub fn claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
+        let l = &mut ctx.accounts.launch;
+        let s = &mut ctx.accounts.stake;
+        settle_rewards(l, s);
+        let owed = s.owed;
+        require!(owed > 0, ErrorCode::NothingToClaim);
+        let (mint_key, bump, dec) = (l.mint, l.bump, l.pair_decimals);
+        let seeds: &[&[u8]] = &[b"launch", mint_key.as_ref(), &[bump]];
+        pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.fee_vault.to_account_info(), &ctx.accounts.staker_pair.to_account_info(),
+            &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.launch.to_account_info(), owed, dec, Some(seeds))?;
+        let l = &mut ctx.accounts.launch; let s = &mut ctx.accounts.stake;
+        s.owed = 0; s.claimed += owed;
+        l.rewards_distributed += owed;
+        emit!(RewardsClaimed { launch: l.key(), staker: s.owner, amount: owed });
+        Ok(())
+    }
 }
 
 fn accrue_fee(l: &mut Launch, fee: u64) -> Result<()> {
     l.fees_accrued = l.fees_accrued.checked_add(fee).ok_or(ErrorCode::Overflow)?;
     let creator_cut = (fee as u128 * l.creator_fee_bps as u128 / 10_000) as u64;
     l.creator_fees_owed = l.creator_fees_owed.checked_add(creator_cut).ok_or(ErrorCode::Overflow)?;
+    let holders = fee - creator_cut;
+    if l.total_staked > 0 { l.reward_index += ((holders as u128) << 64) / l.total_staked as u128; }
+    else { l.rewards_pending = l.rewards_pending.checked_add(holders).ok_or(ErrorCode::Overflow)?; }
+    Ok(())
+}
+
+fn settle_rewards(l: &Launch, s: &mut StakeAccount) {
+    if s.amount > 0 && l.reward_index > s.index {
+        s.owed += (((l.reward_index - s.index) * s.amount as u128) >> 64) as u64;
+    }
+    s.index = l.reward_index;
+}
+
+/// Civic gateway token (borsh layout from the solana-gateway crate)
+#[derive(AnchorDeserialize)]
+pub struct GatewayToken {
+    pub version: u8,
+    pub parent_gateway_token: Option<Pubkey>,
+    pub owner_wallet: Pubkey,
+    pub owner_identity: Option<Pubkey>,
+    pub gatekeeper_network: Pubkey,
+    pub issuing_gatekeeper: Pubkey,
+    pub state: u8, // 0 Active, 1 Frozen, 2 Revoked
+    pub expire_time: Option<i64>,
+}
+
+fn verify_human(gt: &AccountInfo, owner: &Pubkey, network: &Pubkey, now: i64) -> Result<()> {
+    require!(gt.owner == &GATEWAY_PROGRAM, ErrorCode::HumanPassInvalid);
+    let data = gt.try_borrow_data()?;
+    let mut slice: &[u8] = &data;
+    let t = GatewayToken::deserialize(&mut slice).map_err(|_| ErrorCode::HumanPassInvalid)?;
+    require!(&t.owner_wallet == owner, ErrorCode::HumanPassInvalid);
+    require!(&t.gatekeeper_network == network, ErrorCode::HumanPassInvalid);
+    require!(t.state == 0, ErrorCode::HumanPassInvalid);
+    if let Some(exp) = t.expire_time { require!(exp > now, ErrorCode::HumanPassExpired); }
     Ok(())
 }
 
@@ -315,6 +425,25 @@ pub struct Launch {
     pub fees_accrued: u64,
     pub creator_fees_owed: u64,
     pub creator_fees_claimed: u64,
+    pub require_human: bool,
+    pub gatekeeper_network: Pubkey,
+    pub stake_vault: Pubkey,
+    pub total_staked: u64,
+    pub reward_index: u128,      // pair base units per staked base unit, Q64
+    pub rewards_pending: u64,    // holder share accrued while nobody was staked
+    pub rewards_distributed: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct StakeAccount {
+    pub launch: Pubkey,
+    pub owner: Pubkey,
+    pub amount: u64,
+    pub index: u128,
+    pub owed: u64,
+    pub claimed: u64,
     pub bump: u8,
 }
 
@@ -350,6 +479,9 @@ pub struct CreateLaunch<'info> {
     pub pool_pair: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(init, payer = creator, token::mint = pair_mint, token::authority = launch, token::token_program = pair_token_program, seeds = [b"fees", mint.key().as_ref()], bump)]
     pub fee_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    /// holders deposit launch tokens here to earn the holder share of fees
+    #[account(init, payer = creator, token::mint = mint, token::authority = launch, token::token_program = token_program, seeds = [b"stake", mint.key().as_ref()], bump)]
+    pub stake_vault: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut, constraint = creator_token.mint == mint.key() && creator_token.owner == creator.key())]
     pub creator_token: Box<InterfaceAccount<'info, TokenAccount>>,
     pub token_program: Program<'info, Token>,
@@ -376,6 +508,42 @@ pub struct CommitBid<'info> {
     #[account(address = launch.pair_token_program)]
     pub pair_token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
+    /// CHECK: Civic gateway token for the bidder; verified in the handler when the launch requires a human pass
+    pub gateway_token: Option<UncheckedAccount<'info>>,
+}
+
+#[derive(Accounts)]
+pub struct Stake<'info> {
+    #[account(mut)]
+    pub staker: Signer<'info>,
+    #[account(mut, seeds = [b"launch", launch.mint.as_ref()], bump = launch.bump)]
+    pub launch: Box<Account<'info, Launch>>,
+    #[account(init_if_needed, payer = staker, space = 8 + StakeAccount::INIT_SPACE, seeds = [b"stake", launch.key().as_ref(), staker.key().as_ref()], bump)]
+    pub stake: Box<Account<'info, StakeAccount>>,
+    #[account(mut, address = launch.stake_vault)]
+    pub stake_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, constraint = staker_token.mint == launch.mint && staker_token.owner == staker.key())]
+    pub staker_token: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimRewards<'info> {
+    #[account(mut)]
+    pub staker: Signer<'info>,
+    #[account(mut, seeds = [b"launch", launch.mint.as_ref()], bump = launch.bump)]
+    pub launch: Box<Account<'info, Launch>>,
+    #[account(mut, seeds = [b"stake", launch.key().as_ref(), staker.key().as_ref()], bump = stake.bump, constraint = stake.owner == staker.key())]
+    pub stake: Box<Account<'info, StakeAccount>>,
+    #[account(address = launch.pair_mint)]
+    pub pair_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(mut, address = launch.fee_vault)]
+    pub fee_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, constraint = staker_pair.mint == launch.pair_mint && staker_pair.owner == staker.key())]
+    pub staker_pair: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(address = launch.pair_token_program)]
+    pub pair_token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -464,6 +632,7 @@ pub struct ClaimCreatorFees<'info> {
 
 #[event] pub struct LaunchCreated { pub launch: Pubkey, pub mint: Pubkey, pub pair_mint: Pubkey, pub end_ts: i64 }
 #[event] pub struct Settled { pub launch: Pubkey, pub clearing_price_q32: u128, pub raised: u64, pub pool_tokens: u64 }
+#[event] pub struct RewardsClaimed { pub launch: Pubkey, pub staker: Pubkey, pub amount: u64 }
 #[event] pub struct Swapped { pub launch: Pubkey, pub trader: Pubkey, pub pair_in: u64, pub tokens_out: u64, pub tokens_in: u64, pub pair_out: u64 }
 
 #[error_code]
@@ -483,4 +652,7 @@ pub enum ErrorCode {
     #[msg("slippage")] Slippage,
     #[msg("overflow")] Overflow,
     #[msg("nothing to claim")] NothingToClaim,
+    #[msg("this launch requires a proof-of-personhood pass to bid")] HumanPassRequired,
+    #[msg("proof-of-personhood pass is missing, revoked or for another wallet")] HumanPassInvalid,
+    #[msg("proof-of-personhood pass has expired")] HumanPassExpired,
 }
