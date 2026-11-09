@@ -52,7 +52,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
     <main>
       <section class="sec" id="what"><h2><span>WHAT RESURRECT IS</span></h2>
         <p>A launchpad for memecoins on Solana where the launch itself is fair by construction. A coin launches in one of two modes. <b>Auction</b>: a <b>15-minute sealed batch</b> where nobody sees anyone else's bid, everyone pays the <b>same clearing price</b>. <b>Open</b>: a plain bonding curve that trades from the first second. In both, the creator gets <b class="g">zero allocation and no first buy</b>. When the batch ends, the raised funds plus the other 50% of supply seed a liquidity pool <b>owned by the program with no withdraw instruction</b>. Coins can be paired with SOL, USDC or any of 2,400+ real assets — tokenized stocks, ETFs, commodities. 1% of every trade goes to the people who hold the coin.</p>
-        <div class="kv"><div><b>15 min</b><span>sealed batch, one price for all</span></div><div><b>0%</b><span>creator allocation · no first buy</span></div><div><b>∞</b><span>liquidity lock (no instruction exists to pull it)</span></div><div><b>1 · 1 · 1</b><span>one human, one wallet, one bid</span></div></div>
+        <div class="kv"><div><b>2 modes</b><span>15-min sealed auction, or open curve</span></div><div><b>0%</b><span>creator allocation · no first buy</span></div><div><b>∞</b><span>liquidity lock (no instruction exists to pull it)</span></div><div><b>1 · 1 · 1</b><span>one human, one wallet, one bid</span></div></div>
       </section>
 
       <section class="sec" id="why"><h2><span>WHY A SEALED BATCH</span></h2>
@@ -87,7 +87,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
         <p class="d">You end the transaction holding zero tokens. If you want some, bid (Auction) or buy (Open) like everyone else. Cost ≈ 0.02 SOL in rent and fees; Resurrect takes nothing.</p>
       </section>
 
-      <section class="sec" id="bid"><h2><span>BID IN A BATCH</span></h2>
+      <section class="sec" id="bid"><h2><span>BID IN A BATCH</span> <i>auction mode</i></h2>
         <ol>
           <li>Pick a launch in <b>SEALED BATCH</b> phase. Enter your bid in the pairing asset (minimum 0.01 units).</li>
           <li>Choose an <b>extra deposit</b> (+25% default). You escrow bid + extra; only <code>hash(wallet, amount, salt)</code> goes on chain, so your deposit does not reveal your bid. The extra comes back at claim.</li>
@@ -96,7 +96,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
         <div class="warn">Your <b>salt is stored in this browser</b>. Reveal from the same device. If you lose it, your bid is excluded and your full deposit is refunded at claim — you never lose funds, you just don't get tokens.</div>
       </section>
 
-      <section class="sec" id="reveal"><h2><span>REVEAL · SETTLE · CLAIM</span></h2>
+      <section class="sec" id="reveal"><h2><span>REVEAL · SETTLE · CLAIM</span> <i>auction mode only — open-curve coins skip straight to trading</i></h2>
         <ul>
           <li><b>Reveal</b> (10-minute window after the batch closes): the app sends your amount and salt; the program checks the hash. Unrevealed bids don't count toward the price.</li>
           <li><b>Settle</b> (anyone, after the reveal window): one clearing price is computed and the pool is seeded with all raised funds + 500M tokens, at the clearing price. From this moment nothing can remove liquidity.</li>
@@ -105,7 +105,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
       </section>
 
       <section class="sec" id="trade"><h2><span>TRADE</span></h2>
-        <p>Trading happens against the program's own constant-product pool (x·y=k). 1% fee on the pairing-asset side of every swap, 1% max slippage by default. The app shows a price chart and trade tape parsed directly from on-chain events — there is no indexer to trust.</p>
+        <p>Open-curve coins trade from the second they are created; auction coins after settle. Trading happens against the program's own constant-product pool (x·y=k) — or on Raydium if the creator chose that venue. 1% fee on the pairing-asset side of every swap, 1% max slippage by default. The app shows a price chart and trade tape parsed directly from on-chain events — there is no indexer to trust.</p>
       </section>
 
       <section class="sec" id="earn"><h2><span>EARN AS A HOLDER</span></h2>

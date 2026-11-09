@@ -3,7 +3,7 @@
 Prepared for external reviewers. Everything here is verifiable against `src/lib.rs` (Anchor 0.31, ~560 lines) and the tests in this folder.
 
 ## 1. What the program is
-A launchpad for fixed-supply SPL tokens on Solana. Each launch runs a sealed-bid (commit–reveal) batch auction with a single clearing price, then seeds a constant-product pool that the program owns and that has **no withdrawal path**. Every launch is denominated in a creator-chosen "pair asset" (SPL Token or Token-2022). Every swap fee is split on chain: 35% staked holders · 25% RSRCT buyback & burn · 20% verified traders (weekly epochs) · 0–10% creator · 10% treasury; the creator's unused share goes to holders.
+A launchpad for fixed-supply SPL tokens on Solana. A launch is either an **Auction** — sealed-bid (commit–reveal) batch with a single clearing price, then a constant-product pool seeded at that price — or an **Open** curve — the whole supply on a constant-product curve with a virtual reserve, tradeable from creation. In both, the pool is program-owned with **no withdrawal path**, unless the creator chose the **Raydium** venue, in which case the pool graduates to Raydium with the LP burned. Every launch is denominated in a creator-chosen "pair asset" (SPL Token or Token-2022). Every swap fee is split on chain: 35% staked holders · 25% RSRCT buyback & burn · 20% verified traders (weekly epochs) · 0–10% creator · 10% treasury; the creator's unused share goes to holders.
 
 Program id (devnet): `5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t`. Upgradeable (BPF upgradeable loader). Mainnet plan: deploy, run 2 weeks, move upgrade authority to a Squads multisig, then set it to `None` once audited.
 

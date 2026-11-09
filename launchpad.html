@@ -352,7 +352,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
     <div class="tool" style="margin-top:22px">
       <span class="lbl">FILTER</span>
-      <div class="seg" id="filter"><button class="on" data-f="all">All</button><button data-f="batch">Sealed batch</button><button data-f="bond">Reveal &amp; settle</button><button data-f="grad">Trading</button></div><p class="note" style="margin:6px 0 0">auction phases · open-curve coins are "Trading" from the first second</p>
+      <div class="seg" id="filter"><button class="on" data-f="all">All</button><button data-f="batch">Sealed batch</button><button data-f="bond">Reveal &amp; settle</button><button data-f="grad">Trading</button><button data-f="open">Open curve</button></div>
       <span class="lbl">SORT</span>
       <div class="seg" id="sort"><button class="on" data-s="fdv">FDV</button><button data-s="recent">Recent</button><button data-s="vol">24h volume</button></div>
       <input class="search" id="q" placeholder="search ticker, name, pairing asset">
@@ -364,7 +364,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     <!-- DETAIL VIEW -->
     <div class="detail" id="detail">
       <button class="btn ghost sm dback" id="back">← all launches</button>
-      <div class="dhead"><div class="avwrap"><div class="av" id="d-av">TR</div><span id="d-sub"></span></div><div><h3 id="d-name">Resurrect the Trenches <span style="color:var(--dim)">$TRENCH</span></h3><div class="ca">CA <a href="#" id="d-ca">7Yx2…kR9f</a> · anchored to <b id="d-anch" style="font-weight:400;color:var(--text)">SOL</b> · <span id="d-phase" style="color:var(--green)">BONDING</span></div></div></div>
+      <div class="dhead"><div class="avwrap"><div class="av" id="d-av">TR</div><span id="d-sub"></span></div><div><h3 id="d-name">Resurrect the Trenches <span style="color:var(--dim)">$TRENCH</span></h3><div class="ca">CA <span id="d-ca">7Yx2…kR9f</span> · anchored to <b id="d-anch" style="font-weight:400;color:var(--text)">SOL</b> · <span id="d-phase" style="color:var(--green)">BONDING</span></div></div></div>
       <div class="dgrid">
         <div>
           <div class="box">
@@ -474,7 +474,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
         <div class="f"><label>dev allocation</label><div class="fixed no">0% <i>NOT NEGOTIABLE</i></div></div>
 
         <div class="stepn">STEP 5 · SCHEDULE</div>
-        <div class="f"><label>batch opens</label><input type="datetime-local"></div>
+        <div class="f"><label>batch opens</label><div><input type="datetime-local"> <span class="note" id="tzlbl"></span></div></div>
         <p class="note">Launching costs only Solana rent and fees (≈0.02 SOL); Resurrect takes nothing. Tickers are not unique on chain; the mint address is the identity. Check the mint before you bid.</p>
       </form>
       <aside class="side">
@@ -640,23 +640,23 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     {n:'Asystole',t:'ASYS',a:'USDC',ph:'batch',fdv:20000,vol:0,age:0.1,p:19,h:194,end:731},
     {n:'Defib',t:'DEFIB',a:'SOL',ph:'batch',fdv:20000,vol:0,age:0.05,p:79,h:612,end:188},
     {n:'Lazarus Protocol',t:'LAZ',a:'ANTHROPIC',ph:'grad',fdv:351290,vol:44100,age:9,p:100,h:980},
-    {n:'Sinus Rhythm',t:'SINUS',a:'SOL',ph:'grad',fdv:323990,vol:38800,age:14,p:100,h:1120},
+    {n:'Sinus Rhythm',t:'SINUS',a:'SOL',ph:'grad',open:true,fdv:323990,vol:38800,age:14,p:100,h:1120},
     {n:'Pulse',t:'PULSE',a:'TSLAx',ph:'grad',fdv:207230,vol:22900,age:21,p:100,h:812},
     {n:'Bed 01',t:'BED01',a:'SOL',ph:'bond',fdv:143530,vol:19400,age:1,p:41,h:455},
     {n:'Clear',t:'CLEAR',a:'GLDx',ph:'batch',fdv:20000,vol:0,age:0.02,p:52,h:338,end:452},
     {n:'Ward',t:'WARD',a:'SPYx',ph:'bond',fdv:129310,vol:12100,age:3,p:36,h:402},
-    {n:'Night Shift',t:'NIGHT',a:'USDC',ph:'grad',fdv:106630,vol:9900,age:30,p:100,h:618},
+    {n:'Night Shift',t:'NIGHT',a:'USDC',ph:'grad',open:true,fdv:106630,vol:9900,age:30,p:100,h:618},
     {n:'Vitals',t:'VITALS',a:'NVDAx',ph:'bond',fdv:93910,vol:8200,age:5,p:27,h:290},
-    {n:'Rounds',t:'ROUNDS',a:'SOL',ph:'grad',fdv:69620,vol:5100,age:40,p:100,h:377},
+    {n:'Rounds',t:'ROUNDS',a:'SOL',ph:'grad',open:true,fdv:69620,vol:5100,age:40,p:100,h:377},
   ];
   const fmt=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(2)+'K':'$'+n;
   let F='all',S='fdv',Q='',shown=8;
   const list=$('#list');
   function render(){
-    let r=T.filter(x=>F==='all'||x.ph===F).filter(x=>!Q||(x.t+x.n+x.a).toLowerCase().includes(Q));
+    let r=T.filter(x=>F==='all'||(F==='open'?x.open:(x.ph===F&&!x.open))).filter(x=>!Q||(x.t+x.n+x.a).toLowerCase().includes(Q));
     r.sort((a,b)=>S==='fdv'?((b.ph==='batch')-(a.ph==='batch'))||b.fdv-a.fdv:S==='recent'?a.age-b.age:b.vol-a.vol);
     list.innerHTML=r.slice(0,shown).map((x,i)=>`<div class="tk" data-i="${T.indexOf(x)}">
-      <div class="top"><div class="av">${x.t.slice(0,2)}</div><div class="nm"><b>$${x.t}</b><span>${x.n}</span></div><span class="chip ${x.ph==='batch'?'live':x.ph==='bond'?'bond':'grad'}">${x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'REVEAL · SETTLE':'TRADING · SEALED'}</span></div>
+      <div class="top"><div class="av">${x.t.slice(0,2)}</div><div class="nm"><b>$${x.t}</b><span>${x.n}</span></div><span class="chip ${x.ph==='batch'?'live':x.ph==='bond'?'bond':'grad'}">${x.open?'OPEN CURVE':x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'REVEAL · SETTLE':'TRADING · SEALED'}</span></div>
       <div class="kv"><div>${x.ph==='batch'?'closes in':'FDV'}<b class="${x.ph==='batch'?'g':''}" ${x.ph==='batch'?`data-end="${x.end}"`:''}>${x.ph==='batch'?'--:--':fmt(x.fdv)}</b></div><div>${x.ph==='batch'?'sealed bids':'24h volume'}<b>${x.ph==='batch'?x.h+' humans':fmt(x.vol)}</b></div></div>
       <div class="anch">${ast(x.a)}anchored to <i>${sym(x.a)}</i></div>
       <div class="prog ${x.ph==='bond'?'c':''}"><i style="--p:${x.p}%"></i></div>
@@ -674,7 +674,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const det=$('#detail');
   function openDetail(x){
     $('#d-av').textContent=x.t.slice(0,2);$('#d-name').innerHTML=`${x.n} <span style="color:var(--dim)">$${x.t}</span>`;$('#d-anch').innerHTML=ast(x.a)+sym(x.a);$('#d-sub').innerHTML=ast(x.a,'sub');$('#d-anch2').innerHTML=ast(x.a)+' '+sym(x.a)+' · '+(AS[akey(x.a)]?short(AS[akey(x.a)].m):'');
-    $('#d-phase').textContent=x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'REVEAL · SETTLE':'TRADING · POOL SEALED';
+    $('#d-phase').textContent=x.open?'TRADING · OPEN CURVE':x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'REVEAL · SETTLE':'TRADING · POOL SEALED';
     $('#d-fdv').textContent=fmt(x.fdv);$('#d-liq').textContent=fmt(x.fdv*0.28);$('#d-vol').textContent=fmt(x.vol);$('#d-h').textContent=x.h.toLocaleString('en-US')+' humans';
     $('#d-lock').textContent=x.ph==='grad'?'Pool sealed inside the program · no withdraw instruction · pool Bffh…fFXH':x.ph==='bond'?'Reveal window open · settles to one clearing price · pool seeds with everything raised':'Sealed batch in progress · bids hidden until close · one clearing price for everyone';
     det.classList.add('open');list.style.display='none';$('#more').style.display='none';$('.tool').style.display='none';
@@ -715,12 +715,14 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const visible=()=>Object.keys(AS).filter(k=>(cat==='all'||AS[k].c===cat)&&(!q||(AS[k].s+' '+AS[k].n+' '+AS[k].m).toLowerCase().includes(q)));
   function renderCats(){const cnt={all:Object.keys(AS).length};Object.values(AS).forEach(a=>cnt[a.c]=(cnt[a.c]||0)+1);
     $('#cats').innerHTML=['all',...Object.keys(CATN)].map(c=>`<button type="button" data-c="${c}" class="${c===cat?'on':''}">${c==='all'?'All':CATN[c]}<small>${cnt[c]||0}</small></button>`).join('');}
-  function renderAssets(){const v0=visible();kb=-1;eager=0;const v=v0.slice(0,300);fetchVisiblePrices(v);
+  let SHOW=300;
+  function renderAssets(){const v0=visible();kb=-1;eager=0;const v=v0.slice(0,SHOW);fetchVisiblePrices(v.slice(0,100));
     assets.innerHTML=v.length?v.map(k=>{const a=AS[k],p=PX[a.m]||{};return `<button type="button" class="pk-row ${k===anchor?'on':''}" data-a="${k}" role="option" aria-selected="${k===anchor}">
       <span class="id">${ast(k,'lg')}<span><b>${a.s}</b><small>${a.n}</small></span></span>
       <span class="cat">${CATN[a.c]}</span>
       <span class="r px">${fP(p.usdPrice)}</span>
-      <span class="r ch">${fC(p.priceChange24h)}</span></button>`;}).join(''):`<div class="pk-empty">nothing matches “${q}”</div>`;
+      <span class="r ch">${fC(p.priceChange24h)}</span></button>`;}).join('')+(v0.length>v.length?`<button type="button" class="pk-row" id="pk-more" style="justify-content:center;color:var(--green)">show ${Math.min(300,v0.length-v.length)} more of ${v0.length-v.length} remaining</button>`:''):`<div class="pk-empty">nothing matches “${q}”</div>`;
+    document.getElementById('pk-more')?.addEventListener('click',e=>{e.stopPropagation();SHOW+=300;renderAssets();loadPrices();});
     $('#pk-count').textContent=(v0.length>v.length?'showing '+v.length+' of ':'')+v0.length+' matches · '+Object.keys(AS).length+' assets';
     $$('#pk-pop button').forEach(b=>b.classList.toggle('on',b.dataset.a===anchor));}
   function renderSel(){const k=anchor,a=AS[k],p=PX[a.m]||{};
@@ -747,9 +749,9 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   $('#pk-q').addEventListener('keydown',e=>{const rows=$$('.pk-row');if(!rows.length)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();kb=Math.max(0,Math.min(rows.length-1,kb+(e.key==='ArrowDown'?1:-1)));rows.forEach((r,i)=>r.classList.toggle('kb',i===kb));rows[kb].scrollIntoView({block:'nearest'});}
     else if(e.key==='Enter'){e.preventDefault();pick((rows[kb>=0?kb:0]).dataset.a);}});
   const PXQ=new Set();let pxTimer=null;
-  function fetchVisiblePrices(keys){const need=keys.map(k=>AS[k].m).filter(m=>!PX[m]&&!PXQ.has(m)).slice(0,100);if(!need.length)return;need.forEach(m=>PXQ.add(m));clearTimeout(pxTimer);pxTimer=setTimeout(async()=>{try{const j=await (await fetch('https://lite-api.jup.ag/price/v3?ids='+need.join(','))).json();Object.assign(PX,j);need.forEach(m=>{if(!PX[m])PX[m]={};});renderAssets();renderSel();priceFoot();}catch(e){need.forEach(m=>PXQ.delete(m));}},250);}
-  async function loadPrices(){const v=visible();for(let i=0;i<Math.min(v.length,300);i+=100){fetchVisiblePrices(v.slice(i,i+100));await new Promise(r=>setTimeout(r,900));}if(anchor&&AS[anchor])fetchVisiblePrices([anchor]);}
-  function priceFoot(){const v=visible().slice(0,300);const have=v.filter(k=>PX[AS[k].m]&&PX[AS[k].m].usdPrice!=null).length;const asked=v.filter(k=>PX[AS[k].m]).length;const el=document.querySelector('#pk-pricefoot');if(el)el.textContent=asked?`prices · Jupiter, live · ${have} quoted · ${asked-have} without a quote${v.length>asked?' · '+(v.length-asked)+' loading':''}`:'prices · Jupiter, live · loading';}
+  function fetchVisiblePrices(keys){const need=keys.map(k=>AS[k].m).filter(m=>!PX[m]&&!PXQ.has(m)).slice(0,100);if(!need.length)return;need.forEach(m=>PXQ.add(m));clearTimeout(pxTimer);pxTimer=setTimeout(async()=>{try{const j=await (await fetch('https://lite-api.jup.ag/price/v3?ids='+need.join(','))).json();Object.assign(PX,j);need.forEach(m=>{if(!PX[m])PX[m]={};});renderAssets();renderSel();priceFoot();}catch(e){need.forEach(m=>PXQ.delete(m));const el=document.querySelector('#pk-pricefoot');if(el)el.textContent='prices · Jupiter unreachable right now — showing “—”';}},250);}
+  async function loadPrices(){const v=visible();for(let i=0;i<Math.min(v.length,SHOW);i+=100){fetchVisiblePrices(v.slice(i,i+100));await new Promise(r=>setTimeout(r,900));}if(anchor&&AS[anchor])fetchVisiblePrices([anchor]);}
+  function priceFoot(){const v=visible().slice(0,SHOW);const have=v.filter(k=>PX[AS[k].m]&&PX[AS[k].m].usdPrice!=null).length;const asked=v.filter(k=>PX[AS[k].m]).length;const el=document.querySelector('#pk-pricefoot');if(el)el.textContent=asked?`prices · Jupiter, live · ${have} quoted · ${asked-have} without a quote${v.length>asked?' · '+(v.length-asked)+' loading':''}`:'prices · Jupiter, live · loading';}
   fetch('js/assets.json').then(r=>r.json()).then(list=>{list.sort((x,y)=>(x.r||0)-(y.r||0));eager=0;for(const a of list){AS[a.k]={s:a.s,n:a.n,m:a.m,c:a.c,f:a.f,mc:a.mc||0,i:a.i||('img/assets2/'+a.m+'.png')};}
     $('#pk-pop').innerHTML=POP.filter(k=>AS[k]).map(k=>`<button type="button" data-a="${k}">${ast(k)}${AS[k].s}</button>`).join('');
     renderCats();renderAssets();renderSel();renderHero();render();loadPrices();setInterval(loadPrices,60000);});
@@ -759,6 +761,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const fee=$('#fee'),feev=$('#feev');let rec='me';
   const updFee=()=>{feev.textContent=fee.value+'%';$('#r-fee').textContent=rec==='donate'?'0% → holders':fee.value+'% → '+rec;};
   fee.addEventListener('input',updFee);
+  const tzl=document.getElementById('tzlbl'); if(tzl) tzl.textContent='your time · '+(Intl.DateTimeFormat().resolvedOptions().timeZone||'local');
   $('#pmode')?.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#pmode button').forEach(x=>x.classList.toggle('on',x===b));const open=b.dataset.m==='1';$('#pvirt').style.display=open?'':'none';const bl=[...$$('.f')].find(f=>/batch length/i.test(f.querySelector('label')?.textContent||''));if(bl)bl.style.display=open?'none':'';});
   $('#recip').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#recip button').forEach(x=>x.classList.toggle('on',x===b));$('#recipaddr').style.display=b.textContent.includes('other')?'':'none';rec=b.textContent.includes('other')?'other wallet':b.textContent.includes('donate')?'donate':'me';if(rec==='donate'){fee.value=0;}updFee();});
   $('#review').addEventListener('click',e=>{e.preventDefault();if(!$('#tk').value||!$('#nmi').value){say('Give the coin a ticker and a name first.');return;}openModal();});
