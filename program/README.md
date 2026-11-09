@@ -32,13 +32,13 @@ SOL is handled as wrapped SOL; the client wraps and unwraps inside the same tran
 Minimum bid = 0.01 units of the pair asset.
 
 ## Lifecycle
-1. `create_launch(name, symbol, batch_secs, creator_fee_bps)` — creator transfers the entire fixed supply (1,000,000,000 × 10⁶)
+1. `create_launch(name, symbol, batch_secs, creator_fee_bps, require_human, mode, virtual_pair, venue)` — creator transfers the entire fixed supply (1,000,000,000 × 10⁶)
    into the program vault. Mint must have 6 decimals, supply exactly 1B, mint & freeze authority revoked. Creates escrow, pool
    and fee-vault token accounts for the pair asset, all owned by the launch PDA. Creator keeps nothing.
 2. `commit_bid(commitment, deposit)` — escrow pair tokens ≥ bid, store `sha256(bidder ‖ amount_le ‖ salt)`. One bid PDA per wallet per launch.
 3. `reveal_bid(amount, salt)` — after the batch closes (≤15 min), within a 10-minute window. Hash must match.
-4. `settle` — anyone. Clearing price = ⌈total revealed / 800M tokens⌉ (Q32, pair base units per token base unit). All raised
-   pair tokens + 20% of supply seed a constant-product pool owned by the program. There is no withdraw/close instruction for the pool.
+4. `settle` — anyone. Clearing price = ⌈total revealed / 500M tokens⌉ (Q32, pair base units per token base unit). All raised
+   pair tokens + the other 50% of supply seed a constant-product pool that opens exactly at the clearing price owned by the program. There is no withdraw/close instruction for the pool.
 5. `claim` — tokens at the clearing price + refund of (deposit − bid). Unrevealed bids: full refund, no tokens.
 6. `swap_pair_for_tokens` / `swap_tokens_for_pair` — 1% fee on the pair side → fee vault.
 7. **Fee split (constants):** every swap fee is split in the swap instruction itself —

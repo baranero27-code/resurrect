@@ -10,8 +10,8 @@
 //!                     all owned by the launch PDA. The creator keeps nothing.
 //!   commit_bid     -> bidders escrow pair tokens and commit hash(bidder, amount, salt). One bid per wallet.
 //!   reveal_bid     -> after the batch closes, bidders reveal (amount, salt)
-//!   settle         -> one clearing price for everyone; 80% of supply goes to bidders pro-rata,
-//!                     20% of supply + ALL raised pair tokens seed a constant-product pool owned
+//!   settle         -> one clearing price for everyone; 50% of supply goes to bidders pro-rata,
+//!                     50% of supply + ALL raised pair tokens seed a constant-product pool (opening exactly at the clearing price) owned
 //!                     by the program. There is no withdraw instruction: liquidity cannot be pulled.
 //!   claim          -> bidder receives tokens + refund of escrow above their bid
 //!   swap           -> trade against the pool, 1% fee (in the pair asset) accrues to the fee vault
@@ -33,7 +33,8 @@ use anchor_spl::token_2022::spl_token_2022::{self, extension::{BaseStateWithExte
 declare_id!("5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t");
 
 pub const SUPPLY: u64 = 1_000_000_000_000_000; // 1,000,000,000 tokens with 6 decimals
-pub const SALE_BPS: u64 = 8_000;               // 80% of supply sold in the batch
+pub const SALE_BPS: u64 = 5_000;               // 50% of supply sold in the batch; the other 50% + everything raised seed the pool,
+                                               // so the pool opens at exactly the clearing price (raised/500M on both sides)
 pub const FEE_BPS: u64 = 100;                  // 1% swap fee
 #[cfg(feature = "mainnet")] pub const MIN_BATCH_SECS: i64 = 15 * 60;   // mainnet: batches are always 15 minutes
 #[cfg(not(feature = "mainnet"))] pub const MIN_BATCH_SECS: i64 = 60; // devnet: short batches for testing
@@ -343,7 +344,12 @@ pub mod resurrect {
         let real_pair = l.pool_pair - l.virtual_pair;
         if l.mode == MODE_OPEN { require!(real_pair >= l.virtual_pair, ErrorCode::NotReadyToGraduate); }
         require!(real_pair > 0 && l.pool_tokens > 0, ErrorCode::NotReadyToGraduate);
-        let tokens = l.pool_tokens;
+        // Price continuity. Auction: pool is raised/500M on both sides, so the clearing price carries over as is.
+        // Open: the curve price is (virtual + real) / tokens; Raydium only gets the real reserve, so it gets tokens × real/(virtual+real)
+        // and the rest of the curve's tokens are burned — the opening price on Raydium equals the last curve price.
+        let tokens = if l.mode == MODE_OPEN { ((l.pool_tokens as u128) * (real_pair as u128) / ((l.virtual_pair as u128) + (real_pair as u128))) as u64 } else { l.pool_tokens };
+        let burn_tokens = l.pool_tokens - tokens;
+        require!(tokens > 0, ErrorCode::NotReadyToGraduate);
         // account ordering: Raydium requires token_0 < token_1
         let (m0, m1) = (ctx.accounts.token_0_mint.key(), ctx.accounts.token_1_mint.key());
         require!(m0 < m1, ErrorCode::BadParams);
@@ -384,9 +390,12 @@ pub mod resurrect {
         token::burn(CpiContext::new(a.token_program.to_account_info(), token::Burn { mint: a.lp_mint.to_account_info(), from: a.creator_lp_token.to_account_info(), authority: a.payer.to_account_info() }), lp_bal)?;
         ctx.accounts.creator_token_0.reload()?; ctx.accounts.creator_token_1.reload()?;
         require!(ctx.accounts.creator_token_0.amount == bal0 && ctx.accounts.creator_token_1.amount == bal1, ErrorCode::TransferShortfall);
+        if burn_tokens > 0 {
+            token::burn(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), token::Burn { mint: ctx.accounts.launch_mint.to_account_info(), from: ctx.accounts.vault.to_account_info(), authority: ctx.accounts.launch.to_account_info() }, &[seeds]), burn_tokens)?;
+        }
         let l = &mut ctx.accounts.launch;
-        l.graduated = true; l.raydium_pool = ctx.accounts.pool_state.key(); l.pool_pair = l.virtual_pair; l.pool_tokens = 0;
-        emit!(GraduatedToRaydium { launch: l.key(), pool: l.raydium_pool, pair_amount: real_pair, token_amount: tokens, lp_burned: lp_bal });
+        l.graduated = true; l.raydium_pool = ctx.accounts.pool_state.key(); l.pool_pair = l.virtual_pair; l.pool_tokens = 0; l.burned += burn_tokens;
+        emit!(GraduatedToRaydium { launch: l.key(), pool: l.raydium_pool, pair_amount: real_pair, token_amount: tokens, lp_burned: lp_bal, tokens_burned: burn_tokens });
         Ok(())
     }
 
@@ -429,7 +438,7 @@ pub mod resurrect {
     pub fn buyback_and_burn(ctx: Context<BuybackAndBurn>) -> Result<()> {
         let src = &ctx.accounts.launch; let r = &ctx.accounts.rsrct_launch;
         require!(ctx.accounts.config.rsrct_mint != Pubkey::default() && r.mint == ctx.accounts.config.rsrct_mint, ErrorCode::NoRsrct);
-        require!(r.pair_mint == src.pair_mint && r.settled && r.pool_tokens > 0, ErrorCode::BadParams);
+        require!(r.pair_mint == src.pair_mint && r.settled && r.pool_tokens > 0 && !r.graduated && r.venue == VENUE_RESURRECT, ErrorCode::BadParams);
         let cap = (r.pool_pair - r.virtual_pair) * BUYBACK_MAX_BPS_OF_POOL / 10_000; // real reserve only
         let amount = src.buyback_accrued.min(cap.max(1)); require!(amount > 0 && src.buyback_accrued > 0, ErrorCode::NothingToClaim);
         // swap through the RSRCT pool exactly like a trader would (1% fee to the RSRCT launch), then burn the output
@@ -996,10 +1005,14 @@ pub struct GraduateRaydium<'info> {
     /// CHECK: Raydium pool state PDA, created by Raydium
     #[account(mut)]
     pub pool_state: UncheckedAccount<'info>,
+    #[account(mut)]
     pub token_0_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(mut)]
     pub token_1_mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(address = launch.pair_mint)]
     pub pair_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(mut, address = launch.mint)]
+    pub launch_mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(mut, address = launch.pool_pair_account)]
     pub pool_pair: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(mut, address = launch.vault)]
@@ -1054,7 +1067,7 @@ pub struct ClaimCreatorFees<'info> {
 
 #[event] pub struct LaunchCreated { pub launch: Pubkey, pub mint: Pubkey, pub pair_mint: Pubkey, pub end_ts: i64 }
 #[event] pub struct Settled { pub launch: Pubkey, pub clearing_price_q32: u128, pub raised: u64, pub pool_tokens: u64 }
-#[event] pub struct GraduatedToRaydium { pub launch: Pubkey, pub pool: Pubkey, pub pair_amount: u64, pub token_amount: u64, pub lp_burned: u64 }
+#[event] pub struct GraduatedToRaydium { pub launch: Pubkey, pub pool: Pubkey, pub pair_amount: u64, pub token_amount: u64, pub lp_burned: u64, pub tokens_burned: u64 }
 #[event] pub struct Burned { pub launch: Pubkey, pub pair_spent: u64, pub rsrct_burned: u64 }
 #[event] pub struct RewardsClaimed { pub launch: Pubkey, pub staker: Pubkey, pub amount: u64 }
 #[event] pub struct Swapped { pub launch: Pubkey, pub trader: Pubkey, pub pair_in: u64, pub tokens_out: u64, pub tokens_in: u64, pub pair_out: u64 }

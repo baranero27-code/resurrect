@@ -51,14 +51,14 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
     </nav>
     <main>
       <section class="sec" id="what"><h2><span>WHAT RESURRECT IS</span></h2>
-        <p>A launchpad for memecoins on Solana where the launch itself is fair by construction. Every coin starts in a <b>15-minute sealed batch auction</b>: nobody sees anyone else's bid, everyone pays the <b>same clearing price</b>, and the creator gets <b class="g">zero allocation and no first buy</b>. When the batch ends, the raised funds plus 20% of supply seed a liquidity pool <b>owned by the program with no withdraw instruction</b>. Coins can be paired with SOL, USDC or any of 2,400+ real assets — tokenized stocks, ETFs, commodities. 1% of every trade goes to the people who hold the coin.</p>
+        <p>A launchpad for memecoins on Solana where the launch itself is fair by construction. Every coin starts in a <b>15-minute sealed batch auction</b>: nobody sees anyone else's bid, everyone pays the <b>same clearing price</b>, and the creator gets <b class="g">zero allocation and no first buy</b>. When the batch ends, the raised funds plus the other 50% of supply seed a liquidity pool <b>owned by the program with no withdraw instruction</b>. Coins can be paired with SOL, USDC or any of 2,400+ real assets — tokenized stocks, ETFs, commodities. 1% of every trade goes to the people who hold the coin.</p>
         <div class="kv"><div><b>15 min</b><span>sealed batch, one price for all</span></div><div><b>0%</b><span>creator allocation · no first buy</span></div><div><b>∞</b><span>liquidity lock (no instruction exists to pull it)</span></div><div><b>1 · 1 · 1</b><span>one human, one wallet, one bid</span></div></div>
       </section>
 
       <section class="sec" id="why"><h2><span>WHY A SEALED BATCH</span></h2>
         <p>On a bonding curve the first buyer gets the lowest price. So the first buyer is always a bot, a bundle of wallets controlled by one person, or the dev. Everyone who comes after buys from them. The launch is decided in the first block, before a human can click.</p>
-        <p>A sealed batch removes "first". For 15 minutes bids are hidden hashes. When it closes, every revealed bid is summed and divided by the 800M tokens on sale: that is the price, for everyone. Bidding 1 SOL at second 1 or second 899 gives you exactly the same tokens. There is nothing to snipe, nothing to front-run, and no information to extract from the mempool.</p>
-        <div class="box"><p class="d">Clearing price = total revealed bids ÷ 800,000,000 tokens. Your allocation = your bid ÷ clearing price. The pool opens at exactly that price, so the first trade after launch is at the price you paid — not 50× above it.</p></div>
+        <p>A sealed batch removes "first". For 15 minutes bids are hidden hashes. When it closes, every revealed bid is summed and divided by the 500M tokens on sale: that is the price, for everyone. Bidding 1 SOL at second 1 or second 899 gives you exactly the same tokens. There is nothing to snipe, nothing to front-run, and no information to extract from the mempool.</p>
+        <div class="box"><p class="d">Clearing price = total revealed bids ÷ 500,000,000 tokens. Your allocation = your bid ÷ clearing price. The pool is seeded with everything raised and the other 500,000,000 tokens, so it opens at exactly that price — the first trade after launch is at the price you paid, not 50× above it.</p></div>
       </section>
 
       <section class="sec" id="assets"><h2><span>PAIRING ASSETS</span></h2>
@@ -99,7 +99,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
       <section class="sec" id="reveal"><h2><span>REVEAL · SETTLE · CLAIM</span></h2>
         <ul>
           <li><b>Reveal</b> (10-minute window after the batch closes): the app sends your amount and salt; the program checks the hash. Unrevealed bids don't count toward the price.</li>
-          <li><b>Settle</b> (anyone, after the reveal window): one clearing price is computed and the pool is seeded with all raised funds + 200M tokens. From this moment nothing can remove liquidity.</li>
+          <li><b>Settle</b> (anyone, after the reveal window): one clearing price is computed and the pool is seeded with all raised funds + 500M tokens, at the clearing price. From this moment nothing can remove liquidity.</li>
           <li><b>Claim</b>: you receive tokens at the clearing price plus your unused deposit. There is no deadline.</li>
         </ul>
       </section>

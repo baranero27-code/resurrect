@@ -17,10 +17,10 @@ First block, first buyer, first bundle. The launch is decided before a human can
 2/ Resurrect has no first.
 A coin opens as a 15-minute sealed batch. You bid. Nobody sees it — not us, not bots, not the dev. Only a hash goes on chain.
 
-3/ When the batch closes, every bid is revealed and summed, then divided by the 800M tokens on sale.
+3/ When the batch closes, every bid is revealed and summed, then divided by the 500M tokens on sale.
 That number is the price. For everyone. Second 1 and second 899 pay the same.
 
-4/ The pool opens at exactly that price, seeded with everything raised + 20% of supply.
+4/ The pool opens at exactly that price, seeded with everything raised + the other 50% of supply — it opens at exactly the price you paid.
 It belongs to the program. There is no instruction that can withdraw it. Not for the dev. Not for us.
 
 5/ The dev gets 0%. No allocation, no first buy. If they want coins they bid, sealed, like you.

@@ -161,7 +161,7 @@
       const ct0 = ata(m0, payer, p0), ct1 = ata(m1, payer, p1), lpAta = ata(r.lpMint, payer, TOKEN);
       const pre = [spl.createAssociatedTokenAccountIdempotentInstruction(payer, ct0, payer, m0, p0), spl.createAssociatedTokenAccountIdempotentInstruction(payer, ct1, payer, m1, p1)];
       const ix = new TransactionInstruction({ programId: PROGRAM_ID, data: await disc('graduate_raydium'), keys: [
-        meta(payer, true, true), meta(k.launch, false, true), meta(r.ammConfig), meta(r.authority), meta(r.pool, false, true), meta(m0), meta(m1), meta(pairMint), meta(k.pool, false, true), meta(k.vault, false, true),
+        meta(payer, true, true), meta(k.launch, false, true), meta(r.ammConfig), meta(r.authority), meta(r.pool, false, true), meta(m0, false, true), meta(m1, false, true), meta(pairMint), meta(mint, false, true), meta(k.pool, false, true), meta(k.vault, false, true),
         meta(r.lpMint, false, true), meta(ct0, false, true), meta(ct1, false, true), meta(lpAta, false, true), meta(r.vault0, false, true), meta(r.vault1, false, true), meta(r.feeReceiver, false, true), meta(r.observation, false, true),
         meta(TOKEN), meta(p0), meta(p1), meta(spl.ASSOCIATED_TOKEN_PROGRAM_ID), meta(SystemProgram.programId), meta(SYSVAR_RENT_PUBKEY), meta(r.program)] });
       return { pre, ix, pool: r.pool, lpMint: r.lpMint };

@@ -19,7 +19,7 @@ const ph=process.argv[2];
   if(ph==='reveal'){ if(now<S.endTs){console.log('wait',S.endTs-now);process.exit(2);} await send([await R.ixRevealBid({bidder:b.publicKey,mint,amount:BigInt(S.amt),salt:Uint8Array.from(S.salt)})],[b]); console.log('revealed'); return; }
   if(now<S.revealEnd){console.log('wait',S.revealEnd-now);process.exit(2);}
   await send([await R.ixSettle(P(mint))],[payer]); let l=await R.fetchLaunch(conn,mint);
-  console.log(`settled · pool ${sol(l.poolPair)} + ${Number(l.poolTokens)/1e6} tokens · canGraduate ${R.canGraduate(l)}`);
+  console.log(`settled · pool ${sol(l.poolPair)} + ${Number(l.poolTokens)/1e6} tokens (price continuity: ${(Number(l.poolPair)/Number(l.poolTokens)).toExponential(3)} vs clearing ${(R.priceFromQ32(l.clearingPriceQ32)).toExponential(3)}) · canGraduate ${R.canGraduate(l)}`);
   console.log('swap before graduation:', await fail(async()=>send([...wrap(b.publicKey,100_000_000n),ataIx(mint,b.publicKey),await R.ixSwap({trader:b.publicKey,...P(mint),pairForTokens:true,amountIn:100_000_000n,minOut:1n,epoch:0}),...un(b.publicKey)],[b]),/GraduatePending/));
   const g=await R.ixsGraduateRaydium({payer:payer.publicKey,launch:l}); await send([...g.pre,g.ix],[payer],600000); l=await R.fetchLaunch(conn,mint);
   const lp=await conn.getTokenSupply(g.lpMint); const r=R.raydiumPdas(...(SOL.toBuffer().compare(mint.toBuffer())<0?[SOL,mint]:[mint,SOL]));

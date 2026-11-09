@@ -346,8 +346,8 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     <h2><span>LAUNCHES</span> every coin passes through three phases <i>simulated preview · <a href="app.html" style="color:var(--green)">real launches in the live app ↗</a></i></h2>
     <div class="life">
       <div class="ph"><div class="k">PHASE 1 · 15 MIN</div><b>Sealed batch</b><p>Bids hidden until close. One clearing price. Nobody is first.</p></div>
-      <div class="ph"><div class="k">PHASE 2</div><b>Reveal &amp; settle</b><p>Bids are revealed, summed and divided by the 800M tokens on sale. One price for everyone.</p></div>
-      <div class="ph"><div class="k">PHASE 3</div><b>Trading · pool sealed</b><p>Everything raised + 20% of supply seed a program-owned pool. No withdraw instruction exists. Holders earn from every trade.</p></div>
+      <div class="ph"><div class="k">PHASE 2</div><b>Reveal &amp; settle</b><p>Bids are revealed, summed and divided by the 500M tokens on sale. One price for everyone.</p></div>
+      <div class="ph"><div class="k">PHASE 3</div><b>Trading · pool sealed</b><p>Everything raised + the other 50% of supply seed a program-owned pool, opening at exactly the clearing price. No withdraw instruction exists. Holders earn from every trade.</p></div>
     </div>
 
     <div class="tool" style="margin-top:22px">
@@ -777,7 +777,7 @@ window.addEventListener('load',async()=>{
     const R=makeRsrct(solanaWeb3,splToken,'5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t');
     const Ls=await Promise.race([R.fetchLaunches(conn),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000))]);
     const now=Math.floor(Date.now()/1000); const sol=l=>l.pairMint.equals(R.NATIVE);
-    const live=Ls.filter(l=>!l.settled&&now<l.endTs).length, grad=Ls.filter(l=>l.settled&&l.poolTokens>0n).length, bids=Ls.reduce((a,l)=>a+l.bids,0);
+    const live=Ls.filter(l=>!l.settled&&now<l.endTs).length, grad=Ls.filter(l=>l.settled&&(l.poolTokens>0n||l.graduated)).length, bids=Ls.reduce((a,l)=>a+l.bids,0);
     const fSol=v=>(Number(v)/1e9).toLocaleString('en-US',{maximumFractionDigits:4})+' SOL';
     const feesSol=Ls.filter(sol).reduce((a,l)=>a+l.feesAccrued,0n), paidSol=Ls.filter(sol).reduce((a,l)=>a+l.rewardsDistributed,0n), other=Ls.filter(l=>!sol(l)).length;
     window.__live=true; $('#s1').textContent=live; $('#s2').textContent=bids.toLocaleString('en-US'); $('#s2l').textContent='sealed bids placed · devnet';
@@ -786,8 +786,8 @@ window.addEventListener('load',async()=>{
     $('#an5').textContent=Ls.length; $('#an6').textContent=grad; $('#an7').textContent=Ls.filter(l=>l.requireHuman).length; $('#an7l').textContent='launches requiring a human pass'; $('#an8').textContent='0';
     // real launches strip
     const KN={'So11111111111111111111111111111111111111112':'SOL','4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU':'USDC'}; const ps=l=>KN[l.pairMint.toBase58()]||(l.pairMint.toBase58().slice(0,4)+'…');
-    const PHL={batch:['SEALED BATCH','live'],reveal:['REVEAL WINDOW','bond'],settle:['READY TO SETTLE','bond'],live:['TRADING · POOL SEALED','grad'],empty:['NO BIDS','']};
-    const phase=l=>!l.settled?(now<l.endTs?'batch':now<l.revealEndTs?'reveal':'settle'):(l.poolTokens>0n?'live':'empty');
+    const PHL={batch:['SEALED BATCH','live'],reveal:['REVEAL WINDOW','bond'],settle:['READY TO SETTLE','bond'],live:['TRADING · POOL SEALED','grad'],raydium:['TRADING ON RAYDIUM · LP BURNED','grad'],empty:['NO BIDS','']};
+    const phase=l=>!l.settled?(now<l.endTs?'batch':now<l.revealEndTs?'reveal':'settle'):(l.graduated?'raydium':l.poolTokens>0n?'live':'empty');
     const fp=(l,v)=>(Number(v)/10**l.pairDecimals).toLocaleString('en-US',{maximumFractionDigits:4})+' '+ps(l);
     if(Ls.length){ $('#livegrid').style.display=''; $('#livelist').innerHTML=Ls.sort((a,b)=>b.startTs-a.startTs).slice(0,6).map(l=>{const ph=phase(l);const [lbl,cls]=PHL[ph];const px=l.settled&&l.poolTokens>0n?Number(l.poolPair)/Number(l.poolTokens)*1e6/10**l.pairDecimals:0;
       return `<a class="tk" href="app.html" style="text-decoration:none;color:inherit"><div class="top"><div class="av">${l.symbol.slice(0,2)}</div><div class="nm"><b>$${l.symbol}</b><span>${l.name} · <span style="color:var(--green)">paired with ${ps(l)}</span></span></div><span class="chip ${cls}">${lbl}</span></div>
