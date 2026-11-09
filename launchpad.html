@@ -460,11 +460,11 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
         <div class="stepn">STEP 3 · WHO GETS THE CREATOR FEE</div>
         <div class="f"><label>fee recipient</label><div class="radio" id="recip"><button type="button" class="on">me</button><button type="button">other wallet</button><button type="button">donate to holders</button></div></div>
-        <div class="f"><label>creator share</label><div class="rng"><input type="range" min="0" max="20" value="5" id="fee"><b id="feev">5%</b></div></div>
+        <div class="f"><label>creator share</label><div class="rng"><input type="range" min="0" max="10" value="5" id="fee"><b id="feev">5%</b></div></div>
 
         <div class="stepn">STEP 4 · WHAT NOBODY CAN CHANGE</div>
         <div class="f"><label>trading fee</label><div class="fixed">1% on every buy and sell <i>FIXED</i></div></div>
-        <div class="f"><label>launch</label><div class="fixed">15-minute sealed batch, then trading on the sealed pool <i>FIXED</i></div></div>
+        <div class="f"><label>launch mode</label><div class="fixed" style="border-color:var(--green)">Auction · 15-minute sealed batch, one price for everyone <i style="color:var(--dim)">OR OPEN CURVE · instant trading, no gates</i></div></div>
         <div class="f"><label>supply</label><div class="fixed">1,000,000,000 · no mint · no freeze <i>FIXED</i></div></div>
         <div class="f"><label>liquidity</label><div class="fixed">program-owned pool, seeded at settle · no withdraw instruction <i>FIXED</i></div></div>
         <div class="f"><label>who can trade</label><div class="fixed">verified humans · one wallet each <i>FIXED</i></div></div>
@@ -505,7 +505,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
           <div><i style="background:var(--green)"></i><span>Holders<small>paid per staked token on every swap, pull any time, in the pairing asset. Plus whatever the creator leaves of their 10%</small></span><b>35%+</b></div>
           <div><i style="background:#2fbf71"></i><span>Buyback &amp; burn RSRCT<small>swapped through the RSRCT pool and burned in the same instruction, anyone can trigger</small></span><b>25%</b></div>
           <div><i style="background:var(--cyan)"></i><span>Verified traders<small>weekly epochs, pro rata by verified volume, claimed on chain. no pass → no reward, no dilution</small></span><b>20%</b></div>
-          <div><i style="background:var(--amber)"></i><span>Creator<small>0–20%, set at launch. anything below 20% flows to holders</small></span><b>≤10%</b></div>
+          <div><i style="background:var(--amber)"></i><span>Creator<small>0–10%, set at launch. anything below 10% flows to holders</small></span><b>≤10%</b></div>
           <div><i style="background:#3a4a44"></i><span>Treasury<small>audits, infra. address in the on-chain config</small></span><b>10%</b></div>
         </div>
       </div>
