@@ -3,7 +3,7 @@
 Prepared for external reviewers. Everything here is verifiable against `src/lib.rs` (Anchor 0.31, ~560 lines) and the tests in this folder.
 
 ## 1. What the program is
-A launchpad for fixed-supply SPL tokens on Solana. Each launch runs a sealed-bid (commit–reveal) batch auction with a single clearing price, then seeds a constant-product pool that the program owns and that has **no withdrawal path**. Every launch is denominated in a creator-chosen "pair asset" (SPL Token or Token-2022). Swap fees are split between the creator (≤20%) and token holders who stake.
+A launchpad for fixed-supply SPL tokens on Solana. Each launch runs a sealed-bid (commit–reveal) batch auction with a single clearing price, then seeds a constant-product pool that the program owns and that has **no withdrawal path**. Every launch is denominated in a creator-chosen "pair asset" (SPL Token or Token-2022). Every swap fee is split on chain: 35% staked holders · 25% RSRCT buyback & burn · 20% verified traders (weekly epochs) · 0–10% creator · 10% treasury; the creator's unused share goes to holders.
 
 Program id (devnet): `5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t`. Upgradeable (BPF upgradeable loader). Mainnet plan: deploy, run 2 weeks, move upgrade authority to a Squads multisig, then set it to `None` once audited.
 
@@ -18,6 +18,9 @@ Program id (devnet): `5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t`. Upgradeable
 | `stake` vault | `["stake", mint]` | Launch PDA | launch tokens staked by holders |
 | `Bid` | `["bid", launch, bidder]` | program | commitment, deposit, revealed amount, flags |
 | `StakeAccount` | `["stake", launch, owner]` | program | amount, reward index snapshot, owed, claimed |
+| `Config` | `["config"]` | program | authority, treasury wallet, rsrct_mint |
+| `EpochRecord` | `["epoch", launch, u32]` | program | trader pool, verified volume, claimed, swept |
+| `TraderStats` | `["trader", launch, trader, u32]` | program | verified volume, raw volume, claimed, paid |
 
 `Launch` fields: creator, mint, vault, pair_mint, pair_token_program, escrow, pool_pair_account, fee_vault, name, symbol, start/end/reveal_end timestamps, creator_fee_bps, pair_decimals, min_bid, bids, revealed, total_revealed, clearing_price_q32 (u128, pair base units per token base unit × 2³²), settled, pool_pair, pool_tokens (virtual reserves), fees_accrued, creator_fees_owed/claimed, require_human, gatekeeper_network, stake_vault, total_staked, reward_index (u128, Q64 per staked base unit), rewards_pending, rewards_distributed, bump.
 
@@ -32,6 +35,11 @@ Program id (devnet): `5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t`. Upgradeable
 | `swap_pair_for_tokens(in, min_out)` | anyone | settled & pool_tokens > 0; fee = in/100; out = cp(net); out ≥ min_out; **pool delta == net** |
 | `swap_tokens_for_pair(in, min_out)` | anyone | gross = cp(in); fee = gross/100; out = gross − fee ≥ min_out |
 | `claim_creator_fees()` | creator (has_one) | owed > 0 |
+| `collect_treasury()` | anyone | treasury_owed > 0; destination ATA owner == Config.treasury |
+| `buyback_and_burn()` | anyone | Config.rsrct_mint set & == rsrct_launch.mint; same pair; rsrct settled; buyback_accrued > 0; swap math identical to a trade; burn from rsrct vault with rsrct launch PDA |
+| `claim_trader_reward(epoch)` | trader | epoch ended; !claimed; volume > 0; epoch volume > 0; share = pool·vol/epoch_vol |
+| `sweep_epoch(epoch)` | anyone | epoch ended; epoch volume == 0; pool > 0; !swept → holders |
+| `init_config` / `set_config` | ADMIN / authority | address / has_one |
 | `stake(amount)` / `unstake(amount)` | holder | settled (stake); amount ≤ staked (unstake); rewards settled to `owed` before any change |
 | `claim_rewards()` | staker | owed > 0 after settling index |
 
@@ -43,6 +51,9 @@ Program id (devnet): `5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t`. Upgradeable
 5. **Fee vault solvency.** fee_vault balance ≥ creator_fees_owed + Σ pending holder rewards + rewards_pending. Rewards are paid from the Q64 index with floor rounding; dust stays in the vault.
 6. **Virtual reserves never exceed real balances.** Incoming pair transfers are checked by balance delta; extensions that could take a cut are rejected at create. Extra tokens sent directly to pool/escrow are ignored (not stealable, not counted).
 7. **One bid per wallet per launch** (PDA uniqueness). With `require_human`, one bid per Civic Uniqueness pass holder.
+8. **Split conservation.** creator + buyback + trader + treasury + holders == fee for every swap (holders is the remainder). Σ(epoch pools) == trader_accrued.
+9. **Buyback can only burn.** The only sink for `buyback_accrued` is `buyback_and_burn`, whose only outputs are a transfer into the RSRCT pool/fee vault and a `burn` from the RSRCT vault; `pool_tokens` and `burned` are updated by exactly `out`.
+10. **Trader pools are closed.** An epoch's pool leaves the fee vault only via claims proportional to verified volume (Σ ≤ pool) or a sweep to holders when verified volume is zero.
 
 ## 5. Pair asset policy (Token-2022)
 Rejected at `create_launch`: `TransferFeeConfig`, `TransferHook`, `NonTransferable`, `ConfidentialTransferMint`, `ConfidentialTransferFeeConfig`, `ConfidentialMintBurn`. Allowed: metadata/pointers, `PermanentDelegate`, `MintCloseAuthority`, `DefaultAccountState`, interest-bearing, pausable, group extensions.
@@ -71,3 +82,6 @@ All reserve math in u128. `cp_out`: reserve_in·reserve_out ≤ ~1e15·2e14 = 2e
 2. Rounding: can repeated tiny swaps drain more than the fee from the pool?
 3. Is `Option<UncheckedAccount>` None-detection (program id placeholder) exploitable when `require_human` is set?
 4. Any Token-2022 extension beyond §5 that breaks invariant 6?
+5. Epoch boundaries: a swap whose client-computed epoch lags the chain fails with `WrongEpoch` (fail-closed). Can a trader split volume across epochs to gain more than pro-rata?
+6. `buyback_and_burn` is permissionless and executes a market buy of whatever has accrued. Is sandwiching it profitable enough to matter, and should we add a max-size-per-call cap?
+7. Rounding in `claim_trader_reward` (floor) leaves dust in the fee vault forever — acceptable?

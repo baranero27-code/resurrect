@@ -97,12 +97,15 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
       </section>
 
       <section class="sec" id="earn"><h2><span>EARN AS A HOLDER</span></h2>
-        <p>Every fee is split: the creator's share (what they chose at launch, max 20%) and the rest to holders. Holders earn by <b>staking</b> their coins in the launch's reward vault — <b>no lockup, no fee, unstake any time</b>. Rewards accrue per staked token on every swap and are paid in the pairing asset: pair your coin with TSLA and your holders earn TSLA.</p>
+        <p>Every 1% fee is split on chain, in the same transaction as the swap: <b>35% to staked holders</b> (plus whatever the creator leaves of their 10%), 25% to the RSRCT buyback, 20% to verified traders, 0–10% to the creator, 10% to the treasury. Holders earn by <b>staking</b> their coins in the launch's reward vault — <b>no lockup, no fee, unstake any time</b>. Rewards accrue per staked token on every swap and are paid in the pairing asset: pair your coin with TSLA and your holders earn TSLA.</p>
+        <h3>Trader rewards (20%)</h3><p>Each launch runs weekly epochs from the moment it settles. Every swap adds 20% of its fee to the current epoch's pool, and — if the trader has a Civic Uniqueness pass — adds the swap size to their verified volume. When the epoch ends, each verified trader claims pool × their volume ÷ total verified volume. Bots and wallets without a pass can trade freely but earn nothing and dilute nobody. An epoch with a pool but no verified volume is swept to holders by anyone.</p>
+        <h3>RSRCT buyback &amp; burn (25%)</h3><p>25% of every fee accrues per launch. Once the RSRCT coin exists (it will be launched on Resurrect like any other coin), anyone can trigger <code>buyback_and_burn</code>: the accrued pairing asset is swapped through the RSRCT pool like any trade and the RSRCT received is burned in the same instruction. No wallet in between, no bot, no discretion.</p>
+        <h3>Treasury (10%)</h3><p>Accrues per launch; anyone can push it to the published treasury wallet. Pays for audits and infrastructure.</p>
         <p class="d">Why staking instead of "just holding"? Because a holder list can't be read on chain cheaply and off-chain distribution would mean trusting us. Staking makes rewards pull-based, verifiable and ours to never touch.</p>
       </section>
 
       <section class="sec" id="creator"><h2><span>EARN AS A CREATOR</span></h2>
-        <p>You get no tokens. You get a share of fees forever: 0–20%, fixed at launch, visible to everyone. Claim it whenever you like from the launch page. That is the entire creator incentive — build something people trade, not something people exit.</p>
+        <p>You get no tokens. You get a share of fees forever: 0–10%, fixed at launch, visible to everyone. Whatever you don't take goes to your holders. Claim it whenever you like from the launch page. That is the entire creator incentive — build something people trade, not something people exit.</p>
       </section>
 
       <section class="sec" id="human"><h2><span>PROVE YOU'RE HUMAN</span></h2>
@@ -117,7 +120,8 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
           <tr><td>Creator pre-buy / allocation</td><td>100% of supply must move to the vault in the launch transaction.</td></tr>
           <tr><td>See bids early</td><td>Only hashes are on chain until the reveal window.</td></tr>
           <tr><td>Bid twice from one wallet</td><td>Bid account address is derived from (launch, wallet).</td></tr>
-          <tr><td>Change the fee</td><td>1% is a constant in the program; creator share is written once at launch.</td></tr>
+          <tr><td>Change the fee or the split</td><td>1% and the 35/25/20/10 split are constants in the program; the creator share is written once at launch.</td></tr>
+          <tr><td>Divert the buyback or trader pools</td><td>Buyback can only swap through the RSRCT pool and burn; trader pools can only be claimed by verified volume or swept to holders.</td></tr>
         </table>
       </section>
 
@@ -126,7 +130,8 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
           <li><b class="a">The upgrade authority.</b> Until the program is frozen, whoever holds it could deploy new code. Plan: multisig after mainnet launch, frozen after the audit. Status is shown on the site.</li>
           <li><b class="a">No audit yet.</b> The <a href="program/AUDIT.md">audit package</a> is public; the program is open source. Do not treat devnet or an unaudited mainnet as safe for real money.</li>
           <li><b class="a">Issuer risk</b> on tokenized-stock pairs (see above).</li>
-          <li><b class="a">Civic</b> for personhood. If Civic issues two passes to one person, that person can bid twice.</li>
+          <li><b class="a">Civic</b> for personhood. If Civic issues two passes to one person, that person can bid twice and count twice for trader rewards.</li>
+          <li><b class="a">The treasury wallet</b> (10% of fees) is controlled by the team; its address is in the on-chain config.</li>
         </ul>
       </section>
 
@@ -134,10 +139,10 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
         <table><tr><th>when</th><th>how much</th><th>goes to</th></tr>
           <tr><td>Launch</td><td>≈ 0.02 SOL</td><td>Solana rent + fees. Resurrect takes nothing.</td></tr>
           <tr><td>Bid / reveal / claim</td><td>network fee only</td><td>Solana</td></tr>
-          <tr><td>Swap</td><td>1% of the pairing-asset side</td><td>creator share (0–20%) · the rest to stakers</td></tr>
+          <tr><td>Swap</td><td>1% of the pairing-asset side</td><td>35% stakers · 25% RSRCT buyback &amp; burn · 20% verified traders · 0–10% creator (unused part → stakers) · 10% treasury</td></tr>
           <tr><td>Stake / unstake / claim rewards</td><td>network fee only</td><td>Solana</td></tr>
         </table>
-        <p class="d">There is no protocol fee on devnet. A protocol share, if introduced on mainnet, will be a constant in the program and listed here before launch.</p>
+        <p class="d">All five shares are constants in the program; the creator's is the only one chosen per launch (0–10%).</p>
       </section>
 
       <section class="sec" id="faq"><h2><span>FAQ</span></h2>
@@ -145,7 +150,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
         <h3>Can I cancel a bid?</h3><p>No. You can decline to reveal; then you are excluded and fully refunded at claim.</p>
         <h3>Why is my bid deposit higher than my bid?</h3><p>You chose an extra deposit to hide the amount. It is refunded at claim.</p>
         <h3>Where is the chart data from?</h3><p>From the launch's own transactions: the app reads <code>Swapped</code> events emitted by the program.</p>
-        <h3>Is there a Resurrect token?</h3><p>Not yet. Nothing on the site should be read as a promise of one.</p>
+        <h3>Is there a Resurrect token?</h3><p>Not yet. RSRCT will be launched through Resurrect itself — sealed batch, zero allocation, same rules — and 25% of every fee on every launch buys and burns it on chain. Until it exists that share accrues per launch.</p>
       </section>
 
       <section class="sec" id="devnet"><h2><span>DEVNET NOTES</span></h2>

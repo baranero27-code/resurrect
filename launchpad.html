@@ -497,23 +497,22 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
   <!-- REWARDS -->
   <section class="sec" id="rewards">
-    <h2><span>REWARDS</span> where every 1% goes <i>target design · mainnet</i></h2>
-    <div class="note" style="border:1px solid rgba(242,177,52,.45);background:rgba(242,177,52,.06);color:var(--amber);padding:10px 12px;margin-bottom:14px;font-size:13px">What the program does <b>today</b> (devnet): the creator takes the share they set at launch (0–20%) and <b>everything else goes to holders who stake</b> — no treasury, no buyback, no airdrops yet. The split below is the mainnet target and will be constants in the program before launch.</div>
+    <h2><span>REWARDS</span> where every 1% goes <i>enforced by the program · same transaction as the swap</i></h2>
     <div class="split">
       <div class="box">
         <div class="barsplit"><i style="width:35%;background:var(--green)"></i><i style="width:25%;background:#2fbf71"></i><i style="width:20%;background:var(--cyan)"></i><i style="width:10%;background:var(--amber)"></i><i style="width:10%;background:#3a4a44"></i></div>
         <div class="legend">
-          <div><i style="background:var(--green)"></i><span>Holders<small>paid pro rata every few minutes, in the pairing asset</small></span><b>35%</b></div>
-          <div><i style="background:#2fbf71"></i><span>Buyback &amp; burn RSRCT<small>swapped to SOL, buys of ~5 SOL, 1% price-impact cap, on chain</small></span><b>25%</b></div>
-          <div><i style="background:var(--cyan)"></i><span>Verified traders<small>USDC airdrop by volume. only verified humans count, so wash trading earns nothing</small></span><b>20%</b></div>
+          <div><i style="background:var(--green)"></i><span>Holders<small>paid per staked token on every swap, pull any time, in the pairing asset. Plus whatever the creator leaves of their 10%</small></span><b>35%+</b></div>
+          <div><i style="background:#2fbf71"></i><span>Buyback &amp; burn RSRCT<small>swapped through the RSRCT pool and burned in the same instruction, anyone can trigger</small></span><b>25%</b></div>
+          <div><i style="background:var(--cyan)"></i><span>Verified traders<small>weekly epochs, pro rata by verified volume, claimed on chain. no pass → no reward, no dilution</small></span><b>20%</b></div>
           <div><i style="background:var(--amber)"></i><span>Creator<small>0–20%, set at launch. anything below 20% flows to holders</small></span><b>≤10%</b></div>
-          <div><i style="background:#3a4a44"></i><span>Treasury<small>audits, infra, payout bot</small></span><b>10%</b></div>
+          <div><i style="background:#3a4a44"></i><span>Treasury<small>audits, infra. address in the on-chain config</small></span><b>10%</b></div>
         </div>
       </div>
       <div class="rew" style="margin-top:0;grid-template-columns:1fr">
-        <div class="rw"><h3>Holder rewards</h3><p>A token account opens once you are owed $2; smaller amounts roll over. Selling before a payout forfeits your pending share to the holders who stayed.</p><p>Claim, swap to SOL via Jupiter, or let it accumulate from the Profile tab.</p></div>
-        <div class="rw"><h3>Trader airdrops</h3><p>Weekly USDC snapshot to the top verified traders by volume. Because every wallet is one human, there is no bot volume to exclude and no list to review.</p></div>
-        <div class="rw"><h3>RSRCT buyback</h3><p>Every launch feeds the flagship. Buys are automatic, capped at 1% price impact, and listed on the Burns table under Analytics.</p></div>
+        <div class="rw"><h3>Holder rewards</h3><p>Stake your coins in the launch's reward vault — no lockup, no fee. Every swap raises the per-token reward index; pull what you're owed whenever you like, in the pairing asset.</p><p>Claim, swap to SOL via Jupiter, or let it accumulate from the Profile tab.</p></div>
+        <div class="rw"><h3>Trader rewards</h3><p>Weekly epochs per launch. Your swaps count toward the pool only with a Civic pass on the wallet, so bot volume earns nothing and dilutes nobody. Claim your share on chain when the epoch ends.</p></div>
+        <div class="rw"><h3>RSRCT buyback</h3><p>Every launch feeds the flagship. The accrued share is swapped through the RSRCT pool and burned in one instruction that anyone can trigger — listed on the Burns table under Analytics.</p></div>
       </div>
     </div>
   </section>
@@ -525,7 +524,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
       <div class="stat"><b id="an1">$184.2K</b><span id="an1l">fees collected, all time</span></div>
       <div class="stat"><b id="an2">$64.5K</b><span>paid to holders</span></div>
       <div class="stat"><b id="an3">$46.0K</b><span id="an3l">RSRCT bought &amp; burned</span></div>
-      <div class="stat"><b id="an4">$36.8K</b><span id="an4l">airdropped to verified traders</span></div>
+      <div class="stat"><b id="an4">$36.8K</b><span id="an4l">paid to verified traders</span></div>
       <div class="stat"><b id="an5">41</b><span>launches</span></div>
       <div class="stat"><b id="an6">29</b><span>trading · pool sealed</span></div>
       <div class="stat"><b id="an7">0.9%</b><span id="an7l">median largest wallet</span></div>
@@ -551,7 +550,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
         <h4>VERIFICATION</h4>
         <div class="rows">
           <div class="row"><span>status</span><b class="c">not verified</b></div>
-          <div class="row"><span>what it unlocks</span><b>bidding in sealed batches · trading · trader airdrops</b></div>
+          <div class="row"><span>what it unlocks</span><b>bidding in sealed batches · trading · trader rewards</b></div>
           <div class="row"><span>how</span><b>one liveness check, one uniqueness proof, once</b></div>
           <div class="row"><span>cost of 50 wallets</span><b class="g">50 verifications and a permanent ban</b></div>
         </div>
@@ -574,7 +573,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
       <tr><td>launch</td><td>bonding curve from block one</td><td class="g">15-min sealed batch, one price, then a sealed pool</td></tr>
       <tr><td>creator first buy</td><td>up to 3% before anyone else</td><td class="g">none</td></tr>
       <tr><td>who can trade</td><td>any wallet, bots included</td><td class="g">verified humans, one wallet each</td></tr>
-      <tr><td>bot and wash volume</td><td>filtered by hand before airdrops</td><td class="g">cannot exist</td></tr>
+      <tr><td>bot and wash volume</td><td>filtered by hand before airdrops</td><td class="g">earns nothing — only verified volume counts</td></tr>
       <tr><td>pairing assets</td><td>SOL, USDC, tokenized stocks</td><td class="g">same, plus baskets and commodities</td></tr>
       <tr><td>holder rewards</td><td>yes</td><td class="g">yes, 35% of fees</td></tr>
       <tr><td>liquidity</td><td>locked on Raydium</td><td class="g">program-owned pool, no withdraw instruction</td></tr>
@@ -783,7 +782,7 @@ window.addEventListener('load',async()=>{
     const feesSol=Ls.filter(sol).reduce((a,l)=>a+l.feesAccrued,0n), paidSol=Ls.filter(sol).reduce((a,l)=>a+l.rewardsDistributed,0n), other=Ls.filter(l=>!sol(l)).length;
     window.__live=true; $('#s1').textContent=live; $('#s2').textContent=bids.toLocaleString('en-US'); $('#s2l').textContent='sealed bids placed · devnet';
     $('#an1').textContent=fSol(feesSol); $('#an1l').textContent='fees collected · SOL-paired launches'+(other?` (+${other} launches in other assets)`:'');
-    $('#an2').textContent=fSol(paidSol); $('#an3').textContent='0'; $('#an3l').textContent='RSRCT burned · token not launched yet'; $('#an4').textContent='0'; $('#an4l').textContent='trader airdrops · not live yet';
+    $('#an2').textContent=fSol(paidSol); const burned=Ls.reduce((a,l)=>a+l.burned,0n), trad=Ls.filter(sol).reduce((a,l)=>a+l.traderTotal,0n), bbWait=Ls.filter(sol).reduce((a,l)=>a+l.buybackAccrued,0n); $('#an3').textContent=burned>0n?(Number(burned)/1e6).toLocaleString('en-US',{maximumFractionDigits:0})+' RSRCT':fSol(bbWait); $('#an3l').textContent=burned>0n?'RSRCT bought & burned':'accrued for RSRCT buyback · token not launched yet'; $('#an4').textContent=fSol(trad); $('#an4l').textContent='paid to verified traders';
     $('#an5').textContent=Ls.length; $('#an6').textContent=grad; $('#an7').textContent=Ls.filter(l=>l.requireHuman).length; $('#an7l').textContent='launches requiring a human pass'; $('#an8').textContent='0';
     // real launches strip
     const KN={'So11111111111111111111111111111111111111112':'SOL','4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU':'USDC'}; const ps=l=>KN[l.pairMint.toBase58()]||(l.pairMint.toBase58().slice(0,4)+'…');

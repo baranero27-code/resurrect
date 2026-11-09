@@ -5,7 +5,7 @@
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.makeRsrct = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
-  return function makeClient(web3, spl, programIdStr) {
+  return function makeClient(web3, spl, programIdStr, opts = {}) {
     const { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, TransactionInstruction } = web3;
     const PROGRAM_ID = new PublicKey(programIdStr);
     const TOKEN = spl.TOKEN_PROGRAM_ID, TOKEN22 = spl.TOKEN_2022_PROGRAM_ID, NATIVE = spl.NATIVE_MINT;
@@ -25,6 +25,13 @@
     };
     const bidPda = (launch, bidder) => pda([enc.encode('bid'), launch.toBuffer(), bidder.toBuffer()]);
     const stakePda = (launch, owner) => pda([enc.encode('stake'), launch.toBuffer(), owner.toBuffer()]);
+    const u32 = (v) => { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, v, true); return b; };
+    const configPda = () => pda([enc.encode('config')]);
+    const epochPda = (launch, epoch) => pda([enc.encode('epoch'), launch.toBuffer(), u32(epoch)]);
+    const traderPda = (launch, trader, epoch) => pda([enc.encode('trader'), launch.toBuffer(), trader.toBuffer(), u32(epoch)]);
+    const EPOCH_SECS = opts.epochSecs || 7 * 24 * 3600;
+    const epochOf = (l, now = Math.floor(Date.now() / 1000)) => Math.max(0, Math.floor((now - l.settleTs) / EPOCH_SECS));
+    const epochEnd = (l, epoch) => l.settleTs + (epoch + 1) * EPOCH_SECS;
     // Civic gateway: pass account for a wallet on a gatekeeper network
     const GATEWAY = new PublicKey('gatem74V238djXdzWnJf94Wo1DcnuGkfijbf3AuBhfs');
     const UNIQUENESS = new PublicKey('uniqobk8oGh4XBLMqM68K8M2zNu3CdYX7q5go7whQiv');
@@ -97,13 +104,20 @@
         meta(bidder, true, true), meta(k.launch), meta(bidPda(k.launch, bidder), false, true), meta(pairMint), meta(k.escrow, false, true),
         meta(ata(pairMint, bidder, pairProg), false, true), meta(k.vault, false, true), meta(ata(mint, bidder), false, true), meta(TOKEN), meta(pairProg)] });
     }
-    async function ixSwap({ trader, mint, pairMint, pairProg, pairForTokens, amountIn, minOut }) {
+    async function ixSwap({ trader, mint, pairMint, pairProg, pairForTokens, amountIn, minOut, epoch = 0, gatewayToken = null }) {
       const k = seedsFor(mint);
-      const data = concat(await disc(pairForTokens ? 'swap_pair_for_tokens' : 'swap_tokens_for_pair'), u64(amountIn), u64(minOut));
+      const data = concat(await disc(pairForTokens ? 'swap_pair_for_tokens' : 'swap_tokens_for_pair'), u64(amountIn), u64(minOut), u32(epoch));
       return new TransactionInstruction({ programId: PROGRAM_ID, data, keys: [
         meta(trader, true, true), meta(k.launch, false, true), meta(pairMint), meta(k.pool, false, true), meta(k.fees, false, true), meta(k.vault, false, true),
-        meta(ata(mint, trader), false, true), meta(ata(pairMint, trader, pairProg), false, true), meta(TOKEN), meta(pairProg)] });
+        meta(ata(mint, trader), false, true), meta(ata(pairMint, trader, pairProg), false, true), meta(TOKEN), meta(pairProg),
+        meta(epochPda(k.launch, epoch), false, true), meta(traderPda(k.launch, trader, epoch), false, true), meta(SystemProgram.programId), meta(gatewayToken || PROGRAM_ID)] });
     }
+    async function ixInitConfig({ admin, treasury }) { return new TransactionInstruction({ programId: PROGRAM_ID, data: concat(await disc('init_config'), treasury.toBytes()), keys: [meta(admin, true, true), meta(configPda(), false, true), meta(SystemProgram.programId)] }); }
+    async function ixSetConfig({ authority, treasury, rsrctMint }) { return new TransactionInstruction({ programId: PROGRAM_ID, data: concat(await disc('set_config'), treasury.toBytes(), rsrctMint.toBytes()), keys: [meta(authority, true, false), meta(configPda(), false, true)] }); }
+    async function ixCollectTreasury({ mint, pairMint, pairProg, treasury }) { const k = seedsFor(mint); return new TransactionInstruction({ programId: PROGRAM_ID, data: await disc('collect_treasury'), keys: [meta(configPda()), meta(k.launch, false, true), meta(pairMint), meta(k.fees, false, true), meta(ata(pairMint, treasury, pairProg), false, true), meta(pairProg)] }); }
+    async function ixBuybackAndBurn({ mint, pairMint, pairProg, rsrctMint }) { const k = seedsFor(mint), r = seedsFor(rsrctMint); return new TransactionInstruction({ programId: PROGRAM_ID, data: await disc('buyback_and_burn'), keys: [meta(configPda()), meta(k.launch, false, true), meta(pairMint), meta(k.fees, false, true), meta(r.launch, false, true), meta(rsrctMint, false, true), meta(r.vault, false, true), meta(r.pool, false, true), meta(r.fees, false, true), meta(TOKEN), meta(pairProg)] }); }
+    async function ixClaimTraderReward({ trader, mint, pairMint, pairProg, epoch }) { const k = seedsFor(mint); return new TransactionInstruction({ programId: PROGRAM_ID, data: concat(await disc('claim_trader_reward'), u32(epoch)), keys: [meta(trader, true, true), meta(k.launch, false, true), meta(epochPda(k.launch, epoch), false, true), meta(traderPda(k.launch, trader, epoch), false, true), meta(pairMint), meta(k.fees, false, true), meta(ata(pairMint, trader, pairProg), false, true), meta(pairProg)] }); }
+    async function ixSweepEpoch({ mint, epoch }) { const k = seedsFor(mint); return new TransactionInstruction({ programId: PROGRAM_ID, data: concat(await disc('sweep_epoch'), u32(epoch)), keys: [meta(k.launch, false, true), meta(epochPda(k.launch, epoch), false, true)] }); }
     async function ixClaimCreatorFees({ creator, mint, pairMint, pairProg }) {
       const k = seedsFor(mint);
       return new TransactionInstruction({ programId: PROGRAM_ID, data: await disc('claim_creator_fees'), keys: [
@@ -111,19 +125,27 @@
     }
 
     // ---- decoding ----
-    const rd = (buf) => { let o = 8; const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength); return {
-      pk: () => { const p = new PublicKey(buf.slice(o, o + 32)); o += 32; return p; },
-      str: () => { const n = dv.getUint32(o, true); o += 4; const s = new TextDecoder().decode(buf.slice(o, o + n)); o += n; return s; },
-      i64: () => { const v = dv.getBigInt64(o, true); o += 8; return v; }, u64: () => { const v = dv.getBigUint64(o, true); o += 8; return v; },
-      u128: () => { const lo = dv.getBigUint64(o, true), hi = dv.getBigUint64(o + 8, true); o += 16; return (hi << 64n) | lo; },
-      u16: () => { const v = dv.getUint16(o, true); o += 2; return v; }, u32: () => { const v = dv.getUint32(o, true); o += 4; return v; },
-      u8: () => buf[o++], bool: () => !!buf[o++], bytes: (n) => { const b = buf.slice(o, o + n); o += n; return b; } }; };
+    // tolerant reader: accounts written by an older program version are shorter — missing fields read as zero
+    const rd = (buf) => { let o = 8; const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength); const ok = (n) => o + n <= buf.byteLength; return {
+      pk: () => { if (!ok(32)) { return PublicKey.default; } const p = new PublicKey(buf.slice(o, o + 32)); o += 32; return p; },
+      str: () => { if (!ok(4)) return ''; const n = dv.getUint32(o, true); o += 4; const s = new TextDecoder().decode(buf.slice(o, o + n)); o += n; return s; },
+      i64: () => { if (!ok(8)) return 0n; const v = dv.getBigInt64(o, true); o += 8; return v; }, u64: () => { if (!ok(8)) return 0n; const v = dv.getBigUint64(o, true); o += 8; return v; },
+      u128: () => { if (!ok(16)) return 0n; const lo = dv.getBigUint64(o, true), hi = dv.getBigUint64(o + 8, true); o += 16; return (hi << 64n) | lo; },
+      u16: () => { if (!ok(2)) return 0; const v = dv.getUint16(o, true); o += 2; return v; }, u32: () => { if (!ok(4)) return 0; const v = dv.getUint32(o, true); o += 4; return v; },
+      u8: () => ok(1) ? buf[o++] : 0, bool: () => ok(1) ? !!buf[o++] : false, bytes: (n) => { const b = buf.slice(o, o + n); o += n; return b; } }; };
     function decodeLaunch(buf) { const r = rd(buf); return {
       creator: r.pk(), mint: r.pk(), vault: r.pk(), pairMint: r.pk(), pairTokenProgram: r.pk(), escrow: r.pk(), poolPairAccount: r.pk(), feeVault: r.pk(),
       name: r.str(), symbol: r.str(), startTs: Number(r.i64()), endTs: Number(r.i64()), revealEndTs: Number(r.i64()),
       creatorFeeBps: r.u16(), pairDecimals: r.u8(), minBid: r.u64(), bids: r.u32(), revealed: r.u32(), totalRevealed: r.u64(), clearingPriceQ32: r.u128(),
       settled: r.bool(), poolPair: r.u64(), poolTokens: r.u64(), feesAccrued: r.u64(), creatorFeesOwed: r.u64(), creatorFeesClaimed: r.u64(),
-      requireHuman: r.bool(), gatekeeperNetwork: r.pk(), stakeVault: r.pk(), totalStaked: r.u64(), rewardIndex: r.u128(), rewardsPending: r.u64(), rewardsDistributed: r.u64(), bump: r.u8() }; }
+      requireHuman: r.bool(), gatekeeperNetwork: r.pk(), stakeVault: r.pk(), totalStaked: r.u64(), rewardIndex: r.u128(), rewardsPending: r.u64(), rewardsDistributed: r.u64(),
+      settleTs: Number(r.i64()), buybackAccrued: r.u64(), buybackTotal: r.u64(), traderAccrued: r.u64(), traderTotal: r.u64(), treasuryOwed: r.u64(), treasuryTotal: r.u64(), burned: r.u64(), bump: r.u8() }; }
+    function decodeConfig(buf) { const r = rd(buf); return { authority: r.pk(), treasury: r.pk(), rsrctMint: r.pk(), bump: r.u8() }; }
+    function decodeEpoch(buf) { const r = rd(buf); return { launch: r.pk(), epoch: r.u32(), pool: r.u64(), volume: r.u64(), claimed: r.u64(), swept: r.bool(), bump: r.u8() }; }
+    function decodeTrader(buf) { const r = rd(buf); return { launch: r.pk(), trader: r.pk(), epoch: r.u32(), volume: r.u64(), rawVolume: r.u64(), claimed: r.bool(), paid: r.u64(), bump: r.u8() }; }
+    async function fetchConfig(connection) { const a = await connection.getAccountInfo(configPda()); return a ? decodeConfig(new Uint8Array(a.data)) : null; }
+    async function fetchEpoch(connection, mint, epoch) { const k = seedsFor(mint); const a = await connection.getAccountInfo(epochPda(k.launch, epoch)); return a ? decodeEpoch(new Uint8Array(a.data)) : null; }
+    async function fetchTrader(connection, mint, trader, epoch) { const k = seedsFor(mint); const a = await connection.getAccountInfo(traderPda(k.launch, trader, epoch)); return a ? decodeTrader(new Uint8Array(a.data)) : null; }
     function decodeStake(buf) { const r = rd(buf); return { launch: r.pk(), owner: r.pk(), amount: r.u64(), index: r.u128(), owed: r.u64(), claimed: r.u64(), bump: r.u8() }; }
     async function fetchStake(connection, mint, owner) { const k = seedsFor(mint); const a = await connection.getAccountInfo(stakePda(k.launch, owner)); return a ? decodeStake(new Uint8Array(a.data)) : null; }
     /// pending rewards for a stake given the current launch state (same math as the program)
@@ -155,8 +177,8 @@
       ] };
     }
     const priceFromQ32 = (q) => Number(q) / 2 ** 32; // pair base units per token base unit
-    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, GATEWAY, UNIQUENESS, seedsFor, bidPda, stakePda, gatewayTokenPda, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
-      ixCreateLaunch, ixCommitBid, ixRevealBid, ixSettle, ixClaim, ixSwap, ixClaimCreatorFees, ixStake, ixClaimRewards,
-      decodeLaunch, decodeBid, decodeStake, fetchLaunches, fetchLaunch, fetchBid, fetchStake, pendingRewards, hasHumanPass, ixsCreateFixedMint, SUPPLY, priceFromQ32, randomSalt: () => globalThis.crypto.getRandomValues(new Uint8Array(32)) };
+    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, GATEWAY, UNIQUENESS, EPOCH_SECS, seedsFor, bidPda, stakePda, configPda, epochPda, traderPda, gatewayTokenPda, epochOf, epochEnd, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
+      ixCreateLaunch, ixCommitBid, ixRevealBid, ixSettle, ixClaim, ixSwap, ixClaimCreatorFees, ixStake, ixClaimRewards, ixInitConfig, ixSetConfig, ixCollectTreasury, ixBuybackAndBurn, ixClaimTraderReward, ixSweepEpoch,
+      decodeLaunch, decodeBid, decodeStake, decodeConfig, decodeEpoch, decodeTrader, fetchLaunches, fetchLaunch, fetchBid, fetchStake, fetchConfig, fetchEpoch, fetchTrader, pendingRewards, hasHumanPass, ixsCreateFixedMint, SUPPLY, priceFromQ32, randomSalt: () => globalThis.crypto.getRandomValues(new Uint8Array(32)) };
   };
 });

@@ -15,7 +15,9 @@
 //!                     by the program. There is no withdraw instruction: liquidity cannot be pulled.
 //!   claim          -> bidder receives tokens + refund of escrow above their bid
 //!   swap           -> trade against the pool, 1% fee (in the pair asset) accrues to the fee vault
-//!   claim_creator_fees -> creator pulls their share of accrued fees; the rest goes to holders
+//!   Fee split of every swap fee: 35% staked holders · 25% RSRCT buyback & burn (on chain, through the RSRCT pool)
+//!   · 20% verified traders (weekly, pro-rata by volume) · 0–10% creator · 10% treasury. Creator's unused share → holders.
+//!   claim_creator_fees / collect_treasury / buyback_and_burn / claim_trader_reward / sweep_epoch move each share out.
 //!   stake / unstake / claim_rewards -> holders deposit launch tokens (no lockup, no fee) and earn the holder
 //!                     share of every swap fee, paid in the pair asset, pull-based
 //!   Launches may require a Civic "Uniqueness" pass (one per human) to bid: one human, one wallet, one bid.
@@ -34,7 +36,17 @@ pub const FEE_BPS: u64 = 100;                  // 1% swap fee
 #[cfg(not(feature = "mainnet"))] pub const MIN_BATCH_SECS: i64 = 60; // devnet: short batches for testing
 pub const MAX_BATCH_SECS: i64 = 15 * 60;
 pub const REVEAL_SECS: i64 = 10 * 60;
-pub const MAX_CREATOR_FEE_BPS: u16 = 2_000;    // creator may take at most 20% of fees
+pub const MAX_CREATOR_FEE_BPS: u16 = 1_000;    // creator may take at most 10% of fees
+/// Fee split (basis points of every swap fee). Creator takes 0–10%; whatever the creator leaves on the table goes to holders.
+pub const HOLDER_BPS: u64 = 3_500;    // staked holders, pull-based, paid in the pair asset
+pub const BUYBACK_BPS: u64 = 2_500;   // RSRCT buyback & burn, executed on chain through the RSRCT pool
+pub const TRADER_BPS: u64 = 2_000;    // verified traders, pro-rata by weekly volume
+pub const TREASURY_BPS: u64 = 1_000;  // audits, infra
+#[cfg(not(feature = "localtest"))] pub const EPOCH_SECS: i64 = 7 * 24 * 3600;
+#[cfg(feature = "localtest")] pub const EPOCH_SECS: i64 = 90;
+/// Who may initialise/update the global config (treasury wallet, RSRCT mint). Replace for mainnet.
+#[cfg(not(feature = "localtest"))] pub const ADMIN: Pubkey = anchor_lang::solana_program::pubkey!("HEtZUFGTduAwAq5nuMjkSpYn1zMXNPNtDAEi2tnW5S7X");
+#[cfg(feature = "localtest")] pub const ADMIN: Pubkey = anchor_lang::solana_program::pubkey!("49vFcHtckto46AnhrhtjjDftN9UBLSSuB2YhoQT5PERb");
 /// Civic Gateway program — proof-of-personhood passes live here
 pub const GATEWAY_PROGRAM: Pubkey = anchor_lang::solana_program::pubkey!("gatem74V238djXdzWnJf94Wo1DcnuGkfijbf3AuBhfs");
 /// Civic "Uniqueness" gatekeeper network: one pass per human (same key on devnet and mainnet)
@@ -103,6 +115,7 @@ pub mod resurrect {
         l.reward_index = 0;
         l.rewards_pending = 0;
         l.rewards_distributed = 0;
+        l.settle_ts = 0; l.buyback_accrued = 0; l.buyback_total = 0; l.trader_accrued = 0; l.trader_total = 0; l.treasury_owed = 0; l.treasury_total = 0; l.burned = 0;
         l.bump = ctx.bumps.launch;
         emit!(LaunchCreated { launch: l.key(), mint: l.mint, pair_mint: l.pair_mint, end_ts: l.end_ts });
         Ok(())
@@ -180,6 +193,7 @@ pub mod resurrect {
             &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.launch.to_account_info(), raised, l.pair_decimals, Some(seeds))?;
         let l = &mut ctx.accounts.launch;
         l.clearing_price_q32 = price_q32;
+        l.settle_ts = Clock::get()?.unix_timestamp;
         l.pool_pair = raised;
         l.pool_tokens = pool_tokens;
         l.settled = true;
@@ -214,7 +228,7 @@ pub mod resurrect {
     }
 
     /// Buy tokens with the pair asset from the sealed pool. 1% fee on the pair side accrues to the fee vault.
-    pub fn swap_pair_for_tokens(ctx: Context<Swap>, pair_in: u64, min_tokens_out: u64) -> Result<()> {
+    pub fn swap_pair_for_tokens(mut ctx: Context<Swap>, pair_in: u64, min_tokens_out: u64, _epoch: u32) -> Result<()> {
         let l = &ctx.accounts.launch;
         require!(l.settled && l.pool_tokens > 0, ErrorCode::NotSettled);
         require!(pair_in > 0, ErrorCode::BadParams);
@@ -236,16 +250,16 @@ pub mod resurrect {
                 from: ctx.accounts.vault.to_account_info(), to: ctx.accounts.trader_token.to_account_info(),
                 authority: ctx.accounts.launch.to_account_info(),
             }, &[seeds]), out)?;
+        after_swap(&mut ctx, fee, net, _epoch)?;
         let l = &mut ctx.accounts.launch;
         l.pool_pair += net;
         l.pool_tokens -= out;
-        accrue_fee(l, fee)?;
         emit!(Swapped { launch: l.key(), trader: ctx.accounts.trader.key(), pair_in, tokens_out: out, tokens_in: 0, pair_out: 0 });
         Ok(())
     }
 
     /// Sell tokens to the pool for the pair asset. 1% fee on the pair side.
-    pub fn swap_tokens_for_pair(ctx: Context<Swap>, tokens_in: u64, min_pair_out: u64) -> Result<()> {
+    pub fn swap_tokens_for_pair(mut ctx: Context<Swap>, tokens_in: u64, min_pair_out: u64, _epoch: u32) -> Result<()> {
         let l = &ctx.accounts.launch;
         require!(l.settled && l.pool_tokens > 0, ErrorCode::NotSettled);
         require!(tokens_in > 0, ErrorCode::BadParams);
@@ -264,10 +278,10 @@ pub mod resurrect {
             &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.launch.to_account_info(), out, dec, Some(seeds))?;
         pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.pool_pair.to_account_info(), &ctx.accounts.fee_vault.to_account_info(),
             &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.launch.to_account_info(), fee, dec, Some(seeds))?;
+        after_swap(&mut ctx, fee, gross, _epoch)?;
         let l = &mut ctx.accounts.launch;
         l.pool_pair -= gross;
         l.pool_tokens += tokens_in;
-        accrue_fee(l, fee)?;
         emit!(Swapped { launch: l.key(), trader: ctx.accounts.trader.key(), pair_in: 0, tokens_out: 0, tokens_in, pair_out: out });
         Ok(())
     }
@@ -285,6 +299,74 @@ pub mod resurrect {
         l.creator_fees_owed = 0;
         l.creator_fees_claimed += owed;
         Ok(())
+    }
+
+
+    /// One-time global config: treasury wallet and (later) the RSRCT mint. Admin only.
+    pub fn init_config(ctx: Context<InitConfig>, treasury: Pubkey) -> Result<()> {
+        let c = &mut ctx.accounts.config;
+        c.authority = ctx.accounts.admin.key(); c.treasury = treasury; c.rsrct_mint = Pubkey::default(); c.bump = ctx.bumps.config; Ok(())
+    }
+    pub fn set_config(ctx: Context<SetConfig>, treasury: Pubkey, rsrct_mint: Pubkey) -> Result<()> {
+        let c = &mut ctx.accounts.config; c.treasury = treasury; c.rsrct_mint = rsrct_mint; Ok(())
+    }
+
+    /// Anyone: move the treasury share accrued on this launch to the treasury wallet's token account.
+    pub fn collect_treasury(ctx: Context<CollectTreasury>) -> Result<()> {
+        let l = &ctx.accounts.launch; let owed = l.treasury_owed; require!(owed > 0, ErrorCode::NothingToClaim);
+        let (mint_key, bump, dec) = (l.mint, l.bump, l.pair_decimals); let seeds: &[&[u8]] = &[b"launch", mint_key.as_ref(), &[bump]];
+        pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.fee_vault.to_account_info(), &ctx.accounts.treasury_pair.to_account_info(),
+            &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.launch.to_account_info(), owed, dec, Some(seeds))?;
+        let l = &mut ctx.accounts.launch; l.treasury_owed = 0; l.treasury_total += owed; Ok(())
+    }
+
+    /// Anyone: spend this launch's accrued buyback share on RSRCT through the RSRCT launch's own pool, and burn what comes out.
+    /// Works when the RSRCT launch is paired with the same asset as this launch. Until RSRCT exists the share simply accrues.
+    pub fn buyback_and_burn(ctx: Context<BuybackAndBurn>) -> Result<()> {
+        let src = &ctx.accounts.launch; let r = &ctx.accounts.rsrct_launch;
+        require!(ctx.accounts.config.rsrct_mint != Pubkey::default() && r.mint == ctx.accounts.config.rsrct_mint, ErrorCode::NoRsrct);
+        require!(r.pair_mint == src.pair_mint && r.settled && r.pool_tokens > 0, ErrorCode::BadParams);
+        let amount = src.buyback_accrued; require!(amount > 0, ErrorCode::NothingToClaim);
+        // swap through the RSRCT pool exactly like a trader would (1% fee to the RSRCT launch), then burn the output
+        let fee = amount * FEE_BPS / 10_000; let net = amount - fee;
+        let out = cp_out(net as u128, r.pool_pair as u128, r.pool_tokens as u128); require!(out > 0, ErrorCode::Slippage);
+        let dec = src.pair_decimals; let (sm, sb) = (src.mint, src.bump); let sseeds: &[&[u8]] = &[b"launch", sm.as_ref(), &[sb]];
+        pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.fee_vault.to_account_info(), &ctx.accounts.rsrct_pool_pair.to_account_info(),
+            &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.launch.to_account_info(), net, dec, Some(sseeds))?;
+        pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.fee_vault.to_account_info(), &ctx.accounts.rsrct_fee_vault.to_account_info(),
+            &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.launch.to_account_info(), fee, dec, Some(sseeds))?;
+        let (rm, rb) = (r.mint, r.bump); let rseeds: &[&[u8]] = &[b"launch", rm.as_ref(), &[rb]];
+        token::burn(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), token::Burn {
+            mint: ctx.accounts.rsrct_mint.to_account_info(), from: ctx.accounts.rsrct_vault.to_account_info(), authority: ctx.accounts.rsrct_launch.to_account_info() }, &[rseeds]), out)?;
+        let src = &mut ctx.accounts.launch; src.buyback_accrued = 0; src.buyback_total += amount;
+        let r = &mut ctx.accounts.rsrct_launch; r.pool_pair += net; r.pool_tokens -= out; r.burned += out; accrue_fee(r, fee)?;
+        emit!(Burned { launch: src.key(), pair_spent: amount, rsrct_burned: out });
+        Ok(())
+    }
+
+    /// Verified trader claims their share of an ended weekly epoch's trader pool: pool × my_volume ÷ epoch_volume.
+    pub fn claim_trader_reward(ctx: Context<ClaimTraderReward>, epoch: u32) -> Result<()> {
+        let l = &ctx.accounts.launch; let now = Clock::get()?.unix_timestamp;
+        require!(now >= epoch_end(l, epoch), ErrorCode::EpochOpen);
+        let e = &ctx.accounts.epoch_record; let t = &ctx.accounts.trader_stats;
+        require!(!t.claimed && t.volume > 0 && e.volume > 0, ErrorCode::NothingToClaim);
+        let share = ((e.pool as u128) * (t.volume as u128) / (e.volume as u128)) as u64; require!(share > 0, ErrorCode::NothingToClaim);
+        let (mint_key, bump, dec) = (l.mint, l.bump, l.pair_decimals); let seeds: &[&[u8]] = &[b"launch", mint_key.as_ref(), &[bump]];
+        pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.fee_vault.to_account_info(), &ctx.accounts.trader_pair.to_account_info(),
+            &ctx.accounts.pair_mint.to_account_info(), &ctx.accounts.launch.to_account_info(), share, dec, Some(seeds))?;
+        let t = &mut ctx.accounts.trader_stats; t.claimed = true; t.paid = share;
+        let e = &mut ctx.accounts.epoch_record; e.claimed += share;
+        let l = &mut ctx.accounts.launch; l.trader_total += share;
+        Ok(())
+    }
+
+    /// If an ended epoch had a trader pool but no verified volume, hand the pool to staked holders instead of leaving it stuck.
+    pub fn sweep_epoch(ctx: Context<SweepEpoch>, epoch: u32) -> Result<()> {
+        let l = &ctx.accounts.launch; let now = Clock::get()?.unix_timestamp;
+        require!(now >= epoch_end(l, epoch), ErrorCode::EpochOpen);
+        let e = &mut ctx.accounts.epoch_record; require!(e.volume == 0 && e.pool > 0 && !e.swept, ErrorCode::NothingToClaim);
+        let p = e.pool; e.swept = true;
+        let l = &mut ctx.accounts.launch; route_to_holders(l, p)?; Ok(())
     }
 
     /// Deposit launch tokens into the rewards vault to earn the holder share of swap fees (paid in the pair asset).
@@ -347,11 +429,47 @@ pub mod resurrect {
 
 fn accrue_fee(l: &mut Launch, fee: u64) -> Result<()> {
     l.fees_accrued = l.fees_accrued.checked_add(fee).ok_or(ErrorCode::Overflow)?;
-    let creator_cut = (fee as u128 * l.creator_fee_bps as u128 / 10_000) as u64;
-    l.creator_fees_owed = l.creator_fees_owed.checked_add(creator_cut).ok_or(ErrorCode::Overflow)?;
-    let holders = fee - creator_cut;
-    if l.total_staked > 0 { l.reward_index += ((holders as u128) << 64) / l.total_staked as u128; }
-    else { l.rewards_pending = l.rewards_pending.checked_add(holders).ok_or(ErrorCode::Overflow)?; }
+    let f = fee as u128;
+    let creator = (f * l.creator_fee_bps as u128 / 10_000) as u64;
+    let buyback = (f * BUYBACK_BPS as u128 / 10_000) as u64;
+    let traders = (f * TRADER_BPS as u128 / 10_000) as u64;
+    let treasury = (f * TREASURY_BPS as u128 / 10_000) as u64;
+    let holders = fee - creator - buyback - traders - treasury; // 35% + whatever the creator left of their 10%, plus rounding dust
+    l.creator_fees_owed = l.creator_fees_owed.checked_add(creator).ok_or(ErrorCode::Overflow)?;
+    l.buyback_accrued = l.buyback_accrued.checked_add(buyback).ok_or(ErrorCode::Overflow)?;
+    l.trader_accrued = l.trader_accrued.checked_add(traders).ok_or(ErrorCode::Overflow)?;
+    l.treasury_owed = l.treasury_owed.checked_add(treasury).ok_or(ErrorCode::Overflow)?;
+    route_to_holders(l, holders)
+}
+
+fn route_to_holders(l: &mut Launch, amount: u64) -> Result<()> {
+    if l.total_staked > 0 { l.reward_index += ((amount as u128) << 64) / l.total_staked as u128; }
+    else { l.rewards_pending = l.rewards_pending.checked_add(amount).ok_or(ErrorCode::Overflow)?; }
+    Ok(())
+}
+
+fn epoch_of(l: &Launch, now: i64) -> u32 { ((now - l.settle_ts).max(0) / EPOCH_SECS) as u32 }
+fn epoch_end(l: &Launch, epoch: u32) -> i64 { l.settle_ts + (epoch as i64 + 1) * EPOCH_SECS }
+
+/// Fee split + weekly trader accounting. The trader share of this fee lands in the current epoch's pool.
+/// Volume only counts toward the trader pool when the trader proves personhood (valid Civic pass passed in).
+fn after_swap(ctx: &mut Context<Swap>, fee: u64, volume: u64, epoch_arg: u32) -> Result<()> {
+    let now = Clock::get()?.unix_timestamp;
+    require!(epoch_arg == epoch_of(&ctx.accounts.launch, now), ErrorCode::WrongEpoch);
+    let before = ctx.accounts.launch.trader_accrued;
+    accrue_fee(&mut ctx.accounts.launch, fee)?;
+    let added = ctx.accounts.launch.trader_accrued - before;
+    let l = &ctx.accounts.launch; let ep = epoch_of(l, now);
+    let e = &mut ctx.accounts.epoch_record;
+    if e.launch == Pubkey::default() { e.launch = l.key(); e.epoch = ep; e.bump = ctx.bumps.epoch_record; }
+    require!(e.epoch == ep, ErrorCode::WrongEpoch);
+    e.pool = e.pool.checked_add(added).ok_or(ErrorCode::Overflow)?;
+    let verified = match ctx.accounts.gateway_token.as_ref() { Some(gt) => verify_human(gt, &ctx.accounts.trader.key(), &l.gatekeeper_network, now).is_ok(), None => false };
+    let t = &mut ctx.accounts.trader_stats;
+    if t.trader == Pubkey::default() { t.launch = l.key(); t.trader = ctx.accounts.trader.key(); t.epoch = ep; t.bump = ctx.bumps.trader_stats; }
+    require!(t.epoch == ep, ErrorCode::WrongEpoch);
+    if verified { t.volume = t.volume.checked_add(volume).ok_or(ErrorCode::Overflow)?; e.volume = e.volume.checked_add(volume).ok_or(ErrorCode::Overflow)?; }
+    t.raw_volume = t.raw_volume.checked_add(volume).ok_or(ErrorCode::Overflow)?;
     Ok(())
 }
 
@@ -459,8 +577,28 @@ pub struct Launch {
     pub reward_index: u128,      // pair base units per staked base unit, Q64
     pub rewards_pending: u64,    // holder share accrued while nobody was staked
     pub rewards_distributed: u64,
+    pub settle_ts: i64,          // epoch origin for trader rewards
+    pub buyback_accrued: u64,    // waiting to be spent on RSRCT
+    pub buyback_total: u64,
+    pub trader_accrued: u64,     // lifetime trader share accrued (per-epoch pools live in EpochRecord)
+    pub trader_total: u64,       // paid out to traders
+    pub treasury_owed: u64,
+    pub treasury_total: u64,
+    pub burned: u64,             // RSRCT launch only: tokens burned by buybacks
     pub bump: u8,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct Config { pub authority: Pubkey, pub treasury: Pubkey, pub rsrct_mint: Pubkey, pub bump: u8 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct EpochRecord { pub launch: Pubkey, pub epoch: u32, pub pool: u64, pub volume: u64, pub claimed: u64, pub swept: bool, pub bump: u8 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct TraderStats { pub launch: Pubkey, pub trader: Pubkey, pub epoch: u32, pub volume: u64, pub raw_volume: u64, pub claimed: bool, pub paid: u64, pub bump: u8 }
 
 #[account]
 #[derive(InitSpace)]
@@ -620,6 +758,7 @@ pub struct Claim<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(amount: u64, min_out: u64, epoch: u32)]
 pub struct Swap<'info> {
     #[account(mut)]
     pub trader: Signer<'info>,
@@ -640,6 +779,96 @@ pub struct Swap<'info> {
     pub token_program: Program<'info, Token>,
     #[account(address = launch.pair_token_program)]
     pub pair_token_program: Interface<'info, TokenInterface>,
+    /// current weekly epoch (client passes epoch = floor((now - settle_ts) / 7d))
+    #[account(init_if_needed, payer = trader, space = 8 + EpochRecord::INIT_SPACE, seeds = [b"epoch", launch.key().as_ref(), &epoch.to_le_bytes()], bump)]
+    pub epoch_record: Box<Account<'info, EpochRecord>>,
+    #[account(init_if_needed, payer = trader, space = 8 + TraderStats::INIT_SPACE, seeds = [b"trader", launch.key().as_ref(), trader.key().as_ref(), &epoch.to_le_bytes()], bump)]
+    pub trader_stats: Box<Account<'info, TraderStats>>,
+    pub system_program: Program<'info, System>,
+    /// CHECK: optional Civic pass; if valid, this trader's volume counts toward the weekly trader pool
+    pub gateway_token: Option<UncheckedAccount<'info>>,
+}
+
+#[derive(Accounts)]
+pub struct InitConfig<'info> {
+    #[account(mut, address = ADMIN)]
+    pub admin: Signer<'info>,
+    #[account(init, payer = admin, space = 8 + Config::INIT_SPACE, seeds = [b"config"], bump)]
+    pub config: Account<'info, Config>,
+    pub system_program: Program<'info, System>,
+}
+#[derive(Accounts)]
+pub struct SetConfig<'info> {
+    pub authority: Signer<'info>,
+    #[account(mut, seeds = [b"config"], bump = config.bump, has_one = authority)]
+    pub config: Account<'info, Config>,
+}
+#[derive(Accounts)]
+pub struct CollectTreasury<'info> {
+    #[account(seeds = [b"config"], bump = config.bump)]
+    pub config: Box<Account<'info, Config>>,
+    #[account(mut, seeds = [b"launch", launch.mint.as_ref()], bump = launch.bump)]
+    pub launch: Box<Account<'info, Launch>>,
+    #[account(address = launch.pair_mint)]
+    pub pair_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(mut, address = launch.fee_vault)]
+    pub fee_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, constraint = treasury_pair.mint == launch.pair_mint && treasury_pair.owner == config.treasury)]
+    pub treasury_pair: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(address = launch.pair_token_program)]
+    pub pair_token_program: Interface<'info, TokenInterface>,
+}
+#[derive(Accounts)]
+pub struct BuybackAndBurn<'info> {
+    #[account(seeds = [b"config"], bump = config.bump)]
+    pub config: Box<Account<'info, Config>>,
+    #[account(mut, seeds = [b"launch", launch.mint.as_ref()], bump = launch.bump)]
+    pub launch: Box<Account<'info, Launch>>,
+    #[account(address = launch.pair_mint)]
+    pub pair_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(mut, address = launch.fee_vault)]
+    pub fee_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, seeds = [b"launch", rsrct_launch.mint.as_ref()], bump = rsrct_launch.bump, constraint = rsrct_launch.key() != launch.key())]
+    pub rsrct_launch: Box<Account<'info, Launch>>,
+    #[account(mut, address = rsrct_launch.mint)]
+    pub rsrct_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(mut, address = rsrct_launch.vault)]
+    pub rsrct_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, address = rsrct_launch.pool_pair_account)]
+    pub rsrct_pool_pair: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, address = rsrct_launch.fee_vault)]
+    pub rsrct_fee_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub token_program: Program<'info, Token>,
+    #[account(address = launch.pair_token_program)]
+    pub pair_token_program: Interface<'info, TokenInterface>,
+}
+#[derive(Accounts)]
+#[instruction(epoch: u32)]
+pub struct ClaimTraderReward<'info> {
+    #[account(mut)]
+    pub trader: Signer<'info>,
+    #[account(mut, seeds = [b"launch", launch.mint.as_ref()], bump = launch.bump)]
+    pub launch: Box<Account<'info, Launch>>,
+    #[account(mut, seeds = [b"epoch", launch.key().as_ref(), &epoch.to_le_bytes()], bump = epoch_record.bump)]
+    pub epoch_record: Box<Account<'info, EpochRecord>>,
+    #[account(mut, seeds = [b"trader", launch.key().as_ref(), trader.key().as_ref(), &epoch.to_le_bytes()], bump = trader_stats.bump)]
+    pub trader_stats: Box<Account<'info, TraderStats>>,
+    #[account(address = launch.pair_mint)]
+    pub pair_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(mut, address = launch.fee_vault)]
+    pub fee_vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, constraint = trader_pair.mint == launch.pair_mint && trader_pair.owner == trader.key())]
+    pub trader_pair: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(address = launch.pair_token_program)]
+    pub pair_token_program: Interface<'info, TokenInterface>,
+}
+#[derive(Accounts)]
+#[instruction(epoch: u32)]
+pub struct SweepEpoch<'info> {
+    #[account(mut, seeds = [b"launch", launch.mint.as_ref()], bump = launch.bump)]
+    pub launch: Box<Account<'info, Launch>>,
+    #[account(mut, seeds = [b"epoch", launch.key().as_ref(), &epoch.to_le_bytes()], bump = epoch_record.bump)]
+    pub epoch_record: Box<Account<'info, EpochRecord>>,
 }
 
 #[derive(Accounts)]
@@ -659,6 +888,7 @@ pub struct ClaimCreatorFees<'info> {
 
 #[event] pub struct LaunchCreated { pub launch: Pubkey, pub mint: Pubkey, pub pair_mint: Pubkey, pub end_ts: i64 }
 #[event] pub struct Settled { pub launch: Pubkey, pub clearing_price_q32: u128, pub raised: u64, pub pool_tokens: u64 }
+#[event] pub struct Burned { pub launch: Pubkey, pub pair_spent: u64, pub rsrct_burned: u64 }
 #[event] pub struct RewardsClaimed { pub launch: Pubkey, pub staker: Pubkey, pub amount: u64 }
 #[event] pub struct Swapped { pub launch: Pubkey, pub trader: Pubkey, pub pair_in: u64, pub tokens_out: u64, pub tokens_in: u64, pub pair_out: u64 }
 
@@ -685,4 +915,7 @@ pub enum ErrorCode {
     #[msg("pair mint could not be parsed")] BadPairMint,
     #[msg("pair asset uses a Token-2022 extension that is not supported (transfer fee, transfer hook, non-transferable or confidential)")] UnsupportedPairExtension,
     #[msg("fewer tokens arrived than expected")] TransferShortfall,
+    #[msg("RSRCT is not configured yet or this is not the RSRCT launch")] NoRsrct,
+    #[msg("epoch account does not match the current epoch")] WrongEpoch,
+    #[msg("epoch has not ended yet")] EpochOpen,
 }
