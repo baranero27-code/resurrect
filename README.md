@@ -8,13 +8,13 @@ Fair memecoin launches on Solana. No bots, no bundlers, no rugs, no insider KOLs
 ## What the program enforces
 | | |
 |---|---|
-| Launch | 15-minute **sealed batch** (commit–reveal). Everyone pays **one clearing price**. |
-| Bids | One bid per wallet. Optional **proof of personhood** (Civic Uniqueness pass, checked on chain) → one human, one wallet, one bid. |
+| Launch | **Auction**: 15-minute sealed batch (commit–reveal), everyone pays one clearing price, pool opens at that price. **Open**: plain bonding curve, trading from the first second, labelled as such. |
+| Bids (Auction) | One bid per wallet. Optional **proof of personhood** (Civic Uniqueness pass, checked on chain) → one human, one wallet, one bid. |
 | Supply | 1,000,000,000 fixed. Mint & freeze authority revoked before the launch is accepted. |
 | Creator | **0% allocation, no first buy.** Creator can only bid like everyone else. |
 | Pairing | Any SPL Token or Token-2022 asset: SOL, USDC, xStocks, Ondo, Sunrise, commodities — 2,400+ in the picker. |
-| Liquidity | 20% of supply + everything raised → constant-product pool **owned by the program. No withdraw instruction exists.** |
-| Fees | 1% per swap, in the pairing asset. Creator share ≤ 20%; the rest goes to holders who stake (no lockup, no fee). |
+| Liquidity | Auction: 50% of supply + everything raised → constant-product pool **owned by the program. No withdraw instruction exists.** Open: whole supply on the curve, virtual reserve never paid out. Optional **Raydium** venue: pool graduates to Raydium with the LP burned. |
+| Fees | 1% per swap, in the pairing asset, split on chain: 35% staked holders (+ unused creator share) · 25% RSRCT buyback & burn · 20% verified traders (weekly) · 0–10% creator · 10% treasury. |
 
 ## Repo layout
 ```
