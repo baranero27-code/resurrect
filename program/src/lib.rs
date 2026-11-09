@@ -20,6 +20,9 @@
 //!   claim_creator_fees / collect_treasury / buyback_and_burn / claim_trader_reward / sweep_epoch move each share out.
 //!   stake / unstake / claim_rewards -> holders deposit launch tokens (no lockup, no fee) and earn the holder
 //!                     share of every swap fee, paid in the pair asset, pull-based
+//!   Two launch modes: AUCTION (everything above) and OPEN — a plain bonding curve (constant product with a virtual pair
+//!   reserve), instant trading from creation, no gates. Both share: fixed supply, 0% creator allocation, program-owned pool
+//!   with no withdraw path, the same fee split. The curve's virtual reserve can never be paid out.
 //!   Launches may require a Civic "Uniqueness" pass (one per human) to bid: one human, one wallet, one bid.
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::hash::hashv;
@@ -44,6 +47,12 @@ pub const TRADER_BPS: u64 = 2_000;    // verified traders, pro-rata by weekly vo
 pub const TREASURY_BPS: u64 = 1_000;  // audits, infra
 #[cfg(not(feature = "localtest"))] pub const EPOCH_SECS: i64 = 7 * 24 * 3600;
 #[cfg(feature = "localtest")] pub const EPOCH_SECS: i64 = 90;
+/// Launch modes
+pub const MODE_AUCTION: u8 = 0; // sealed batch, one clearing price, proof of personhood optional
+pub const MODE_OPEN: u8 = 1;    // plain bonding curve: instant trading from creation, no gates, no caps
+/// Open mode: bounds on the creator-chosen virtual pair reserve (sets the starting price): 10 .. 100,000 units of the pair asset
+pub const MIN_VIRTUAL_UNITS: u64 = 10;
+pub const MAX_VIRTUAL_UNITS: u64 = 100_000;
 /// Who may initialise/update the global config (treasury wallet, RSRCT mint). Replace for mainnet.
 #[cfg(not(feature = "localtest"))] pub const ADMIN: Pubkey = anchor_lang::solana_program::pubkey!("HEtZUFGTduAwAq5nuMjkSpYn1zMXNPNtDAEi2tnW5S7X");
 #[cfg(feature = "localtest")] pub const ADMIN: Pubkey = anchor_lang::solana_program::pubkey!("49vFcHtckto46AnhrhtjjDftN9UBLSSuB2YhoQT5PERb");
@@ -56,7 +65,8 @@ pub const UNIQUENESS_NETWORK: Pubkey = anchor_lang::solana_program::pubkey!("uni
 pub mod resurrect {
     use super::*;
 
-    pub fn create_launch(ctx: Context<CreateLaunch>, name: String, symbol: String, batch_secs: i64, creator_fee_bps: u16, require_human: bool) -> Result<()> {
+    pub fn create_launch(ctx: Context<CreateLaunch>, name: String, symbol: String, batch_secs: i64, creator_fee_bps: u16, require_human: bool, mode: u8, virtual_pair: u64) -> Result<()> {
+        require!(mode == MODE_AUCTION || mode == MODE_OPEN, ErrorCode::BadParams);
         require!(name.len() <= 32 && symbol.len() >= 1 && symbol.len() <= 10, ErrorCode::BadParams);
         require!(batch_secs >= MIN_BATCH_SECS && batch_secs <= MAX_BATCH_SECS, ErrorCode::BadParams);
         require!(creator_fee_bps <= MAX_CREATOR_FEE_BPS, ErrorCode::BadParams);
@@ -108,14 +118,25 @@ pub mod resurrect {
         l.fees_accrued = 0;
         l.creator_fees_owed = 0;
         l.creator_fees_claimed = 0;
-        l.require_human = require_human;
+        l.require_human = require_human && mode == MODE_AUCTION;
+        l.mode = mode;
+        l.virtual_pair = 0;
+        if mode == MODE_OPEN {
+            // plain curve: the whole supply sits on a constant-product curve with a virtual pair reserve; trading starts now
+            let unit = 10u64.pow(pair.decimals as u32);
+            require!(virtual_pair >= MIN_VIRTUAL_UNITS.saturating_mul(unit) && virtual_pair <= MAX_VIRTUAL_UNITS.saturating_mul(unit), ErrorCode::BadParams);
+            l.virtual_pair = virtual_pair;
+            l.end_ts = now; l.reveal_end_ts = now; l.settled = true; l.settle_ts = now;
+            l.pool_tokens = SUPPLY; l.pool_pair = virtual_pair;
+            l.clearing_price_q32 = ((virtual_pair as u128) << 32) / SUPPLY as u128;
+        }
         l.gatekeeper_network = UNIQUENESS_NETWORK;
         l.stake_vault = ctx.accounts.stake_vault.key();
         l.total_staked = 0;
         l.reward_index = 0;
         l.rewards_pending = 0;
         l.rewards_distributed = 0;
-        l.settle_ts = 0; l.buyback_accrued = 0; l.buyback_total = 0; l.trader_accrued = 0; l.trader_total = 0; l.treasury_owed = 0; l.treasury_total = 0; l.burned = 0;
+        if mode == MODE_AUCTION { l.settle_ts = 0; } l.buyback_accrued = 0; l.buyback_total = 0; l.trader_accrued = 0; l.trader_total = 0; l.treasury_owed = 0; l.treasury_total = 0; l.burned = 0;
         l.bump = ctx.bumps.launch;
         emit!(LaunchCreated { launch: l.key(), mint: l.mint, pair_mint: l.pair_mint, end_ts: l.end_ts });
         Ok(())
@@ -124,6 +145,7 @@ pub mod resurrect {
     /// Escrow `deposit` pair tokens and commit to hash(bidder, amount, salt). Deposit must cover the bid.
     pub fn commit_bid(ctx: Context<CommitBid>, commitment: [u8; 32], deposit: u64) -> Result<()> {
         let l = &ctx.accounts.launch;
+        require!(l.mode == MODE_AUCTION, ErrorCode::WrongMode);
         let now = Clock::get()?.unix_timestamp;
         require!(now < l.end_ts, ErrorCode::BatchClosed);
         require!(deposit >= l.min_bid, ErrorCode::BidTooSmall);
@@ -154,6 +176,7 @@ pub mod resurrect {
     /// Reveal after the batch closes. amount <= deposit. Unrevealed bids are excluded and refunded on claim.
     pub fn reveal_bid(ctx: Context<RevealBid>, amount: u64, salt: [u8; 32]) -> Result<()> {
         let l = &mut ctx.accounts.launch;
+        require!(l.mode == MODE_AUCTION, ErrorCode::WrongMode);
         let now = Clock::get()?.unix_timestamp;
         require!(now >= l.end_ts && now < l.reveal_end_ts, ErrorCode::NotRevealWindow);
         let b = &mut ctx.accounts.bid;
@@ -171,6 +194,7 @@ pub mod resurrect {
     /// Anyone can settle once the reveal window closes. One clearing price; pool is seeded and sealed.
     pub fn settle(ctx: Context<Settle>) -> Result<()> {
         let l = &ctx.accounts.launch;
+        require!(l.mode == MODE_AUCTION, ErrorCode::WrongMode);
         let now = Clock::get()?.unix_timestamp;
         require!(now >= l.reveal_end_ts, ErrorCode::NotRevealWindow);
         require!(!l.settled, ErrorCode::AlreadySettled);
@@ -204,6 +228,7 @@ pub mod resurrect {
     /// Bidder receives tokens = amount / price and a refund of (deposit - amount). Unrevealed: full refund.
     pub fn claim(ctx: Context<Claim>) -> Result<()> {
         let l = &ctx.accounts.launch;
+        require!(l.mode == MODE_AUCTION, ErrorCode::WrongMode);
         require!(l.settled, ErrorCode::NotSettled);
         let b = &mut ctx.accounts.bid;
         require!(!b.claimed, ErrorCode::AlreadyClaimed);
@@ -263,7 +288,10 @@ pub mod resurrect {
         let l = &ctx.accounts.launch;
         require!(l.settled && l.pool_tokens > 0, ErrorCode::NotSettled);
         require!(tokens_in > 0, ErrorCode::BadParams);
-        let gross = cp_out(tokens_in as u128, l.pool_tokens as u128, l.pool_pair as u128);
+        let mut gross = cp_out(tokens_in as u128, l.pool_tokens as u128, l.pool_pair as u128);
+        let real = l.pool_pair - l.virtual_pair; // the virtual part of the reserve is not real money and can never be paid out
+        if gross > real { gross = real; }
+        require!(gross > 0, ErrorCode::Slippage);
         let fee = gross * FEE_BPS / 10_000;
         let out = gross - fee;
         require!(out >= min_pair_out && out > 0, ErrorCode::Slippage);
@@ -585,6 +613,8 @@ pub struct Launch {
     pub treasury_owed: u64,
     pub treasury_total: u64,
     pub burned: u64,             // RSRCT launch only: tokens burned by buybacks
+    pub mode: u8,                // MODE_AUCTION | MODE_OPEN
+    pub virtual_pair: u64,       // Open mode: virtual pair reserve included in pool_pair
     pub bump: u8,
 }
 
@@ -918,4 +948,5 @@ pub enum ErrorCode {
     #[msg("RSRCT is not configured yet or this is not the RSRCT launch")] NoRsrct,
     #[msg("epoch account does not match the current epoch")] WrongEpoch,
     #[msg("epoch has not ended yet")] EpochOpen,
+    #[msg("this instruction does not apply to this launch mode")] WrongMode,
 }

@@ -5,6 +5,14 @@ Program id (devnet): `5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t`
 Source: `src/lib.rs` (Anchor 0.31). Binary: `resurrect.so` (built with platform-tools v1.52, stripped).
 Browser client: `../js/rsrct.js` (no Anchor TS dependency; instruction encoding by hand).
 
+## Launch modes
+`create_launch(..., mode, virtual_pair)`. `mode = 0` **Auction** (sealed batch → one price → sealed pool). `mode = 1` **Open**: the
+whole supply sits on a constant-product curve from creation with a creator-chosen virtual pair reserve (10–100,000 units)
+that sets the opening price; trading is instant, there are no gates or caps. Sells can never pay out the virtual part of the
+reserve (`gross` is capped at `pool_pair − virtual_pair`). `commit_bid` / `reveal_bid` / `settle` / `claim` reject Open
+launches (`WrongMode`); `require_human` is ignored in Open mode. Everything else — fixed supply, 0% creator allocation,
+program-owned pool, fee split, staking, trader epochs, buyback — is identical in both modes.
+
 ## Pairing asset
 Every launch names a `pair_mint`: wrapped SOL, USDC, a tokenized stock (xStocks, Ondo, Sunrise…), an ETF, a commodity token.
 Any **SPL Token or Token-2022** mint works — the program uses `transfer_checked` through the token interface and stores the

@@ -64,9 +64,9 @@
     }
 
     // ---- instructions ----
-    async function ixCreateLaunch({ creator, mint, pairMint, pairProg, creatorToken, name, symbol, batchSecs, creatorFeeBps, requireHuman = false }) {
+    async function ixCreateLaunch({ creator, mint, pairMint, pairProg, creatorToken, name, symbol, batchSecs, creatorFeeBps, requireHuman = false, mode = 0, virtualPair = 0n }) {
       const k = seedsFor(mint);
-      const data = concat(await disc('create_launch'), str(name), str(symbol), i64(batchSecs), u16(creatorFeeBps), new Uint8Array([requireHuman ? 1 : 0]));
+      const data = concat(await disc('create_launch'), str(name), str(symbol), i64(batchSecs), u16(creatorFeeBps), new Uint8Array([requireHuman ? 1 : 0, mode]), u64(virtualPair));
       return new TransactionInstruction({ programId: PROGRAM_ID, data, keys: [
         meta(creator, true, true), meta(mint), meta(pairMint), meta(k.launch, false, true), meta(k.vault, false, true),
         meta(k.escrow, false, true), meta(k.pool, false, true), meta(k.fees, false, true), meta(k.stakeVault, false, true), meta(creatorToken, false, true),
@@ -139,7 +139,8 @@
       creatorFeeBps: r.u16(), pairDecimals: r.u8(), minBid: r.u64(), bids: r.u32(), revealed: r.u32(), totalRevealed: r.u64(), clearingPriceQ32: r.u128(),
       settled: r.bool(), poolPair: r.u64(), poolTokens: r.u64(), feesAccrued: r.u64(), creatorFeesOwed: r.u64(), creatorFeesClaimed: r.u64(),
       requireHuman: r.bool(), gatekeeperNetwork: r.pk(), stakeVault: r.pk(), totalStaked: r.u64(), rewardIndex: r.u128(), rewardsPending: r.u64(), rewardsDistributed: r.u64(),
-      settleTs: Number(r.i64()), buybackAccrued: r.u64(), buybackTotal: r.u64(), traderAccrued: r.u64(), traderTotal: r.u64(), treasuryOwed: r.u64(), treasuryTotal: r.u64(), burned: r.u64(), bump: r.u8() }; }
+      settleTs: Number(r.i64()), buybackAccrued: r.u64(), buybackTotal: r.u64(), traderAccrued: r.u64(), traderTotal: r.u64(), treasuryOwed: r.u64(), treasuryTotal: r.u64(), burned: r.u64(), mode: r.u8(), virtualPair: r.u64(), bump: r.u8() }; }
+    const MODE_AUCTION = 0, MODE_OPEN = 1;
     function decodeConfig(buf) { const r = rd(buf); return { authority: r.pk(), treasury: r.pk(), rsrctMint: r.pk(), bump: r.u8() }; }
     function decodeEpoch(buf) { const r = rd(buf); return { launch: r.pk(), epoch: r.u32(), pool: r.u64(), volume: r.u64(), claimed: r.u64(), swept: r.bool(), bump: r.u8() }; }
     function decodeTrader(buf) { const r = rd(buf); return { launch: r.pk(), trader: r.pk(), epoch: r.u32(), volume: r.u64(), rawVolume: r.u64(), claimed: r.bool(), paid: r.u64(), bump: r.u8() }; }
@@ -156,7 +157,7 @@
     async function fetchLaunches(connection) {
       const d = await accountDisc('Launch');
       const accs = await connection.getProgramAccounts(PROGRAM_ID, { filters: [{ memcmp: { offset: 0, bytes: web3Bs58(d) } }] });
-      return accs.map(a => ({ pubkey: a.pubkey, ...decodeLaunch(new Uint8Array(a.account.data)) }));
+      return accs.map(a => ({ pubkey: a.pubkey, _size: a.account.data.length, ...decodeLaunch(new Uint8Array(a.account.data)) }));
     }
     async function fetchLaunch(connection, mint) { const k = seedsFor(mint); const a = await connection.getAccountInfo(k.launch); return a ? { pubkey: k.launch, ...decodeLaunch(new Uint8Array(a.data)) } : null; }
     async function fetchBid(connection, mint, bidder) { const k = seedsFor(mint); const a = await connection.getAccountInfo(bidPda(k.launch, bidder)); return a ? decodeBid(new Uint8Array(a.data)) : null; }
@@ -177,7 +178,7 @@
       ] };
     }
     const priceFromQ32 = (q) => Number(q) / 2 ** 32; // pair base units per token base unit
-    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, GATEWAY, UNIQUENESS, EPOCH_SECS, seedsFor, bidPda, stakePda, configPda, epochPda, traderPda, gatewayTokenPda, epochOf, epochEnd, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
+    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, GATEWAY, UNIQUENESS, EPOCH_SECS, MODE_AUCTION, MODE_OPEN, seedsFor, bidPda, stakePda, configPda, epochPda, traderPda, gatewayTokenPda, epochOf, epochEnd, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
       ixCreateLaunch, ixCommitBid, ixRevealBid, ixSettle, ixClaim, ixSwap, ixClaimCreatorFees, ixStake, ixClaimRewards, ixInitConfig, ixSetConfig, ixCollectTreasury, ixBuybackAndBurn, ixClaimTraderReward, ixSweepEpoch,
       decodeLaunch, decodeBid, decodeStake, decodeConfig, decodeEpoch, decodeTrader, fetchLaunches, fetchLaunch, fetchBid, fetchStake, fetchConfig, fetchEpoch, fetchTrader, pendingRewards, hasHumanPass, ixsCreateFixedMint, SUPPLY, priceFromQ32, randomSalt: () => globalThis.crypto.getRandomValues(new Uint8Array(32)) };
   };

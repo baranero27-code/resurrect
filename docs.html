@@ -67,9 +67,19 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
       </section>
 
       <section class="sec" id="launch"><h2><span>LAUNCH A COIN</span></h2>
+        <h3>Two modes</h3>
+        <table><tr><th></th><th>Auction</th><th>Open</th></tr>
+          <tr><td>start</td><td>15-minute sealed batch, then trading</td><td>trading from the first second</td></tr>
+          <tr><td>price</td><td>one clearing price for everyone</td><td>bonding curve: first come, first served</td></tr>
+          <tr><td>bots / bundles</td><td>nothing to snipe — no "first"</td><td>allowed, like everywhere else</td></tr>
+          <tr><td>human-only bidding</td><td>optional (Civic pass)</td><td>—</td></tr>
+          <tr><td>creator allocation</td><td class="g">0%</td><td class="g">0%</td></tr>
+          <tr><td>liquidity</td><td class="g">program-owned, no withdraw path</td><td class="g">program-owned, no withdraw path</td></tr>
+          <tr><td>fee split</td><td class="g">35/25/20/≤10/10</td><td class="g">35/25/20/≤10/10</td></tr></table>
+        <p class="d">Open mode exists because some creators want the familiar curve and some traders want the adrenaline. It keeps every structural guarantee (fixed supply, zero allocation, sealed pool, on-chain fee split) and drops only the launch-fairness layer. The mode is written on the launch for everyone to see. In Open mode the curve starts with a creator-chosen virtual reserve (10–100,000 units of the pairing asset) that sets the opening price and can never be paid out.</p>
         <ol>
           <li>Open the <a href="app.html">app</a>, connect Phantom / Solflare / Backpack.</li>
-          <li>Name, ticker, batch length (15 min on mainnet), your creator fee share (0–20% of trading fees), pairing asset, and whether bidders need a human pass.</li>
+          <li>Mode (Auction or Open), name, ticker, batch length (Auction; 15 min on mainnet) or starting depth (Open), your creator fee share (0–10% of trading fees), pairing asset, and — for Auction — whether bidders need a human pass.</li>
           <li>Sign <b>one transaction</b>. It creates the mint, mints 1,000,000,000 to you, <b>revokes the mint authority</b>, moves 100% into the program vault, opens escrow/pool/fee accounts in the pairing asset, and starts the batch.</li>
         </ol>
         <p class="d">You end the transaction holding zero tokens. If you want some, bid like everyone else — your bid is sealed too. Cost ≈ 0.02 SOL in rent and fees.</p>
