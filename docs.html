@@ -41,7 +41,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
 <div class="monitor"><div class="screen">
   <div class="bar">
     <div class="l"><a href="index.html"><img src="brand/door-64.png" alt=""></a><b>RESURRECT</b><span>DOCS</span><span class="tag">DEVNET</span></div>
-    <div class="l"><a href="app.html">live app</a><a href="launchpad.html">preview</a><a href="program/README.md">program</a><a href="program/AUDIT.md">audit package</a></div>
+    <div class="l"><a href="app.html">live app</a><a href="launchpad.html">preview</a><a href="https://github.com/baranero27-code/resurrect/blob/main/program/README.md">program</a><a href="https://github.com/baranero27-code/resurrect/blob/main/program/AUDIT.md">audit package</a></div>
   </div>
   <div class="wrap">
     <nav class="toc">
@@ -51,7 +51,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
     </nav>
     <main>
       <section class="sec" id="what"><h2><span>WHAT RESURRECT IS</span></h2>
-        <p>A launchpad for memecoins on Solana where the launch itself is fair by construction. Every coin starts in a <b>15-minute sealed batch auction</b>: nobody sees anyone else's bid, everyone pays the <b>same clearing price</b>, and the creator gets <b class="g">zero allocation and no first buy</b>. When the batch ends, the raised funds plus the other 50% of supply seed a liquidity pool <b>owned by the program with no withdraw instruction</b>. Coins can be paired with SOL, USDC or any of 2,400+ real assets — tokenized stocks, ETFs, commodities. 1% of every trade goes to the people who hold the coin.</p>
+        <p>A launchpad for memecoins on Solana where the launch itself is fair by construction. A coin launches in one of two modes. <b>Auction</b>: a <b>15-minute sealed batch</b> where nobody sees anyone else's bid, everyone pays the <b>same clearing price</b>. <b>Open</b>: a plain bonding curve that trades from the first second. In both, the creator gets <b class="g">zero allocation and no first buy</b>. When the batch ends, the raised funds plus the other 50% of supply seed a liquidity pool <b>owned by the program with no withdraw instruction</b>. Coins can be paired with SOL, USDC or any of 2,400+ real assets — tokenized stocks, ETFs, commodities. 1% of every trade goes to the people who hold the coin.</p>
         <div class="kv"><div><b>15 min</b><span>sealed batch, one price for all</span></div><div><b>0%</b><span>creator allocation · no first buy</span></div><div><b>∞</b><span>liquidity lock (no instruction exists to pull it)</span></div><div><b>1 · 1 · 1</b><span>one human, one wallet, one bid</span></div></div>
       </section>
 
@@ -84,7 +84,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
           <li>Mode (Auction or Open), name, ticker, batch length (Auction; 15 min on mainnet) or starting depth (Open), your creator fee share (0–10% of trading fees), pairing asset, and — for Auction — whether bidders need a human pass.</li>
           <li>Sign <b>one transaction</b>. It creates the mint, mints 1,000,000,000 to you, <b>revokes the mint authority</b>, moves 100% into the program vault, opens escrow/pool/fee accounts in the pairing asset, and starts the batch.</li>
         </ol>
-        <p class="d">You end the transaction holding zero tokens. If you want some, bid like everyone else — your bid is sealed too. Cost ≈ 0.02 SOL in rent and fees.</p>
+        <p class="d">You end the transaction holding zero tokens. If you want some, bid (Auction) or buy (Open) like everyone else. Cost ≈ 0.02 SOL in rent and fees; Resurrect takes nothing.</p>
       </section>
 
       <section class="sec" id="bid"><h2><span>BID IN A BATCH</span></h2>
@@ -140,7 +140,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
       <section class="sec" id="can"><h2><span>WHAT YOU'RE STILL TRUSTING</span></h2>
         <ul>
           <li><b class="a">The upgrade authority.</b> Until the program is frozen, whoever holds it could deploy new code. Plan: multisig after mainnet launch, frozen after the audit. Status is shown on the site.</li>
-          <li><b class="a">No audit yet.</b> The <a href="program/AUDIT.md">audit package</a> is public; the program is open source. Do not treat devnet or an unaudited mainnet as safe for real money.</li>
+          <li><b class="a">No audit yet.</b> The <a href="https://github.com/baranero27-code/resurrect/blob/main/program/AUDIT.md">audit package</a> is public; the program is open source. Do not treat devnet or an unaudited mainnet as safe for real money.</li>
           <li><b class="a">Issuer risk</b> on tokenized-stock pairs (see above).</li>
           <li><b class="a">Civic</b> for personhood. If Civic issues two passes to one person, that person can bid twice and count twice for trader rewards.</li>
           <li><b class="a">The treasury wallet</b> (10% of fees) is controlled by the team; its address is in the on-chain config.</li>
@@ -162,7 +162,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
         <h3>Can I cancel a bid?</h3><p>No. You can decline to reveal; then you are excluded and fully refunded at claim.</p>
         <h3>Why is my bid deposit higher than my bid?</h3><p>You chose an extra deposit to hide the amount. It is refunded at claim.</p>
         <h3>Where is the chart data from?</h3><p>From the launch's own transactions: the app reads <code>Swapped</code> events emitted by the program.</p>
-        <h3>Is there a Resurrect token?</h3><p>Not yet. RSRCT will be launched through Resurrect itself — sealed batch, zero allocation, same rules — and 25% of every fee on every launch buys and burns it on chain. Until it exists that share accrues per launch.</p>
+        <h3>Is there a Resurrect token?</h3><p>On devnet, yes — a test RSRCT exists so the buyback can be exercised (the burn figures you see on the preview are from it). On mainnet, RSRCT will be launched through Resurrect itself — sealed auction, zero allocation, same rules — and 25% of every fee on every launch buys and burns it on chain. Until then that share accrues per launch.</p>
       </section>
 
       <section class="sec" id="devnet"><h2><span>DEVNET NOTES</span></h2>

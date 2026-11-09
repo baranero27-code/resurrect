@@ -330,7 +330,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   <section class="hero">
     <div>
       <h1>Launch coins on top of real assets. <b>Without the insiders.</b></h1>
-      <p>Pair your coin with SOL, USDC or any of 2,400+ real assets: xStocks, Ondo tokenized stocks and ETFs, Sunrise stocks, pre-IPO tokens, indexes, commodities. Every launch opens as a sealed 15-minute batch where everyone pays one price, then trades on a pool the program owns and nobody can pull. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
+      <p>Pair your coin with SOL, USDC or any of 2,400+ real assets: xStocks, Ondo tokenized stocks and ETFs, Sunrise stocks, pre-IPO tokens, indexes, commodities. Launch as a sealed 15-minute auction where everyone pays one price, or as an open curve that trades from the first second — either way the pool belongs to the program and nobody can pull it. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
       <div class="cta" style="margin-top:14px;gap:6px" id="heroast"></div>
       <div class="cta"><a class="btn solid" href="#create">Launch a coin</a><a class="btn" href="#launches">Browse launches</a></div>
     </div>
@@ -343,7 +343,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
   <!-- LAUNCHES -->
   <section class="sec" id="launches">
-    <h2><span>LAUNCHES</span> every coin passes through three phases <i>simulated preview · <a href="app.html" style="color:var(--green)">real launches in the live app ↗</a></i></h2>
+    <h2><span>LAUNCHES</span> auction coins pass through three phases · open-curve coins trade from the first second <i>simulated preview · <a href="app.html" style="color:var(--green)">real launches in the live app ↗</a></i></h2>
     <div class="life">
       <div class="ph"><div class="k">PHASE 1 · 15 MIN</div><b>Sealed batch</b><p>Bids hidden until close. One clearing price. Nobody is first.</p></div>
       <div class="ph"><div class="k">PHASE 2</div><b>Reveal &amp; settle</b><p>Bids are revealed, summed and divided by the 500M tokens on sale. One price for everyone.</p></div>
@@ -352,7 +352,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
     <div class="tool" style="margin-top:22px">
       <span class="lbl">FILTER</span>
-      <div class="seg" id="filter"><button class="on" data-f="all">All</button><button data-f="batch">Sealed batch</button><button data-f="bond">Reveal &amp; settle</button><button data-f="grad">Trading</button></div>
+      <div class="seg" id="filter"><button class="on" data-f="all">All</button><button data-f="batch">Sealed batch</button><button data-f="bond">Reveal &amp; settle</button><button data-f="grad">Trading</button></div><p class="note" style="margin:6px 0 0">auction phases · open-curve coins are "Trading" from the first second</p>
       <span class="lbl">SORT</span>
       <div class="seg" id="sort"><button class="on" data-s="fdv">FDV</button><button data-s="recent">Recent</button><button data-s="vol">24h volume</button></div>
       <input class="search" id="q" placeholder="search ticker, name, pairing asset">
@@ -384,12 +384,12 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
               <div class="row"><span>ticker</span><b>$TRENCH</b></div>
               <div class="row"><span>anchored to</span><b id="d-anch2">SOL · So1111…111112</b></div>
               <div class="row"><span>description</span><b>the first coin through the door</b></div>
-              <div class="row"><span>social</span><b><a href="#">x.com/trenchonrsrct</a></b></div>
+              <div class="row"><span>social</span><b>simulated coin · no links</b></div>
               <div class="row"><span>supply</span><b>1,000,000,000 · fixed</b></div>
               <div class="row"><span>mint</span><b class="g">no mint authority · no freeze authority</b></div>
               <div class="row"><span>dev allocation</span><b class="g">0% · no first buy</b></div>
               <div class="row"><span>launch</span><b>sealed batch · 2,114 bids · cleared at 0.000091 SOL</b></div>
-              <div class="row"><span>chart</span><b><a href="#">DexScreener →</a></b></div>
+              <div class="row"><span>chart</span><b>simulated · real charts in the <a href="app.html">live app</a></b></div>
             </div>
           </div>
         </div>
@@ -443,7 +443,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
             <div class="pk-pop"><span>POPULAR</span><div id="pk-pop"></div></div>
             <div class="pk-head"><span>asset</span><span>category</span><span class="r">price</span><span class="r">24h</span></div>
             <div class="pk-rows" id="assets" role="listbox"></div>
-            <div class="pk-foot"><span id="pk-count">39 assets</span><span>prices · Jupiter, live</span></div>
+            <div class="pk-foot"><span id="pk-count">39 assets</span><span id="pk-pricefoot">prices · Jupiter, live</span></div>
           </div>
           <div class="pk-sel" id="pk-sel"></div>
         </div>
@@ -460,11 +460,13 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
         <div class="stepn">STEP 3 · WHO GETS THE CREATOR FEE</div>
         <div class="f"><label>fee recipient</label><div class="radio" id="recip"><button type="button" class="on">me</button><button type="button">other wallet</button><button type="button">donate to holders</button></div></div>
+        <div class="f" id="recipaddr" style="display:none"><label>wallet address</label><input id="recipin" placeholder="paste the Solana address that receives the creator share"></div>
         <div class="f"><label>creator share</label><div class="rng"><input type="range" min="0" max="10" value="5" id="fee"><b id="feev">5%</b></div></div>
 
         <div class="stepn">STEP 4 · WHAT NOBODY CAN CHANGE</div>
         <div class="f"><label>trading fee</label><div class="fixed">1% on every buy and sell <i>FIXED</i></div></div>
-        <div class="f"><label>launch mode</label><div class="fixed" style="border-color:var(--green)">Auction · 15-minute sealed batch, one price for everyone <i style="color:var(--dim)">OR OPEN CURVE · instant trading, no gates</i></div></div>
+        <div class="f"><label>launch mode</label><div class="radio" id="pmode"><button type="button" class="on" data-m="0">Auction · sealed batch, one price</button><button type="button" data-m="1">Open · curve, instant trading</button></div></div>
+        <div class="f" id="pvirt" style="display:none"><label>starting depth</label><div class="fixed">30 SOL virtual reserve · sets the opening price <i>YOU CHOOSE</i></div></div>
         <div class="f"><label>supply</label><div class="fixed">1,000,000,000 · no mint · no freeze <i>FIXED</i></div></div>
         <div class="f"><label>liquidity</label><div class="fixed">program-owned pool, seeded at settle · no withdraw instruction <i>FIXED</i></div></div>
         <div class="f"><label>who can trade</label><div class="fixed">verified humans · one wallet each <i>FIXED</i></div></div>
@@ -473,7 +475,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
         <div class="stepn">STEP 5 · SCHEDULE</div>
         <div class="f"><label>batch opens</label><input type="datetime-local"></div>
-        <p class="note">Tickers are case-insensitive and launched once for free. Tickers are not unique on chain; the mint address is the identity. Check the mint before you bid.</p>
+        <p class="note">Launching costs only Solana rent and fees (≈0.02 SOL); Resurrect takes nothing. Tickers are not unique on chain; the mint address is the identity. Check the mint before you bid.</p>
       </form>
       <aside class="side">
         <h3>REVIEW</h3>
@@ -534,9 +536,9 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
       <h4 style="font-weight:400;font-size:12px;color:var(--dim);letter-spacing:.1em;margin:18px 0 8px">BURNS · latest</h4>
       <table><thead><tr><th>time</th><th>SOL spent</th><th>RSRCT burned</th><th>price impact</th><th class="hidem">tx</th></tr></thead>
       <tbody>
-        <tr><td class="d">12 min ago</td><td>5.02 SOL</td><td class="g">1,204,882</td><td>0.6%</td><td class="hidem"><a href="#">4kQ…p2m</a></td></tr>
-        <tr><td class="d">4 h ago</td><td>5.00 SOL</td><td class="g">1,198,310</td><td>0.7%</td><td class="hidem"><a href="#">9zR…aa1</a></td></tr>
-        <tr><td class="d">8 h ago</td><td>4.41 SOL</td><td class="g">1,067,005</td><td>0.5%</td><td class="hidem"><a href="#">Tn7…0xc</a></td></tr>
+        <tr><td class="d">12 min ago</td><td>5.02 SOL</td><td class="g">1,204,882</td><td>0.6%</td><td class="hidem">4kQ…p2m</td></tr>
+        <tr><td class="d">4 h ago</td><td>5.00 SOL</td><td class="g">1,198,310</td><td>0.7%</td><td class="hidem">9zR…aa1</td></tr>
+        <tr><td class="d">8 h ago</td><td>4.41 SOL</td><td class="g">1,067,005</td><td>0.5%</td><td class="hidem">Tn7…0xc</td></tr>
       </tbody></table>
     </div>
   </section>
@@ -745,8 +747,9 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   $('#pk-q').addEventListener('keydown',e=>{const rows=$$('.pk-row');if(!rows.length)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();kb=Math.max(0,Math.min(rows.length-1,kb+(e.key==='ArrowDown'?1:-1)));rows.forEach((r,i)=>r.classList.toggle('kb',i===kb));rows[kb].scrollIntoView({block:'nearest'});}
     else if(e.key==='Enter'){e.preventDefault();pick((rows[kb>=0?kb:0]).dataset.a);}});
   const PXQ=new Set();let pxTimer=null;
-  function fetchVisiblePrices(keys){const need=keys.map(k=>AS[k].m).filter(m=>!PX[m]&&!PXQ.has(m)).slice(0,100);if(!need.length)return;need.forEach(m=>PXQ.add(m));clearTimeout(pxTimer);pxTimer=setTimeout(async()=>{try{const j=await (await fetch('https://lite-api.jup.ag/price/v3?ids='+need.join(','))).json();Object.assign(PX,j);need.forEach(m=>{if(!PX[m])PX[m]={};});renderAssets();renderSel();}catch(e){need.forEach(m=>PXQ.delete(m));}},250);}
-  async function loadPrices(){fetchVisiblePrices(visible().slice(0,100));if(anchor&&AS[anchor])fetchVisiblePrices([anchor]);}
+  function fetchVisiblePrices(keys){const need=keys.map(k=>AS[k].m).filter(m=>!PX[m]&&!PXQ.has(m)).slice(0,100);if(!need.length)return;need.forEach(m=>PXQ.add(m));clearTimeout(pxTimer);pxTimer=setTimeout(async()=>{try{const j=await (await fetch('https://lite-api.jup.ag/price/v3?ids='+need.join(','))).json();Object.assign(PX,j);need.forEach(m=>{if(!PX[m])PX[m]={};});renderAssets();renderSel();priceFoot();}catch(e){need.forEach(m=>PXQ.delete(m));}},250);}
+  async function loadPrices(){const v=visible();for(let i=0;i<Math.min(v.length,300);i+=100){fetchVisiblePrices(v.slice(i,i+100));await new Promise(r=>setTimeout(r,900));}if(anchor&&AS[anchor])fetchVisiblePrices([anchor]);}
+  function priceFoot(){const v=visible().slice(0,300);const have=v.filter(k=>PX[AS[k].m]&&PX[AS[k].m].usdPrice!=null).length;const asked=v.filter(k=>PX[AS[k].m]).length;const el=document.querySelector('#pk-pricefoot');if(el)el.textContent=asked?`prices · Jupiter, live · ${have} quoted · ${asked-have} without a quote${v.length>asked?' · '+(v.length-asked)+' loading':''}`:'prices · Jupiter, live · loading';}
   fetch('js/assets.json').then(r=>r.json()).then(list=>{list.sort((x,y)=>(x.r||0)-(y.r||0));eager=0;for(const a of list){AS[a.k]={s:a.s,n:a.n,m:a.m,c:a.c,f:a.f,mc:a.mc||0,i:a.i||('img/assets2/'+a.m+'.png')};}
     $('#pk-pop').innerHTML=POP.filter(k=>AS[k]).map(k=>`<button type="button" data-a="${k}">${ast(k)}${AS[k].s}</button>`).join('');
     renderCats();renderAssets();renderSel();renderHero();render();loadPrices();setInterval(loadPrices,60000);});
@@ -756,7 +759,8 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const fee=$('#fee'),feev=$('#feev');let rec='me';
   const updFee=()=>{feev.textContent=fee.value+'%';$('#r-fee').textContent=rec==='donate'?'0% → holders':fee.value+'% → '+rec;};
   fee.addEventListener('input',updFee);
-  $('#recip').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#recip button').forEach(x=>x.classList.toggle('on',x===b));rec=b.textContent.includes('other')?'other wallet':b.textContent.includes('donate')?'donate':'me';if(rec==='donate'){fee.value=0;}updFee();});
+  $('#pmode')?.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#pmode button').forEach(x=>x.classList.toggle('on',x===b));const open=b.dataset.m==='1';$('#pvirt').style.display=open?'':'none';const bl=[...$$('.f')].find(f=>/batch length/i.test(f.querySelector('label')?.textContent||''));if(bl)bl.style.display=open?'none':'';});
+  $('#recip').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#recip button').forEach(x=>x.classList.toggle('on',x===b));$('#recipaddr').style.display=b.textContent.includes('other')?'':'none';rec=b.textContent.includes('other')?'other wallet':b.textContent.includes('donate')?'donate':'me';if(rec==='donate'){fee.value=0;}updFee();});
   $('#review').addEventListener('click',e=>{e.preventDefault();if(!$('#tk').value||!$('#nmi').value){say('Give the coin a ticker and a name first.');return;}openModal();});
   $('#createForm').addEventListener('submit',e=>{e.preventDefault();$('#review').click();});
 
@@ -793,7 +797,7 @@ window.addEventListener('load',async()=>{
       return `<a class="tk" href="app.html" style="text-decoration:none;color:inherit"><div class="top"><div class="av">${l.symbol.slice(0,2)}</div><div class="nm"><b>$${l.symbol}</b><span>${l.name} · <span style="color:var(--green)">paired with ${ps(l)}</span></span></div><span class="chip ${cls}">${lbl}</span></div>
         <div class="kv"><div>${ph==='batch'?'sealed bids':ph==='live'?'pool':'raised'}<b>${ph==='batch'?l.bids+' wallets':ph==='live'?fp(l,l.poolPair):fp(l,l.totalRevealed)}</b></div><div>${ph==='live'?'spot price':'proof of personhood'}<b>${ph==='live'?px.toPrecision(3)+' '+ps(l):(l.requireHuman?'required':'open')}</b></div></div></a>`;}).join(''); }
     src.innerHTML='live · read from the devnet program just now · <a href="app.html" style="color:var(--green)">open the app ↗</a>';
-    const burns=document.querySelector('.burns'); if(burns) burns.innerHTML='<p class="note" style="margin-top:16px">Buyback &amp; burn starts with the RSRCT token. Nothing to show yet — and nothing to fake.</p>';
+    const burns=document.querySelector('.burns'); if(burns) burns.innerHTML=burned>0n?`<p class="note" style="margin-top:16px">${(Number(burned)/1e6).toLocaleString('en-US',{maximumFractionDigits:0})} RSRCT bought &amp; burned so far on devnet, by ${Ls.filter(l=>l.buybackTotal>0n).length} launch(es) through the RSRCT pool. Every burn is an on-chain instruction anyone can trigger — see each launch's trade tape in the <a href="app.html" style="color:var(--green)">live app</a>.</p>`:'<p class="note" style="margin-top:16px">Buyback &amp; burn starts with the RSRCT token. Nothing to show yet — and nothing to fake.</p>';
   }catch(e){ src.textContent='simulated preview · devnet unreachable right now'; }
 });
 </script>
