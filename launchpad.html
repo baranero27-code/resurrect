@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Resurrect Launchpad — sealed batch launches on Solana</title>
-<meta name="description" content="Sealed 15-minute batch auctions, then bonding, then graduation to immutable liquidity. Pair with SOL, USDC or tokenized stocks. Holders earn a share of every trade. Verified humans only. Zero dev allocation.">
+<meta name="description" content="Sealed 15-minute batch auctions, one clearing price, then trading on a pool the program owns and nobody can pull. Pair with SOL, USDC or tokenized stocks. Holders earn a share of every trade. Verified humans only. Zero dev allocation.">
 <link rel="icon" type="image/png" sizes="32x32" href="brand/door-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="brand/door-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="brand/door-180.png">
@@ -330,7 +330,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   <section class="hero">
     <div>
       <h1>Launch coins on top of real assets. <b>Without the insiders.</b></h1>
-      <p>Pair your coin with SOL, USDC or any of 2,400+ real assets: xStocks, Ondo tokenized stocks and ETFs, Sunrise stocks, pre-IPO tokens, indexes, commodities. Every launch opens as a sealed 15-minute batch where everyone pays one price, then trades on a curve, then graduates to liquidity nobody can pull. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
+      <p>Pair your coin with SOL, USDC or any of 2,400+ real assets: xStocks, Ondo tokenized stocks and ETFs, Sunrise stocks, pre-IPO tokens, indexes, commodities. Every launch opens as a sealed 15-minute batch where everyone pays one price, then trades on a pool the program owns and nobody can pull. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
       <div class="cta" style="margin-top:14px;gap:6px" id="heroast"></div>
       <div class="cta"><a class="btn solid" href="#create">Launch a coin</a><a class="btn" href="#launches">Browse launches</a></div>
     </div>
@@ -346,13 +346,13 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     <h2><span>LAUNCHES</span> every coin passes through three phases <i>simulated preview · <a href="app.html" style="color:var(--green)">real launches in the live app ↗</a></i></h2>
     <div class="life">
       <div class="ph"><div class="k">PHASE 1 · 15 MIN</div><b>Sealed batch</b><p>Bids hidden until close. One clearing price. Nobody is first.</p></div>
-      <div class="ph"><div class="k">PHASE 2</div><b>Bonding</b><p>Open trading on the curve. Holders already earning from every trade.</p></div>
-      <div class="ph"><div class="k">PHASE 3</div><b>Graduated</b><p>Liquidity seeds on Raydium and locks forever. No admin key.</p></div>
+      <div class="ph"><div class="k">PHASE 2</div><b>Reveal &amp; settle</b><p>Bids are revealed, summed and divided by the 800M tokens on sale. One price for everyone.</p></div>
+      <div class="ph"><div class="k">PHASE 3</div><b>Trading · pool sealed</b><p>Everything raised + 20% of supply seed a program-owned pool. No withdraw instruction exists. Holders earn from every trade.</p></div>
     </div>
 
     <div class="tool" style="margin-top:22px">
       <span class="lbl">FILTER</span>
-      <div class="seg" id="filter"><button class="on" data-f="all">All</button><button data-f="batch">Sealed batch</button><button data-f="bond">Bonding</button><button data-f="grad">Graduated</button></div>
+      <div class="seg" id="filter"><button class="on" data-f="all">All</button><button data-f="batch">Sealed batch</button><button data-f="bond">Reveal &amp; settle</button><button data-f="grad">Trading</button></div>
       <span class="lbl">SORT</span>
       <div class="seg" id="sort"><button class="on" data-s="fdv">FDV</button><button data-s="recent">Recent</button><button data-s="vol">24h volume</button></div>
       <input class="search" id="q" placeholder="search ticker, name, pairing asset">
@@ -375,7 +375,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
               <div>24h volume<b id="d-vol">$91.2K</b></div>
               <div>holders<b class="g" id="d-h">1,204 humans</b></div>
             </div>
-            <div class="lockline" id="d-lock">Graduates to Raydium at $450K FDV · liquidity locks forever · pool address published at graduation</div>
+            <div class="lockline" id="d-lock">Pool seeds at settle with everything raised · program-owned · no withdraw instruction</div>
           </div>
           <div class="box" style="margin-top:14px">
             <h4>ABOUT</h4>
@@ -464,16 +464,16 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
         <div class="stepn">STEP 4 · WHAT NOBODY CAN CHANGE</div>
         <div class="f"><label>trading fee</label><div class="fixed">1% on every buy and sell <i>FIXED</i></div></div>
-        <div class="f"><label>launch</label><div class="fixed">15-minute sealed batch, then bonding <i>FIXED</i></div></div>
+        <div class="f"><label>launch</label><div class="fixed">15-minute sealed batch, then trading on the sealed pool <i>FIXED</i></div></div>
         <div class="f"><label>supply</label><div class="fixed">1,000,000,000 · no mint · no freeze <i>FIXED</i></div></div>
-        <div class="f"><label>liquidity</label><div class="fixed">locks forever at graduation · no admin key <i>FIXED</i></div></div>
+        <div class="f"><label>liquidity</label><div class="fixed">program-owned pool, seeded at settle · no withdraw instruction <i>FIXED</i></div></div>
         <div class="f"><label>who can trade</label><div class="fixed">verified humans · one wallet each <i>FIXED</i></div></div>
         <div class="f"><label>first buy</label><div class="fixed no">none. the creator bids in the batch like everyone else <i>NOT AVAILABLE</i></div></div>
         <div class="f"><label>dev allocation</label><div class="fixed no">0% <i>NOT NEGOTIABLE</i></div></div>
 
         <div class="stepn">STEP 5 · SCHEDULE</div>
         <div class="f"><label>batch opens</label><input type="datetime-local"></div>
-        <p class="note">Tickers are case-insensitive and launched once for free. Re-launching a taken ticker costs 1 SOL to the treasury, refunded if the coin graduates within 48 hours.</p>
+        <p class="note">Tickers are case-insensitive and launched once for free. Tickers are not unique on chain; the mint address is the identity. Check the mint before you bid.</p>
       </form>
       <aside class="side">
         <h3>REVIEW</h3>
@@ -497,7 +497,8 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
   <!-- REWARDS -->
   <section class="sec" id="rewards">
-    <h2><span>REWARDS</span> where every 1% goes</h2>
+    <h2><span>REWARDS</span> where every 1% goes <i>target design · mainnet</i></h2>
+    <div class="note" style="border:1px solid rgba(242,177,52,.45);background:rgba(242,177,52,.06);color:var(--amber);padding:10px 12px;margin-bottom:14px;font-size:13px">What the program does <b>today</b> (devnet): the creator takes the share they set at launch (0–20%) and <b>everything else goes to holders who stake</b> — no treasury, no buyback, no airdrops yet. The split below is the mainnet target and will be constants in the program before launch.</div>
     <div class="split">
       <div class="box">
         <div class="barsplit"><i style="width:35%;background:var(--green)"></i><i style="width:25%;background:#2fbf71"></i><i style="width:20%;background:var(--cyan)"></i><i style="width:10%;background:var(--amber)"></i><i style="width:10%;background:#3a4a44"></i></div>
@@ -526,7 +527,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
       <div class="stat"><b id="an3">$46.0K</b><span id="an3l">RSRCT bought &amp; burned</span></div>
       <div class="stat"><b id="an4">$36.8K</b><span id="an4l">airdropped to verified traders</span></div>
       <div class="stat"><b id="an5">41</b><span>launches</span></div>
-      <div class="stat"><b id="an6">29</b><span>graduated</span></div>
+      <div class="stat"><b id="an6">29</b><span>trading · pool sealed</span></div>
       <div class="stat"><b id="an7">0.9%</b><span id="an7l">median largest wallet</span></div>
       <div class="stat r"><b id="an8">0</b><span>bundles detected</span></div>
     </div>
@@ -565,18 +566,18 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     <div class="how">
       <div class="rx"><div class="k">Rx 01</div><h3>Sealed batch auction</h3><p>Fifteen minutes. Bids hidden until close. One clearing price for every participant.</p><div class="ind">removes: <b>sniper bots</b></div></div>
       <div class="rx"><div class="k">Rx 02</div><h3>One human, one wallet</h3><p>Proof-of-personhood gates every bid and trade. Sybil wallets cost a verification each, then a ban.</p><div class="ind">removes: <b>bundlers · wash volume</b></div></div>
-      <div class="rx"><div class="k">Rx 03</div><h3>Immutable liquidity</h3><p>LP seeds and locks at graduation. No admin key, no pull function, no upgrade path.</p><div class="ind">removes: <b>rug pulls</b></div></div>
-      <div class="rx"><div class="k">Rx 04</div><h3>Zero dev allocation</h3><p>No pre-mint, no team wallet, no first buy. The creator bids in the batch like everyone else.</p><div class="ind">removes: <b>insider dumps</b></div></div>
+      <div class="rx"><div class="k">Rx 03</div><h3>Immutable liquidity</h3><p>The pool is seeded at settle and owned by the program. No pull function exists; the upgrade authority is published and will be frozen after audit.</p><div class="ind">removes: <b>rug pulls</b></div></div>
+      <div class="rx"><div class="k">Rx 04</div><h3>Zero dev allocation</h3><p>No pre-mint, no insider allocation, no first buy. The creator bids in the batch like everyone else.</p><div class="ind">removes: <b>insider dumps</b></div></div>
     </div>
     <table class="vs"><thead><tr><th></th><th>typical launchpad</th><th>Resurrect</th></tr></thead>
     <tbody>
-      <tr><td>launch</td><td>bonding curve from block one</td><td class="g">15-min sealed batch, then bonding</td></tr>
+      <tr><td>launch</td><td>bonding curve from block one</td><td class="g">15-min sealed batch, one price, then a sealed pool</td></tr>
       <tr><td>creator first buy</td><td>up to 3% before anyone else</td><td class="g">none</td></tr>
       <tr><td>who can trade</td><td>any wallet, bots included</td><td class="g">verified humans, one wallet each</td></tr>
       <tr><td>bot and wash volume</td><td>filtered by hand before airdrops</td><td class="g">cannot exist</td></tr>
       <tr><td>pairing assets</td><td>SOL, USDC, tokenized stocks</td><td class="g">same, plus baskets and commodities</td></tr>
       <tr><td>holder rewards</td><td>yes</td><td class="g">yes, 35% of fees</td></tr>
-      <tr><td>liquidity</td><td>locked on Raydium</td><td class="g">locked on Raydium, no admin key</td></tr>
+      <tr><td>liquidity</td><td>locked on Raydium</td><td class="g">program-owned pool, no withdraw instruction</td></tr>
       <tr><td>audit</td><td>often none</td><td class="g">audited before mainnet, or no mainnet</td></tr>
     </tbody></table>
   </section>
@@ -654,7 +655,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     let r=T.filter(x=>F==='all'||x.ph===F).filter(x=>!Q||(x.t+x.n+x.a).toLowerCase().includes(Q));
     r.sort((a,b)=>S==='fdv'?((b.ph==='batch')-(a.ph==='batch'))||b.fdv-a.fdv:S==='recent'?a.age-b.age:b.vol-a.vol);
     list.innerHTML=r.slice(0,shown).map((x,i)=>`<div class="tk" data-i="${T.indexOf(x)}">
-      <div class="top"><div class="av">${x.t.slice(0,2)}</div><div class="nm"><b>$${x.t}</b><span>${x.n}</span></div><span class="chip ${x.ph==='batch'?'live':x.ph==='bond'?'bond':'grad'}">${x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'BONDING':'GRADUATED'}</span></div>
+      <div class="top"><div class="av">${x.t.slice(0,2)}</div><div class="nm"><b>$${x.t}</b><span>${x.n}</span></div><span class="chip ${x.ph==='batch'?'live':x.ph==='bond'?'bond':'grad'}">${x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'REVEAL · SETTLE':'TRADING · SEALED'}</span></div>
       <div class="kv"><div>${x.ph==='batch'?'closes in':'FDV'}<b class="${x.ph==='batch'?'g':''}" ${x.ph==='batch'?`data-end="${x.end}"`:''}>${x.ph==='batch'?'--:--':fmt(x.fdv)}</b></div><div>${x.ph==='batch'?'sealed bids':'24h volume'}<b>${x.ph==='batch'?x.h+' humans':fmt(x.vol)}</b></div></div>
       <div class="anch">${ast(x.a)}anchored to <i>${sym(x.a)}</i></div>
       <div class="prog ${x.ph==='bond'?'c':''}"><i style="--p:${x.p}%"></i></div>
@@ -672,9 +673,9 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   const det=$('#detail');
   function openDetail(x){
     $('#d-av').textContent=x.t.slice(0,2);$('#d-name').innerHTML=`${x.n} <span style="color:var(--dim)">$${x.t}</span>`;$('#d-anch').innerHTML=ast(x.a)+sym(x.a);$('#d-sub').innerHTML=ast(x.a,'sub');$('#d-anch2').innerHTML=ast(x.a)+' '+sym(x.a)+' · '+(AS[akey(x.a)]?short(AS[akey(x.a)].m):'');
-    $('#d-phase').textContent=x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'BONDING':'GRADUATED';
+    $('#d-phase').textContent=x.ph==='batch'?'SEALED BATCH':x.ph==='bond'?'REVEAL · SETTLE':'TRADING · POOL SEALED';
     $('#d-fdv').textContent=fmt(x.fdv);$('#d-liq').textContent=fmt(x.fdv*0.28);$('#d-vol').textContent=fmt(x.vol);$('#d-h').textContent=x.h.toLocaleString('en-US')+' humans';
-    $('#d-lock').textContent=x.ph==='grad'?'Graduated to Raydium · liquidity locked forever · pool Bffh…fFXH':x.ph==='bond'?'Graduates to Raydium at $450K FDV · liquidity locks forever · pool address published at graduation':'Sealed batch in progress · bids hidden until close · one clearing price for everyone';
+    $('#d-lock').textContent=x.ph==='grad'?'Pool sealed inside the program · no withdraw instruction · pool Bffh…fFXH':x.ph==='bond'?'Reveal window open · settles to one clearing price · pool seeds with everything raised':'Sealed batch in progress · bids hidden until close · one clearing price for everyone';
     det.classList.add('open');list.style.display='none';$('#more').style.display='none';$('.tool').style.display='none';
     drawChart(x);det.scrollIntoView({behavior:'smooth',block:'start'});
   }
