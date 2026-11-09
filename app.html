@@ -280,7 +280,7 @@ async function eventDisc(){ if(!evDisc){ evDisc=new Uint8Array(await crypto.subt
 function b64(s){ const bin=atob(s); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
 async function loadHistory(l){ const key=l.pubkey.toBase58(); if(HIST[key]&&Date.now()-HIST[key].t<20000) return HIST[key].rows; const d=await eventDisc();
   const sigs=await conn.getSignaturesForAddress(l.pubkey,{limit:60}); const rows=[];
-  const txs=await Promise.all(sigs.slice(0,40).map(sg=>conn.getTransaction(sg.signature,{maxSupportedTransactionVersion:0,commitment:'confirmed'}).catch(()=>null)));
+  const txs=await Promise.all(sigs.slice(0,40).map(sg=>conn.getTransaction(sg.signature,{maxSupportedTransactionVersion:0,commitment:'confirmed'}).catch(()=>null))); if(sigs.length&&txs.filter(Boolean).length<sigs.slice(0,40).length/2) throw new Error('rate limited');
   txs.forEach((tx,i)=>{ if(!tx||!tx.meta||tx.meta.err) return; for(const line of tx.meta.logMessages||[]){ if(!line.startsWith('Program data: ')) continue; const u=b64(line.slice(14));
     if(u.length>=8+32+16&&burnDisc.every((x,j)=>u[j]===x)){ const dv=new DataView(u.buffer,u.byteOffset); const src=new PublicKey(u.slice(8,40)); const spent=dv.getBigUint64(40,true), burned=dv.getBigUint64(48,true); rows.push({t:tx.blockTime||sigs[i].blockTime,i,sig:sigs[i].signature,trader:src,buy:true,burn:true,pair:spent-spent/100n,tok:burned}); continue; }
     if(u.length<8+64+32||!d.every((x,j)=>u[j]===x)) continue; const dv=new DataView(u.buffer,u.byteOffset); let o=8+32; const trader=new PublicKey(u.slice(o,o+32)); o+=32; const pairIn=dv.getBigUint64(o,true), tokensOut=dv.getBigUint64(o+8,true), tokensIn=dv.getBigUint64(o+16,true), pairOut=dv.getBigUint64(o+24,true);
@@ -292,10 +292,10 @@ function drawChart(l,rows){ const c=$('#d-canvas'); const g=c.getContext('2d'); 
   g.strokeStyle='rgba(74,227,138,.15)'; for(let i=1;i<4;i++){ g.beginPath(); g.moveTo(0,H*i/4); g.lineTo(W,H*i/4); g.stroke(); }
   const up=pts[pts.length-1]>=pts[0]; g.strokeStyle=up?'#4AE38A':'#FF4747'; g.lineWidth=2; g.shadowColor=g.strokeStyle; g.shadowBlur=8; g.beginPath(); pts.forEach((v,i)=>i?g.lineTo(x(i),y(v)):g.moveTo(x(i),y(v))); g.stroke(); g.shadowBlur=0;
   g.fillStyle='#5F7A6C'; g.font='11px Share Tech Mono, monospace'; g.fillText(mx.toPrecision(3),10,14); g.fillText(mn.toPrecision(3),10,H-12); }
-async function renderHistory(l){ const box=$('#d-chart'); if(!l.settled||l.poolTokens===0n){ box.style.display='none'; return; } box.style.display='';
+async function renderHistory(l,attempt=0){ const box=$('#d-chart'); if(!l.settled||(l.poolTokens===0n&&!l.graduated)){ box.style.display='none'; return; } box.style.display='';
   try{ const rows=await loadHistory(l); $('#d-chartn').textContent=rows.length; $('#d-chartlast').textContent=rows.length?'last '+new Date(rows[rows.length-1].t*1000).toLocaleTimeString('en-GB'):'no swaps yet'; drawChart(l,rows);
     $('#d-trades').innerHTML=rows.slice(-8).reverse().map(r=>`<div class="row"><span>${new Date(r.t*1000).toLocaleTimeString('en-GB')} · ${r.burn?'launch '+short(r.trader.toBase58()):short(r.trader.toBase58())}</span><b class="${r.buy?'g':'r'}">${r.burn?'BUYBACK · BURNED':r.buy?'BUY':'SELL'} ${fmtTok(r.tok)} ${r.burn?'RSRCT':''} for ${fmtPair(l,r.pair)} · <a href="${explorer(r.sig,'tx')}" target="_blank" rel="noopener">tx</a></b></div>`).join('')||'<div class="row"><span>no trades yet</span><b>be the first</b></div>'; }
-  catch(e){ $('#d-chartlast').textContent='history unavailable: '+(e.message||e).slice(0,60); } }
+  catch(e){ if(attempt<3&&current&&current.pubkey.equals(l.pubkey)){ $('#d-chartlast').textContent='RPC busy, retrying…'; setTimeout(()=>renderHistory(l,attempt+1),3000*(attempt+1)); } else $('#d-chartlast').textContent='history unavailable right now: '+(e.message||e).slice(0,60); } }
 
 // ---------- profile ----------
 async function renderProfile(){ const who=$('#p-who'); if(!pubkey){ who.textContent='connect a wallet'; return; } who.textContent=short(pubkey.toBase58());
