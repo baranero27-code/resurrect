@@ -46,7 +46,7 @@ Minimum bid = 0.01 units of the pair asset.
    The creator's unused share (10% − creator share) and rounding dust go to holders.
    - `claim_creator_fees` — creator pulls their share.
    - `collect_treasury` — anyone pushes the treasury share to the treasury wallet's token account (address in `Config`).
-   - `buyback_and_burn` — anyone; swaps the launch's accrued buyback share through the **RSRCT launch's own pool** (paying its 1% fee like any trader) and burns the RSRCT received, in one instruction. Requires `Config.rsrct_mint` to be set and the RSRCT launch to be paired with the same asset.
+   - `buyback_and_burn` — anyone; per call spends at most 1% of the RSRCT pool's real reserve (anti-sandwich); swaps the launch's accrued buyback share through the **RSRCT launch's own pool** (paying its 1% fee like any trader) and burns the RSRCT received, in one instruction. Requires `Config.rsrct_mint` to be set and the RSRCT launch to be paired with the same asset.
    - Trader rewards: weekly epochs from `settle_ts`. Each swap adds its trader share to `EpochRecord[epoch].pool`; if the trader passes a valid Civic pass, the swap size is added to `TraderStats[epoch].volume` and the epoch's verified volume. After the epoch ends, `claim_trader_reward(epoch)` pays pool × volume ÷ epoch_volume. `sweep_epoch(epoch)` routes a pool with zero verified volume to holders.
    - `init_config(treasury)` (ADMIN only, once) / `set_config(treasury, rsrct_mint)` (config authority).
 8. `stake(amount)` / `unstake(amount)` / `claim_rewards` — holders deposit launch tokens into the stake vault (no lockup, no fee)

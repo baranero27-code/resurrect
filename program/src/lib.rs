@@ -61,6 +61,8 @@ pub const VENUE_RAYDIUM: u8 = 1;   // Raydium CPMM pool, LP burned; visible on e
 #[cfg(feature = "mainnet")] pub const RAYDIUM_FEE_RECEIVER: Pubkey = anchor_lang::solana_program::pubkey!("DNXgeM9EiiaAbaWvwjHj9fQQLAX5ZsfHyvmYUNRAdNC8");
 #[cfg(not(feature = "mainnet"))] pub const RAYDIUM_FEE_RECEIVER: Pubkey = anchor_lang::solana_program::pubkey!("G11FKBRaAkHAKuLCgLM6K6NUc9rTjPAznRCjZifrTQe2");
 pub const RAYDIUM_INIT_DISC: [u8; 8] = [175, 175, 109, 31, 13, 152, 155, 237];
+/// A single buyback call may spend at most this share of the RSRCT pool's pair reserve (anti-sandwich). Rest stays accrued.
+pub const BUYBACK_MAX_BPS_OF_POOL: u64 = 100; // 1%
 pub const MAX_VIRTUAL_UNITS: u64 = 100_000;
 /// Who may initialise/update the global config (treasury wallet, RSRCT mint). Replace for mainnet.
 #[cfg(not(feature = "localtest"))] pub const ADMIN: Pubkey = anchor_lang::solana_program::pubkey!("HEtZUFGTduAwAq5nuMjkSpYn1zMXNPNtDAEi2tnW5S7X");
@@ -428,7 +430,8 @@ pub mod resurrect {
         let src = &ctx.accounts.launch; let r = &ctx.accounts.rsrct_launch;
         require!(ctx.accounts.config.rsrct_mint != Pubkey::default() && r.mint == ctx.accounts.config.rsrct_mint, ErrorCode::NoRsrct);
         require!(r.pair_mint == src.pair_mint && r.settled && r.pool_tokens > 0, ErrorCode::BadParams);
-        let amount = src.buyback_accrued; require!(amount > 0, ErrorCode::NothingToClaim);
+        let cap = (r.pool_pair - r.virtual_pair) * BUYBACK_MAX_BPS_OF_POOL / 10_000; // real reserve only
+        let amount = src.buyback_accrued.min(cap.max(1)); require!(amount > 0 && src.buyback_accrued > 0, ErrorCode::NothingToClaim);
         // swap through the RSRCT pool exactly like a trader would (1% fee to the RSRCT launch), then burn the output
         let fee = amount * FEE_BPS / 10_000; let net = amount - fee;
         let out = cp_out(net as u128, r.pool_pair as u128, r.pool_tokens as u128); require!(out > 0, ErrorCode::Slippage);
@@ -440,7 +443,7 @@ pub mod resurrect {
         let (rm, rb) = (r.mint, r.bump); let rseeds: &[&[u8]] = &[b"launch", rm.as_ref(), &[rb]];
         token::burn(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), token::Burn {
             mint: ctx.accounts.rsrct_mint.to_account_info(), from: ctx.accounts.rsrct_vault.to_account_info(), authority: ctx.accounts.rsrct_launch.to_account_info() }, &[rseeds]), out)?;
-        let src = &mut ctx.accounts.launch; src.buyback_accrued = 0; src.buyback_total += amount;
+        let src = &mut ctx.accounts.launch; src.buyback_accrued -= amount; src.buyback_total += amount;
         let r = &mut ctx.accounts.rsrct_launch; r.pool_pair += net; r.pool_tokens -= out; r.burned += out; accrue_fee(r, fee)?;
         emit!(Burned { launch: src.key(), pair_spent: amount, rsrct_burned: out });
         Ok(())

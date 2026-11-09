@@ -87,5 +87,5 @@ All reserve math in u128. `cp_out`: reserve_in·reserve_out ≤ ~1e15·2e14 = 2e
 3. Is `Option<UncheckedAccount>` None-detection (program id placeholder) exploitable when `require_human` is set?
 4. Any Token-2022 extension beyond §5 that breaks invariant 6?
 5. Epoch boundaries: a swap whose client-computed epoch lags the chain fails with `WrongEpoch` (fail-closed). Can a trader split volume across epochs to gain more than pro-rata?
-6. `buyback_and_burn` is permissionless and executes a market buy of whatever has accrued. Is sandwiching it profitable enough to matter, and should we add a max-size-per-call cap?
+6. `buyback_and_burn` is permissionless; each call now spends at most 1% of the RSRCT pool's real reserve (`BUYBACK_MAX_BPS_OF_POOL`), the rest stays accrued. Is 1% the right cap, and is repeated calling in one block a concern?
 7. Rounding in `claim_trader_reward` (floor) leaves dust in the fee vault forever — acceptable?
