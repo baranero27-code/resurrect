@@ -13,6 +13,17 @@ reserve (`gross` is capped at `pool_pair − virtual_pair`). `commit_bid` / `rev
 launches (`WrongMode`); `require_human` is ignored in Open mode. Everything else — fixed supply, 0% creator allocation,
 program-owned pool, fee split, staking, trader epochs, buyback — is identical in both modes.
 
+## Venues
+`create_launch(..., venue)`: `0` Resurrect pool (default) · `1` **Raydium**. `graduate_raydium` (anyone) CPIs Raydium CP-Swap `initialize`
+with the caller as Raydium's `creator`: the launch PDA transfers the real pair reserve and the pool tokens to the caller's token
+accounts, Raydium pulls exactly those amounts into the new pool, the LP minted to the caller is **burned in full**, and the
+program checks the caller's balances are back to their pre-call values (nothing can stick to the caller). Auction + Raydium:
+callable right after settle (internal swaps are blocked with `GraduatePending`). Open + Raydium: callable once
+`real_reserve ≥ virtual_pair`. After graduation internal swaps return `Graduated`; claims, staking rewards and creator fees
+already accrued remain claimable. Program ids: devnet `CPMDWBwJDtYax9qW7AyRuVC19Cc4L4Vcy4n2BHAbHkCW`, mainnet
+`CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C` (selected by the `mainnet` feature). Tested against the devnet CP-Swap binary
+cloned into a local validator (`raytest.js`, `raytest2.js`).
+
 ## Pairing asset
 Every launch names a `pair_mint`: wrapped SOL, USDC, a tokenized stock (xStocks, Ondo, Sunrise…), an ETF, a commodity token.
 Any **SPL Token or Token-2022** mint works — the program uses `transfer_checked` through the token interface and stores the

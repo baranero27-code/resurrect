@@ -64,9 +64,9 @@
     }
 
     // ---- instructions ----
-    async function ixCreateLaunch({ creator, mint, pairMint, pairProg, creatorToken, name, symbol, batchSecs, creatorFeeBps, requireHuman = false, mode = 0, virtualPair = 0n }) {
+    async function ixCreateLaunch({ creator, mint, pairMint, pairProg, creatorToken, name, symbol, batchSecs, creatorFeeBps, requireHuman = false, mode = 0, virtualPair = 0n, venue = 0 }) {
       const k = seedsFor(mint);
-      const data = concat(await disc('create_launch'), str(name), str(symbol), i64(batchSecs), u16(creatorFeeBps), new Uint8Array([requireHuman ? 1 : 0, mode]), u64(virtualPair));
+      const data = concat(await disc('create_launch'), str(name), str(symbol), i64(batchSecs), u16(creatorFeeBps), new Uint8Array([requireHuman ? 1 : 0, mode]), u64(virtualPair), new Uint8Array([venue]));
       return new TransactionInstruction({ programId: PROGRAM_ID, data, keys: [
         meta(creator, true, true), meta(mint), meta(pairMint), meta(k.launch, false, true), meta(k.vault, false, true),
         meta(k.escrow, false, true), meta(k.pool, false, true), meta(k.fees, false, true), meta(k.stakeVault, false, true), meta(creatorToken, false, true),
@@ -139,8 +139,34 @@
       creatorFeeBps: r.u16(), pairDecimals: r.u8(), minBid: r.u64(), bids: r.u32(), revealed: r.u32(), totalRevealed: r.u64(), clearingPriceQ32: r.u128(),
       settled: r.bool(), poolPair: r.u64(), poolTokens: r.u64(), feesAccrued: r.u64(), creatorFeesOwed: r.u64(), creatorFeesClaimed: r.u64(),
       requireHuman: r.bool(), gatekeeperNetwork: r.pk(), stakeVault: r.pk(), totalStaked: r.u64(), rewardIndex: r.u128(), rewardsPending: r.u64(), rewardsDistributed: r.u64(),
-      settleTs: Number(r.i64()), buybackAccrued: r.u64(), buybackTotal: r.u64(), traderAccrued: r.u64(), traderTotal: r.u64(), treasuryOwed: r.u64(), treasuryTotal: r.u64(), burned: r.u64(), mode: r.u8(), virtualPair: r.u64(), bump: r.u8() }; }
-    const MODE_AUCTION = 0, MODE_OPEN = 1;
+      settleTs: Number(r.i64()), buybackAccrued: r.u64(), buybackTotal: r.u64(), traderAccrued: r.u64(), traderTotal: r.u64(), treasuryOwed: r.u64(), treasuryTotal: r.u64(), burned: r.u64(), mode: r.u8(), virtualPair: r.u64(), venue: r.u8(), graduated: r.bool(), raydiumPool: r.pk(), bump: r.u8() }; }
+    const MODE_AUCTION = 0, MODE_OPEN = 1, VENUE_RESURRECT = 0, VENUE_RAYDIUM = 1;
+    // ---- Raydium CP-Swap ----
+    const RAYDIUM = { mainnet: { program: new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C'), fee: new PublicKey('DNXgeM9EiiaAbaWvwjHj9fQQLAX5ZsfHyvmYUNRAdNC8') }, devnet: { program: new PublicKey('CPMDWBwJDtYax9qW7AyRuVC19Cc4L4Vcy4n2BHAbHkCW'), fee: new PublicKey('G11FKBRaAkHAKuLCgLM6K6NUc9rTjPAznRCjZifrTQe2') } };
+    const ray = () => RAYDIUM[opts.cluster === 'mainnet' ? 'mainnet' : 'devnet'];
+    function raydiumPdas(mint0, mint1) { const R = ray().program; const idx = new Uint8Array(2); // amm config index 0, big-endian
+      const [ammConfig] = PublicKey.findProgramAddressSync([enc.encode('amm_config'), idx], R);
+      const [authority] = PublicKey.findProgramAddressSync([enc.encode('vault_and_lp_mint_auth_seed')], R);
+      const [pool] = PublicKey.findProgramAddressSync([enc.encode('pool'), ammConfig.toBuffer(), mint0.toBuffer(), mint1.toBuffer()], R);
+      const [lpMint] = PublicKey.findProgramAddressSync([enc.encode('pool_lp_mint'), pool.toBuffer()], R);
+      const [vault0] = PublicKey.findProgramAddressSync([enc.encode('pool_vault'), pool.toBuffer(), mint0.toBuffer()], R);
+      const [vault1] = PublicKey.findProgramAddressSync([enc.encode('pool_vault'), pool.toBuffer(), mint1.toBuffer()], R);
+      const [observation] = PublicKey.findProgramAddressSync([enc.encode('observation'), pool.toBuffer()], R);
+      return { program: R, ammConfig, authority, pool, lpMint, vault0, vault1, observation, feeReceiver: ray().fee }; }
+    /// Everything needed to graduate a launch to Raydium: the ix plus the ATA-creation ixs the payer needs first.
+    async function ixsGraduateRaydium({ payer, launch }) {
+      const mint = launch.mint, pairMint = launch.pairMint, pairProg = new PublicKey(launch.pairTokenProgram);
+      const pairIs0 = pairMint.toBuffer().compare(mint.toBuffer()) < 0; const [m0, m1] = pairIs0 ? [pairMint, mint] : [mint, pairMint]; const [p0, p1] = pairIs0 ? [pairProg, TOKEN] : [TOKEN, pairProg];
+      const r = raydiumPdas(m0, m1); const k = seedsFor(mint);
+      const ct0 = ata(m0, payer, p0), ct1 = ata(m1, payer, p1), lpAta = ata(r.lpMint, payer, TOKEN);
+      const pre = [spl.createAssociatedTokenAccountIdempotentInstruction(payer, ct0, payer, m0, p0), spl.createAssociatedTokenAccountIdempotentInstruction(payer, ct1, payer, m1, p1)];
+      const ix = new TransactionInstruction({ programId: PROGRAM_ID, data: await disc('graduate_raydium'), keys: [
+        meta(payer, true, true), meta(k.launch, false, true), meta(r.ammConfig), meta(r.authority), meta(r.pool, false, true), meta(m0), meta(m1), meta(pairMint), meta(k.pool, false, true), meta(k.vault, false, true),
+        meta(r.lpMint, false, true), meta(ct0, false, true), meta(ct1, false, true), meta(lpAta, false, true), meta(r.vault0, false, true), meta(r.vault1, false, true), meta(r.feeReceiver, false, true), meta(r.observation, false, true),
+        meta(TOKEN), meta(p0), meta(p1), meta(spl.ASSOCIATED_TOKEN_PROGRAM_ID), meta(SystemProgram.programId), meta(SYSVAR_RENT_PUBKEY), meta(r.program)] });
+      return { pre, ix, pool: r.pool, lpMint: r.lpMint };
+    }
+    const canGraduate = (l) => l.venue === VENUE_RAYDIUM && !l.graduated && l.settled && l.poolTokens > 0n && (l.mode === MODE_AUCTION ? l.poolPair - l.virtualPair > 0n : l.poolPair - l.virtualPair >= l.virtualPair);
     function decodeConfig(buf) { const r = rd(buf); return { authority: r.pk(), treasury: r.pk(), rsrctMint: r.pk(), bump: r.u8() }; }
     function decodeEpoch(buf) { const r = rd(buf); return { launch: r.pk(), epoch: r.u32(), pool: r.u64(), volume: r.u64(), claimed: r.u64(), swept: r.bool(), bump: r.u8() }; }
     function decodeTrader(buf) { const r = rd(buf); return { launch: r.pk(), trader: r.pk(), epoch: r.u32(), volume: r.u64(), rawVolume: r.u64(), claimed: r.bool(), paid: r.u64(), bump: r.u8() }; }
@@ -178,7 +204,7 @@
       ] };
     }
     const priceFromQ32 = (q) => Number(q) / 2 ** 32; // pair base units per token base unit
-    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, GATEWAY, UNIQUENESS, EPOCH_SECS, MODE_AUCTION, MODE_OPEN, seedsFor, bidPda, stakePda, configPda, epochPda, traderPda, gatewayTokenPda, epochOf, epochEnd, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
+    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, GATEWAY, UNIQUENESS, EPOCH_SECS, MODE_AUCTION, MODE_OPEN, VENUE_RESURRECT, VENUE_RAYDIUM, raydiumPdas, ixsGraduateRaydium, canGraduate, seedsFor, bidPda, stakePda, configPda, epochPda, traderPda, gatewayTokenPda, epochOf, epochEnd, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
       ixCreateLaunch, ixCommitBid, ixRevealBid, ixSettle, ixClaim, ixSwap, ixClaimCreatorFees, ixStake, ixClaimRewards, ixInitConfig, ixSetConfig, ixCollectTreasury, ixBuybackAndBurn, ixClaimTraderReward, ixSweepEpoch,
       decodeLaunch, decodeBid, decodeStake, decodeConfig, decodeEpoch, decodeTrader, fetchLaunches, fetchLaunch, fetchBid, fetchStake, fetchConfig, fetchEpoch, fetchTrader, pendingRewards, hasHumanPass, ixsCreateFixedMint, SUPPLY, priceFromQ32, randomSalt: () => globalThis.crypto.getRandomValues(new Uint8Array(32)) };
   };

@@ -52,6 +52,15 @@ pub const MODE_AUCTION: u8 = 0; // sealed batch, one clearing price, proof of pe
 pub const MODE_OPEN: u8 = 1;    // plain bonding curve: instant trading from creation, no gates, no caps
 /// Open mode: bounds on the creator-chosen virtual pair reserve (sets the starting price): 10 .. 100,000 units of the pair asset
 pub const MIN_VIRTUAL_UNITS: u64 = 10;
+/// Where the post-launch pool lives
+pub const VENUE_RESURRECT: u8 = 0; // program-owned pool, full fee split
+pub const VENUE_RAYDIUM: u8 = 1;   // Raydium CPMM pool, LP burned; visible on every aggregator, Raydium fees apply
+/// Raydium CP-Swap program (devnet build id differs from mainnet; set per cluster at build time)
+#[cfg(feature = "mainnet")] pub const RAYDIUM_CPMM: Pubkey = anchor_lang::solana_program::pubkey!("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C");
+#[cfg(not(feature = "mainnet"))] pub const RAYDIUM_CPMM: Pubkey = anchor_lang::solana_program::pubkey!("CPMDWBwJDtYax9qW7AyRuVC19Cc4L4Vcy4n2BHAbHkCW");
+#[cfg(feature = "mainnet")] pub const RAYDIUM_FEE_RECEIVER: Pubkey = anchor_lang::solana_program::pubkey!("DNXgeM9EiiaAbaWvwjHj9fQQLAX5ZsfHyvmYUNRAdNC8");
+#[cfg(not(feature = "mainnet"))] pub const RAYDIUM_FEE_RECEIVER: Pubkey = anchor_lang::solana_program::pubkey!("G11FKBRaAkHAKuLCgLM6K6NUc9rTjPAznRCjZifrTQe2");
+pub const RAYDIUM_INIT_DISC: [u8; 8] = [175, 175, 109, 31, 13, 152, 155, 237];
 pub const MAX_VIRTUAL_UNITS: u64 = 100_000;
 /// Who may initialise/update the global config (treasury wallet, RSRCT mint). Replace for mainnet.
 #[cfg(not(feature = "localtest"))] pub const ADMIN: Pubkey = anchor_lang::solana_program::pubkey!("HEtZUFGTduAwAq5nuMjkSpYn1zMXNPNtDAEi2tnW5S7X");
@@ -65,8 +74,9 @@ pub const UNIQUENESS_NETWORK: Pubkey = anchor_lang::solana_program::pubkey!("uni
 pub mod resurrect {
     use super::*;
 
-    pub fn create_launch(ctx: Context<CreateLaunch>, name: String, symbol: String, batch_secs: i64, creator_fee_bps: u16, require_human: bool, mode: u8, virtual_pair: u64) -> Result<()> {
+    pub fn create_launch(ctx: Context<CreateLaunch>, name: String, symbol: String, batch_secs: i64, creator_fee_bps: u16, require_human: bool, mode: u8, virtual_pair: u64, venue: u8) -> Result<()> {
         require!(mode == MODE_AUCTION || mode == MODE_OPEN, ErrorCode::BadParams);
+        require!(venue == VENUE_RESURRECT || venue == VENUE_RAYDIUM, ErrorCode::BadParams);
         require!(name.len() <= 32 && symbol.len() >= 1 && symbol.len() <= 10, ErrorCode::BadParams);
         require!(batch_secs >= MIN_BATCH_SECS && batch_secs <= MAX_BATCH_SECS, ErrorCode::BadParams);
         require!(creator_fee_bps <= MAX_CREATOR_FEE_BPS, ErrorCode::BadParams);
@@ -120,6 +130,9 @@ pub mod resurrect {
         l.creator_fees_claimed = 0;
         l.require_human = require_human && mode == MODE_AUCTION;
         l.mode = mode;
+        l.venue = venue;
+        l.graduated = false;
+        l.raydium_pool = Pubkey::default();
         l.virtual_pair = 0;
         if mode == MODE_OPEN {
             // plain curve: the whole supply sits on a constant-product curve with a virtual pair reserve; trading starts now
@@ -255,7 +268,9 @@ pub mod resurrect {
     /// Buy tokens with the pair asset from the sealed pool. 1% fee on the pair side accrues to the fee vault.
     pub fn swap_pair_for_tokens(mut ctx: Context<Swap>, pair_in: u64, min_tokens_out: u64, _epoch: u32) -> Result<()> {
         let l = &ctx.accounts.launch;
+        require!(!l.graduated, ErrorCode::Graduated);
         require!(l.settled && l.pool_tokens > 0, ErrorCode::NotSettled);
+        require!(l.venue == VENUE_RESURRECT || l.mode == MODE_OPEN, ErrorCode::GraduatePending); // auction+raydium: pool moves to Raydium right after settle
         require!(pair_in > 0, ErrorCode::BadParams);
         let fee = pair_in * FEE_BPS / 10_000;
         let net = pair_in - fee;
@@ -286,7 +301,9 @@ pub mod resurrect {
     /// Sell tokens to the pool for the pair asset. 1% fee on the pair side.
     pub fn swap_tokens_for_pair(mut ctx: Context<Swap>, tokens_in: u64, min_pair_out: u64, _epoch: u32) -> Result<()> {
         let l = &ctx.accounts.launch;
+        require!(!l.graduated, ErrorCode::Graduated);
         require!(l.settled && l.pool_tokens > 0, ErrorCode::NotSettled);
+        require!(l.venue == VENUE_RESURRECT || l.mode == MODE_OPEN, ErrorCode::GraduatePending);
         require!(tokens_in > 0, ErrorCode::BadParams);
         let mut gross = cp_out(tokens_in as u128, l.pool_tokens as u128, l.pool_pair as u128);
         let real = l.pool_pair - l.virtual_pair; // the virtual part of the reserve is not real money and can never be paid out
@@ -311,6 +328,63 @@ pub mod resurrect {
         l.pool_pair -= gross;
         l.pool_tokens += tokens_in;
         emit!(Swapped { launch: l.key(), trader: ctx.accounts.trader.key(), pair_in: 0, tokens_out: 0, tokens_in, pair_out: out });
+        Ok(())
+    }
+
+
+    /// Move this launch's pool to Raydium (CP-Swap) and burn the LP tokens. Anyone can call once the launch is ready:
+    /// Auction + Raydium → right after settle. Open + Raydium → once the real reserve reaches the virtual reserve (price ≈ 4× open).
+    /// The caller pays Raydium's pool-creation fee and rents, receives the LP tokens and this instruction burns them in full.
+    pub fn graduate_raydium(ctx: Context<GraduateRaydium>) -> Result<()> {
+        let l = &ctx.accounts.launch;
+        require!(l.venue == VENUE_RAYDIUM && !l.graduated && l.settled, ErrorCode::BadParams);
+        let real_pair = l.pool_pair - l.virtual_pair;
+        if l.mode == MODE_OPEN { require!(real_pair >= l.virtual_pair, ErrorCode::NotReadyToGraduate); }
+        require!(real_pair > 0 && l.pool_tokens > 0, ErrorCode::NotReadyToGraduate);
+        let tokens = l.pool_tokens;
+        // account ordering: Raydium requires token_0 < token_1
+        let (m0, m1) = (ctx.accounts.token_0_mint.key(), ctx.accounts.token_1_mint.key());
+        require!(m0 < m1, ErrorCode::BadParams);
+        let pair_is_0 = m0 == l.pair_mint;
+        require!((pair_is_0 && m1 == l.mint) || (!pair_is_0 && m0 == l.mint && m1 == l.pair_mint), ErrorCode::BadParams);
+        let (amt0, amt1) = if pair_is_0 { (real_pair, tokens) } else { (tokens, real_pair) };
+        // Raydium pulls the deposit from token accounts owned by its `creator` (a System-owned signer): the caller. So the pool's
+        // assets pass through the caller's accounts inside this instruction, and we check afterwards that none of it stayed there.
+        let (c0, c1) = (ctx.accounts.creator_token_0.key(), ctx.accounts.creator_token_1.key());
+        require!(ctx.accounts.creator_token_0.owner == ctx.accounts.payer.key() && ctx.accounts.creator_token_1.owner == ctx.accounts.payer.key(), ErrorCode::BadParams);
+        require!(ctx.accounts.creator_token_0.mint == m0 && ctx.accounts.creator_token_1.mint == m1, ErrorCode::BadParams);
+        let (bal0, bal1) = (ctx.accounts.creator_token_0.amount, ctx.accounts.creator_token_1.amount);
+        let (mint_key, bump, dec) = (l.mint, l.bump, l.pair_decimals); let seeds: &[&[u8]] = &[b"launch", mint_key.as_ref(), &[bump]];
+        let pair_prog = if pair_is_0 { ctx.accounts.token_0_program.to_account_info() } else { ctx.accounts.token_1_program.to_account_info() };
+        let pair_dst = if pair_is_0 { ctx.accounts.creator_token_0.to_account_info() } else { ctx.accounts.creator_token_1.to_account_info() };
+        let tok_dst = if pair_is_0 { ctx.accounts.creator_token_1.to_account_info() } else { ctx.accounts.creator_token_0.to_account_info() };
+        ti::transfer_checked(CpiContext::new_with_signer(pair_prog, TransferChecked { from: ctx.accounts.pool_pair.to_account_info(), to: pair_dst, mint: ctx.accounts.pair_mint.to_account_info(), authority: ctx.accounts.launch.to_account_info() }, &[seeds]), real_pair, dec)?;
+        token::transfer(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), Transfer { from: ctx.accounts.vault.to_account_info(), to: tok_dst, authority: ctx.accounts.launch.to_account_info() }, &[seeds]), tokens)?;
+        let mut data = Vec::with_capacity(32);
+        data.extend_from_slice(&RAYDIUM_INIT_DISC); data.extend_from_slice(&amt0.to_le_bytes()); data.extend_from_slice(&amt1.to_le_bytes()); data.extend_from_slice(&0u64.to_le_bytes());
+        use anchor_lang::solana_program::instruction::{AccountMeta, Instruction};
+        let a = &ctx.accounts;
+        let ix = Instruction { program_id: RAYDIUM_CPMM, data, accounts: vec![
+            AccountMeta::new(a.payer.key(), true), AccountMeta::new_readonly(a.amm_config.key(), false), AccountMeta::new_readonly(a.raydium_authority.key(), false),
+            AccountMeta::new(a.pool_state.key(), false), AccountMeta::new_readonly(m0, false), AccountMeta::new_readonly(m1, false), AccountMeta::new(a.lp_mint.key(), false),
+            AccountMeta::new(c0, false), AccountMeta::new(c1, false), AccountMeta::new(a.creator_lp_token.key(), false),
+            AccountMeta::new(a.token_0_vault.key(), false), AccountMeta::new(a.token_1_vault.key(), false), AccountMeta::new(a.create_pool_fee.key(), false),
+            AccountMeta::new(a.observation_state.key(), false), AccountMeta::new_readonly(a.token_program.key(), false), AccountMeta::new_readonly(a.token_0_program.key(), false),
+            AccountMeta::new_readonly(a.token_1_program.key(), false), AccountMeta::new_readonly(a.associated_token_program.key(), false), AccountMeta::new_readonly(a.system_program.key(), false), AccountMeta::new_readonly(a.rent.key(), false) ] };
+        anchor_lang::solana_program::program::invoke(&ix, &[
+            a.payer.to_account_info(), a.amm_config.to_account_info(), a.raydium_authority.to_account_info(), a.pool_state.to_account_info(), a.token_0_mint.to_account_info(), a.token_1_mint.to_account_info(),
+            a.lp_mint.to_account_info(), a.creator_token_0.to_account_info(), a.creator_token_1.to_account_info(), a.creator_lp_token.to_account_info(), a.token_0_vault.to_account_info(), a.token_1_vault.to_account_info(),
+            a.create_pool_fee.to_account_info(), a.observation_state.to_account_info(), a.token_program.to_account_info(), a.token_0_program.to_account_info(), a.token_1_program.to_account_info(),
+            a.associated_token_program.to_account_info(), a.system_program.to_account_info(), a.rent.to_account_info(), a.raydium_program.to_account_info() ])?;
+        // burn every LP token the caller just received: liquidity is locked forever
+        let lp_bal = { let d = a.creator_lp_token.try_borrow_data()?; u64::from_le_bytes(d[64..72].try_into().unwrap()) };
+        require!(lp_bal > 0, ErrorCode::BadParams);
+        token::burn(CpiContext::new(a.token_program.to_account_info(), token::Burn { mint: a.lp_mint.to_account_info(), from: a.creator_lp_token.to_account_info(), authority: a.payer.to_account_info() }), lp_bal)?;
+        ctx.accounts.creator_token_0.reload()?; ctx.accounts.creator_token_1.reload()?;
+        require!(ctx.accounts.creator_token_0.amount == bal0 && ctx.accounts.creator_token_1.amount == bal1, ErrorCode::TransferShortfall);
+        let l = &mut ctx.accounts.launch;
+        l.graduated = true; l.raydium_pool = ctx.accounts.pool_state.key(); l.pool_pair = l.virtual_pair; l.pool_tokens = 0;
+        emit!(GraduatedToRaydium { launch: l.key(), pool: l.raydium_pool, pair_amount: real_pair, token_amount: tokens, lp_burned: lp_bal });
         Ok(())
     }
 
@@ -615,6 +689,9 @@ pub struct Launch {
     pub burned: u64,             // RSRCT launch only: tokens burned by buybacks
     pub mode: u8,                // MODE_AUCTION | MODE_OPEN
     pub virtual_pair: u64,       // Open mode: virtual pair reserve included in pool_pair
+    pub venue: u8,               // VENUE_RESURRECT | VENUE_RAYDIUM
+    pub graduated: bool,
+    pub raydium_pool: Pubkey,
     pub bump: u8,
 }
 
@@ -902,6 +979,62 @@ pub struct SweepEpoch<'info> {
 }
 
 #[derive(Accounts)]
+pub struct GraduateRaydium<'info> {
+    /// pays Raydium's pool-creation fee and rents, receives (and immediately burns) the LP tokens
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut, seeds = [b"launch", launch.mint.as_ref()], bump = launch.bump)]
+    pub launch: Box<Account<'info, Launch>>,
+    /// CHECK: Raydium amm config (owned by the Raydium program)
+    #[account(owner = RAYDIUM_CPMM)]
+    pub amm_config: UncheckedAccount<'info>,
+    /// CHECK: Raydium vault/lp authority PDA
+    pub raydium_authority: UncheckedAccount<'info>,
+    /// CHECK: Raydium pool state PDA, created by Raydium
+    #[account(mut)]
+    pub pool_state: UncheckedAccount<'info>,
+    pub token_0_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub token_1_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(address = launch.pair_mint)]
+    pub pair_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(mut, address = launch.pool_pair_account)]
+    pub pool_pair: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, address = launch.vault)]
+    pub vault: Box<InterfaceAccount<'info, TokenAccount>>,
+    /// CHECK: lp mint PDA, created by Raydium
+    #[account(mut)]
+    pub lp_mint: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub creator_token_0: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut)]
+    pub creator_token_1: Box<InterfaceAccount<'info, TokenAccount>>,
+    /// CHECK: payer's ATA for the lp mint, created by Raydium; burned in full here
+    #[account(mut)]
+    pub creator_lp_token: UncheckedAccount<'info>,
+    /// CHECK: Raydium vault PDA
+    #[account(mut)]
+    pub token_0_vault: UncheckedAccount<'info>,
+    /// CHECK: Raydium vault PDA
+    #[account(mut)]
+    pub token_1_vault: UncheckedAccount<'info>,
+    /// CHECK: Raydium pool-creation fee receiver (wSOL account)
+    #[account(mut, address = RAYDIUM_FEE_RECEIVER)]
+    pub create_pool_fee: UncheckedAccount<'info>,
+    /// CHECK: Raydium observation PDA
+    #[account(mut)]
+    pub observation_state: UncheckedAccount<'info>,
+    pub token_program: Program<'info, Token>,
+    pub token_0_program: Interface<'info, TokenInterface>,
+    pub token_1_program: Interface<'info, TokenInterface>,
+    pub associated_token_program: Program<'info, anchor_spl::associated_token::AssociatedToken>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+    /// CHECK: Raydium CP-Swap program
+    #[account(address = RAYDIUM_CPMM)]
+    pub raydium_program: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
 pub struct ClaimCreatorFees<'info> {
     pub creator: Signer<'info>,
     #[account(mut, seeds = [b"launch", launch.mint.as_ref()], bump = launch.bump, has_one = creator)]
@@ -918,6 +1051,7 @@ pub struct ClaimCreatorFees<'info> {
 
 #[event] pub struct LaunchCreated { pub launch: Pubkey, pub mint: Pubkey, pub pair_mint: Pubkey, pub end_ts: i64 }
 #[event] pub struct Settled { pub launch: Pubkey, pub clearing_price_q32: u128, pub raised: u64, pub pool_tokens: u64 }
+#[event] pub struct GraduatedToRaydium { pub launch: Pubkey, pub pool: Pubkey, pub pair_amount: u64, pub token_amount: u64, pub lp_burned: u64 }
 #[event] pub struct Burned { pub launch: Pubkey, pub pair_spent: u64, pub rsrct_burned: u64 }
 #[event] pub struct RewardsClaimed { pub launch: Pubkey, pub staker: Pubkey, pub amount: u64 }
 #[event] pub struct Swapped { pub launch: Pubkey, pub trader: Pubkey, pub pair_in: u64, pub tokens_out: u64, pub tokens_in: u64, pub pair_out: u64 }
@@ -949,4 +1083,7 @@ pub enum ErrorCode {
     #[msg("epoch account does not match the current epoch")] WrongEpoch,
     #[msg("epoch has not ended yet")] EpochOpen,
     #[msg("this instruction does not apply to this launch mode")] WrongMode,
+    #[msg("pool has moved to Raydium — trade there")] Graduated,
+    #[msg("this launch graduates to Raydium; call graduate_raydium first")] GraduatePending,
+    #[msg("not ready to graduate yet")] NotReadyToGraduate,
 }
