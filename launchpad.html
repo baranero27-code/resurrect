@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Resurrect Launchpad — sealed batch launches on Solana</title>
-<meta name="description" content="Launch as a sealed 15-minute auction with one clearing price, or as an open curve — either way on a pool the program owns and nobody can pull. Pair with SOL, USDC or tokenized stocks. Holders earn a share of every trade. Verified humans only. Zero dev allocation.">
+<meta name="description" content="Launch as a sealed 15-minute auction with one clearing price, or as an open curve with a protected start — either way on a pool the program owns and nobody can pull. Pair with SOL, USDC or tokenized stocks. Holders earn a share of every trade. Verified humans only. Zero dev allocation.">
 <link rel="icon" type="image/png" sizes="32x32" href="brand/door-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="brand/door-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="brand/door-180.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Resurrect Launchpad">
-<meta property="og:description" content="Sealed auctions or open curves. Zero dev allocation. Holders earn on every trade. Nothing to pull.">
+<meta property="og:description" content="Sealed auctions or open curves with a protected start. Zero dev allocation. Holders earn on every trade. Nothing to pull.">
 <meta property="og:image" content="https://baranero27-code.github.io/resurrect/brand/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -330,7 +330,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
   <section class="hero">
     <div>
       <h1>Launch coins on top of real assets. <b>Without the insiders.</b></h1>
-      <p>Pair your coin with SOL, USDC or any of 2,400+ real assets: xStocks, Ondo tokenized stocks and ETFs, Sunrise stocks, pre-IPO tokens, indexes, commodities. Launch as a sealed 15-minute auction where everyone pays one price, or as an open curve that trades from the first second — either way the pool belongs to the program and nobody can pull it. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
+      <p>Pair your coin with SOL, USDC or any of 2,400+ real assets: xStocks, Ondo tokenized stocks and ETFs, Sunrise stocks, pre-IPO tokens, indexes, commodities. Launch as a sealed 15-minute auction where everyone pays one price, or as an open curve that trades from the first second with a protected start (90 s fixed price, 5-minute wallet cap) — either way bots and bundles can't win the opening, and the pool belongs to the program. Holders earn a share of every trade. Every wallet is one verified human. Creators get zero allocation and no first buy.</p>
       <div class="cta" style="margin-top:14px;gap:6px" id="heroast"></div>
       <div class="cta"><a class="btn solid" href="#create">Launch a coin</a><a class="btn" href="#launches">Browse launches</a></div>
     </div>
@@ -465,7 +465,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 
         <div class="stepn">STEP 4 · WHAT NOBODY CAN CHANGE</div>
         <div class="f"><label>trading fee</label><div class="fixed">1% on every buy and sell <i>FIXED</i></div></div>
-        <div class="f"><label>launch mode</label><div class="radio" id="pmode"><button type="button" class="on" data-m="0">Auction · sealed batch, one price</button><button type="button" data-m="1">Open · curve, instant trading</button></div></div>
+        <div class="f"><label>launch mode</label><div class="radio" id="pmode"><button type="button" class="on" data-m="0">Auction · sealed batch, one price</button><button type="button" data-m="1">Open · curve, instant trading, protected start</button></div></div>
         <div class="f" id="pvirt" style="display:none"><label>starting depth</label><div class="fixed">30 SOL virtual reserve · sets the opening price <i>YOU CHOOSE</i></div></div>
         <div class="f"><label>supply</label><div class="fixed">1,000,000,000 · no mint · no freeze <i>FIXED</i></div></div>
         <div class="f"><label>liquidity</label><div class="fixed">program-owned pool, seeded at settle · no withdraw instruction <i>FIXED</i></div></div>
@@ -572,9 +572,9 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
     </div>
     <table class="vs"><thead><tr><th></th><th>typical launchpad</th><th>Resurrect</th></tr></thead>
     <tbody>
-      <tr><td>launch</td><td>bonding curve from block one</td><td class="g">your choice: 15-min sealed auction at one price, or an open curve — labelled</td></tr>
+      <tr><td>launch</td><td>bonding curve from block one</td><td class="g">your choice: 15-min sealed auction at one price, or an open curve with a protected start — labelled</td></tr>
       <tr><td>creator first buy</td><td>up to 3% before anyone else</td><td class="g">none</td></tr>
-      <tr><td>who can bid</td><td>any wallet, bots included</td><td class="g">auction: verified humans, one wallet each (optional) · open: anyone</td></tr>
+      <tr><td>who can bid</td><td>any wallet, bots included</td><td class="g">auction: verified humans, one wallet each (optional) · open: anyone, max 1.5% per wallet in the first 5 min</td></tr>
       <tr><td>bot and wash volume</td><td>filtered by hand before airdrops</td><td class="g">earns nothing — only verified volume counts</td></tr>
       <tr><td>pairing assets</td><td>SOL, USDC, tokenized stocks</td><td class="g">same, plus baskets and commodities</td></tr>
       <tr><td>holder rewards</td><td>yes</td><td class="g">yes, 35% of fees</td></tr>

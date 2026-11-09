@@ -8,7 +8,7 @@ Browser client: `../js/rsrct.js` (no Anchor TS dependency; instruction encoding 
 ## Launch modes
 `create_launch(..., mode, virtual_pair)`. `mode = 0` **Auction** (sealed batch → one price → sealed pool). `mode = 1` **Open**: the
 whole supply sits on a constant-product curve from creation with a creator-chosen virtual pair reserve (10–100,000 units)
-that sets the opening price; trading is instant, there are no gates or caps. Sells can never pay out the virtual part of the
+that sets the opening price; trading is instant. **Protected start (constants):** for `OPEN_FIXED_SECS` (90 s) buys and sells execute at the opening price `virtual_pair / SUPPLY`; for `OPEN_CAP_SECS` (300 s) each wallet may buy at most `OPEN_CAP_BPS` (1.5%) of supply cumulatively (`TraderStats.bought_open`) and the creator may not buy; the fee starts at `OPEN_FEE_START_BPS` (5%) and falls linearly to 1% over `OPEN_FEE_DECAY_SECS` (900 s) — the part above 1% is routed to holders in full, the 1% base is split as usual. No sell lock. Raydium graduation of an Open launch is only possible after the 15-minute window. Sells can never pay out the virtual part of the
 reserve (`gross` is capped at `pool_pair − virtual_pair`). `commit_bid` / `reveal_bid` / `settle` / `claim` reject Open
 launches (`WrongMode`); `require_human` is ignored in Open mode. Everything else — fixed supply, 0% creator allocation,
 program-owned pool, fee split, staking, trader epochs, buyback — is identical in both modes.

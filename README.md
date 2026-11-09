@@ -8,7 +8,7 @@ Fair memecoin launches on Solana. No bots, no bundlers, no rugs, no insider KOLs
 ## What the program enforces
 | | |
 |---|---|
-| Launch | **Auction**: 15-minute sealed batch (commit–reveal), everyone pays one clearing price, pool opens at that price. **Open**: plain bonding curve, trading from the first second, labelled as such. |
+| Launch | **Auction**: 15-minute sealed batch (commit–reveal), everyone pays one clearing price, pool opens at that price. **Open**: bonding curve, trading from the first second, protected start (90 s fixed opening price, 5-min 1.5%-per-wallet cap, creator locked out, fee 5%→1% over 15 min, surcharge to holders). |
 | Bids (Auction) | One bid per wallet. Optional **proof of personhood** (Civic Uniqueness pass, checked on chain) → one human, one wallet, one bid. |
 | Supply | 1,000,000,000 fixed. Mint & freeze authority revoked before the launch is accepted. |
 | Creator | **0% allocation, no first buy.** Creator can only bid like everyone else. |

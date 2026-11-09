@@ -166,10 +166,17 @@
         meta(TOKEN), meta(p0), meta(p1), meta(spl.ASSOCIATED_TOKEN_PROGRAM_ID), meta(SystemProgram.programId), meta(SYSVAR_RENT_PUBKEY), meta(r.program)] });
       return { pre, ix, pool: r.pool, lpMint: r.lpMint };
     }
-    const canGraduate = (l) => l.venue === VENUE_RAYDIUM && !l.graduated && l.settled && l.poolTokens > 0n && (l.mode === MODE_AUCTION ? l.poolPair - l.virtualPair > 0n : l.poolPair - l.virtualPair >= l.virtualPair);
+    // Open-mode protection constants (program side); opts.openSecs = [fixed, cap, decay] lets tests mirror a localtest build
+    const OPEN = { fixed: (opts.openSecs||[90,300,900])[0], cap: (opts.openSecs||[90,300,900])[1], decay: (opts.openSecs||[90,300,900])[2], capBps: 150n, feeStart: 500n };
+    const openFeeBps = (l, now = Math.floor(Date.now()/1000)) => { if (l.mode !== MODE_OPEN) return 100n; const t = BigInt(Math.min(Math.max(now - l.startTs, 0), OPEN.decay)); return 100n + (OPEN.feeStart - 100n) * (BigInt(OPEN.decay) - t) / BigInt(OPEN.decay); };
+    const openPhase = (l, now = Math.floor(Date.now()/1000)) => l.mode !== MODE_OPEN ? null : { fixedLeft: Math.max(0, l.startTs + OPEN.fixed - now), capLeft: Math.max(0, l.startTs + OPEN.cap - now), decayLeft: Math.max(0, l.startTs + OPEN.decay - now), feeBps: openFeeBps(l, now), cap: SUPPLY / 10000n * OPEN.capBps };
+    /// quote a buy exactly like the program: fixed opening price inside the window, constant product after
+    const quoteBuy = (l, pairIn, now = Math.floor(Date.now()/1000)) => { const fee = pairIn * openFeeBps(l, now) / 10000n; const net = pairIn - fee; const inFixed = l.mode === MODE_OPEN && now < l.startTs + OPEN.fixed; const out = inFixed ? net * SUPPLY / l.virtualPair : (l.poolTokens - (l.poolPair * l.poolTokens) / (l.poolPair + net)); return { fee, net, out }; };
+    const quoteSell = (l, tokensIn, now = Math.floor(Date.now()/1000)) => { const inFixed = l.mode === MODE_OPEN && now < l.startTs + OPEN.fixed; let gross = inFixed ? tokensIn * l.virtualPair / SUPPLY : (l.poolPair - (l.poolTokens * l.poolPair) / (l.poolTokens + tokensIn)); const real = l.poolPair - l.virtualPair; if (gross > real) gross = real; const fee = gross * openFeeBps(l, now) / 10000n; return { gross, fee, out: gross - fee }; };
+    const canGraduate = (l, now = Math.floor(Date.now()/1000)) => l.venue === VENUE_RAYDIUM && !l.graduated && l.settled && l.poolTokens > 0n && (l.mode === MODE_AUCTION ? l.poolPair - l.virtualPair > 0n : (l.poolPair - l.virtualPair >= l.virtualPair && now >= l.startTs + OPEN.decay));
     function decodeConfig(buf) { const r = rd(buf); return { authority: r.pk(), treasury: r.pk(), rsrctMint: r.pk(), bump: r.u8() }; }
     function decodeEpoch(buf) { const r = rd(buf); return { launch: r.pk(), epoch: r.u32(), pool: r.u64(), volume: r.u64(), claimed: r.u64(), swept: r.bool(), bump: r.u8() }; }
-    function decodeTrader(buf) { const r = rd(buf); return { launch: r.pk(), trader: r.pk(), epoch: r.u32(), volume: r.u64(), rawVolume: r.u64(), claimed: r.bool(), paid: r.u64(), bump: r.u8() }; }
+    function decodeTrader(buf) { const r = rd(buf); return { launch: r.pk(), trader: r.pk(), epoch: r.u32(), volume: r.u64(), rawVolume: r.u64(), claimed: r.bool(), paid: r.u64(), bump: r.u8(), boughtOpen: r.u64() }; }
     async function fetchConfig(connection) { const a = await connection.getAccountInfo(configPda()); return a ? decodeConfig(new Uint8Array(a.data)) : null; }
     async function fetchEpoch(connection, mint, epoch) { const k = seedsFor(mint); const a = await connection.getAccountInfo(epochPda(k.launch, epoch)); return a ? decodeEpoch(new Uint8Array(a.data)) : null; }
     async function fetchTrader(connection, mint, trader, epoch) { const k = seedsFor(mint); const a = await connection.getAccountInfo(traderPda(k.launch, trader, epoch)); return a ? decodeTrader(new Uint8Array(a.data)) : null; }
@@ -204,7 +211,7 @@
       ] };
     }
     const priceFromQ32 = (q) => Number(q) / 2 ** 32; // pair base units per token base unit
-    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, GATEWAY, UNIQUENESS, EPOCH_SECS, MODE_AUCTION, MODE_OPEN, VENUE_RESURRECT, VENUE_RAYDIUM, raydiumPdas, ixsGraduateRaydium, canGraduate, seedsFor, bidPda, stakePda, configPda, epochPda, traderPda, gatewayTokenPda, epochOf, epochEnd, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
+    return { PROGRAM_ID, TOKEN, TOKEN22, NATIVE, GATEWAY, UNIQUENESS, EPOCH_SECS, MODE_AUCTION, MODE_OPEN, VENUE_RESURRECT, VENUE_RAYDIUM, OPEN, openFeeBps, openPhase, quoteBuy, quoteSell, raydiumPdas, ixsGraduateRaydium, canGraduate, seedsFor, bidPda, stakePda, configPda, epochPda, traderPda, gatewayTokenPda, epochOf, epochEnd, ata, commitment, pairInfo, ixsPreparePair, ixsUnwrap,
       ixCreateLaunch, ixCommitBid, ixRevealBid, ixSettle, ixClaim, ixSwap, ixClaimCreatorFees, ixStake, ixClaimRewards, ixInitConfig, ixSetConfig, ixCollectTreasury, ixBuybackAndBurn, ixClaimTraderReward, ixSweepEpoch,
       decodeLaunch, decodeBid, decodeStake, decodeConfig, decodeEpoch, decodeTrader, fetchLaunches, fetchLaunch, fetchBid, fetchStake, fetchConfig, fetchEpoch, fetchTrader, pendingRewards, hasHumanPass, ixsCreateFixedMint, SUPPLY, priceFromQ32, randomSalt: () => globalThis.crypto.getRandomValues(new Uint8Array(32)) };
   };

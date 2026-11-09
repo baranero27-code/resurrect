@@ -20,8 +20,9 @@
 //!   claim_creator_fees / collect_treasury / buyback_and_burn / claim_trader_reward / sweep_epoch move each share out.
 //!   stake / unstake / claim_rewards -> holders deposit launch tokens (no lockup, no fee) and earn the holder
 //!                     share of every swap fee, paid in the pair asset, pull-based
-//!   Two launch modes: AUCTION (everything above) and OPEN — a plain bonding curve (constant product with a virtual pair
-//!   reserve), instant trading from creation, no gates. Both share: fixed supply, 0% creator allocation, program-owned pool
+//!   Two launch modes: AUCTION (everything above) and OPEN — a bonding curve (constant product with a virtual pair reserve),
+//!   instant trading from creation, with fixed protections: first 90 s at the opening price (no speed race), first 5 min a
+//!   per-wallet buy cap of 1.5% of supply and no creator buys, fee 5% → 1% over 15 min (surcharge to holders). No sell lock. Both share: fixed supply, 0% creator allocation, program-owned pool
 //!   with no withdraw path, the same fee split. The curve's virtual reserve can never be paid out.
 //!   Launches may require a Civic "Uniqueness" pass (one per human) to bid: one human, one wallet, one bid.
 use anchor_lang::prelude::*;
@@ -53,6 +54,15 @@ pub const MODE_AUCTION: u8 = 0; // sealed batch, one clearing price, proof of pe
 pub const MODE_OPEN: u8 = 1;    // plain bonding curve: instant trading from creation, no gates, no caps
 /// Open mode: bounds on the creator-chosen virtual pair reserve (sets the starting price): 10 .. 100,000 units of the pair asset
 pub const MIN_VIRTUAL_UNITS: u64 = 10;
+/// Open mode launch protections — constants, the creator cannot change or disable them.
+#[cfg(not(feature = "localtest"))] pub const OPEN_FIXED_SECS: i64 = 90;      // buys and sells at the opening price: no speed advantage
+#[cfg(feature = "localtest")] pub const OPEN_FIXED_SECS: i64 = 20;
+#[cfg(not(feature = "localtest"))] pub const OPEN_CAP_SECS: i64 = 300;       // per-wallet buy cap window
+#[cfg(feature = "localtest")] pub const OPEN_CAP_SECS: i64 = 45;
+pub const OPEN_CAP_BPS: u64 = 150;                                           // 1.5% of supply per wallet inside the cap window
+#[cfg(not(feature = "localtest"))] pub const OPEN_FEE_DECAY_SECS: i64 = 900; // fee 5% → 1% linearly
+#[cfg(feature = "localtest")] pub const OPEN_FEE_DECAY_SECS: i64 = 70;
+pub const OPEN_FEE_START_BPS: u64 = 500;
 /// Where the post-launch pool lives
 pub const VENUE_RESURRECT: u8 = 0; // program-owned pool, full fee split
 pub const VENUE_RAYDIUM: u8 = 1;   // Raydium CPMM pool, LP burned; visible on every aggregator, Raydium fees apply
@@ -275,10 +285,21 @@ pub mod resurrect {
         require!(l.settled && l.pool_tokens > 0, ErrorCode::NotSettled);
         require!(l.venue == VENUE_RESURRECT || l.mode == MODE_OPEN, ErrorCode::GraduatePending); // auction+raydium: pool moves to Raydium right after settle
         require!(pair_in > 0, ErrorCode::BadParams);
-        let fee = pair_in * FEE_BPS / 10_000;
+        let now = Clock::get()?.unix_timestamp;
+        let fee_bps = open_fee_bps(l, now);
+        let fee = pair_in * fee_bps / 10_000;
         let net = pair_in - fee;
-        let out = cp_out(net as u128, l.pool_pair as u128, l.pool_tokens as u128);
-        require!(out >= min_tokens_out && out > 0, ErrorCode::Slippage);
+        let out = if l.mode == MODE_OPEN && now < l.start_ts + OPEN_FIXED_SECS {
+            // opening window: fixed price = virtual_pair / SUPPLY, same for everyone
+            ((net as u128) * (SUPPLY as u128) / (l.virtual_pair as u128)) as u64
+        } else { cp_out(net as u128, l.pool_pair as u128, l.pool_tokens as u128) };
+        require!(out >= min_tokens_out && out > 0 && out <= l.pool_tokens, ErrorCode::Slippage);
+        if l.mode == MODE_OPEN && now < l.start_ts + OPEN_CAP_SECS {
+            require!(ctx.accounts.trader.key() != l.creator, ErrorCode::CreatorCannotBuyYet);
+            let cap = SUPPLY / 10_000 * OPEN_CAP_BPS;
+            require!(ctx.accounts.trader_stats.bought_open.saturating_add(out) <= cap, ErrorCode::OpenCapExceeded);
+            ctx.accounts.trader_stats.bought_open += out;
+        }
         let dec = l.pair_decimals;
         let before = ctx.accounts.pool_pair.amount;
         pair_transfer(&ctx.accounts.pair_token_program, &ctx.accounts.trader_pair.to_account_info(), &ctx.accounts.pool_pair.to_account_info(),
@@ -308,11 +329,14 @@ pub mod resurrect {
         require!(l.settled && l.pool_tokens > 0, ErrorCode::NotSettled);
         require!(l.venue == VENUE_RESURRECT || l.mode == MODE_OPEN, ErrorCode::GraduatePending);
         require!(tokens_in > 0, ErrorCode::BadParams);
-        let mut gross = cp_out(tokens_in as u128, l.pool_tokens as u128, l.pool_pair as u128);
+        let now = Clock::get()?.unix_timestamp;
+        let mut gross = if l.mode == MODE_OPEN && now < l.start_ts + OPEN_FIXED_SECS {
+            ((tokens_in as u128) * (l.virtual_pair as u128) / (SUPPLY as u128)) as u64 // opening window: sell at the opening price too (no buy-low/sell-high inside the window)
+        } else { cp_out(tokens_in as u128, l.pool_tokens as u128, l.pool_pair as u128) };
         let real = l.pool_pair - l.virtual_pair; // the virtual part of the reserve is not real money and can never be paid out
         if gross > real { gross = real; }
         require!(gross > 0, ErrorCode::Slippage);
-        let fee = gross * FEE_BPS / 10_000;
+        let fee = gross * open_fee_bps(l, now) / 10_000;
         let out = gross - fee;
         require!(out >= min_pair_out && out > 0, ErrorCode::Slippage);
         token::transfer(
@@ -342,7 +366,7 @@ pub mod resurrect {
         let l = &ctx.accounts.launch;
         require!(l.venue == VENUE_RAYDIUM && !l.graduated && l.settled, ErrorCode::BadParams);
         let real_pair = l.pool_pair - l.virtual_pair;
-        if l.mode == MODE_OPEN { require!(real_pair >= l.virtual_pair, ErrorCode::NotReadyToGraduate); }
+        if l.mode == MODE_OPEN { require!(real_pair >= l.virtual_pair, ErrorCode::NotReadyToGraduate); require!(Clock::get()?.unix_timestamp >= l.start_ts + OPEN_FEE_DECAY_SECS, ErrorCode::NotReadyToGraduate); } // protections run their course first
         require!(real_pair > 0 && l.pool_tokens > 0, ErrorCode::NotReadyToGraduate);
         // Price continuity. Auction: pool is raised/500M on both sides, so the clearing price carries over as is.
         // Open: the curve price is (virtual + real) / tokens; Raydium only gets the real reserve, so it gets tokens × real/(virtual+real)
@@ -567,11 +591,21 @@ fn epoch_end(l: &Launch, epoch: u32) -> i64 { l.settle_ts + (epoch as i64 + 1) *
 
 /// Fee split + weekly trader accounting. The trader share of this fee lands in the current epoch's pool.
 /// Volume only counts toward the trader pool when the trader proves personhood (valid Civic pass passed in).
+/// Open mode: fee starts at 5% and falls linearly to 1% over OPEN_FEE_DECAY_SECS. Auction: flat 1%.
+fn open_fee_bps(l: &Launch, now: i64) -> u64 {
+    if l.mode != MODE_OPEN { return FEE_BPS; }
+    let t = (now - l.start_ts).clamp(0, OPEN_FEE_DECAY_SECS) as u64;
+    FEE_BPS + (OPEN_FEE_START_BPS - FEE_BPS) * (OPEN_FEE_DECAY_SECS as u64 - t) / OPEN_FEE_DECAY_SECS as u64
+}
+
 fn after_swap(ctx: &mut Context<Swap>, fee: u64, volume: u64, epoch_arg: u32) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     require!(epoch_arg == epoch_of(&ctx.accounts.launch, now), ErrorCode::WrongEpoch);
     let before = ctx.accounts.launch.trader_accrued;
-    accrue_fee(&mut ctx.accounts.launch, fee)?;
+    // the permanent 1% is split the normal way; anything above it (Open mode's early-trading surcharge) goes to holders in full
+    let base = volume * FEE_BPS / 10_000; let base = base.min(fee);
+    accrue_fee(&mut ctx.accounts.launch, base)?;
+    if fee > base { ctx.accounts.launch.fees_accrued = ctx.accounts.launch.fees_accrued.checked_add(fee - base).ok_or(ErrorCode::Overflow)?; route_to_holders(&mut ctx.accounts.launch, fee - base)?; }
     let added = ctx.accounts.launch.trader_accrued - before;
     let l = &ctx.accounts.launch; let ep = epoch_of(l, now);
     let e = &mut ctx.accounts.epoch_record;
@@ -717,7 +751,7 @@ pub struct EpochRecord { pub launch: Pubkey, pub epoch: u32, pub pool: u64, pub 
 
 #[account]
 #[derive(InitSpace)]
-pub struct TraderStats { pub launch: Pubkey, pub trader: Pubkey, pub epoch: u32, pub volume: u64, pub raw_volume: u64, pub claimed: bool, pub paid: u64, pub bump: u8 }
+pub struct TraderStats { pub launch: Pubkey, pub trader: Pubkey, pub epoch: u32, pub volume: u64, pub raw_volume: u64, pub claimed: bool, pub paid: u64, pub bump: u8, pub bought_open: u64 }
 
 #[account]
 #[derive(InitSpace)]
@@ -1102,4 +1136,6 @@ pub enum ErrorCode {
     #[msg("pool has moved to Raydium — trade there")] Graduated,
     #[msg("this launch graduates to Raydium; call graduate_raydium first")] GraduatePending,
     #[msg("not ready to graduate yet")] NotReadyToGraduate,
+    #[msg("open mode: per-wallet buy cap (1.5% of supply) applies for the first 5 minutes")] OpenCapExceeded,
+    #[msg("open mode: the creator cannot buy during the opening window")] CreatorCannotBuyYet,
 }
