@@ -786,7 +786,7 @@ window.addEventListener('load',async()=>{
   try{
     const {Connection}=solanaWeb3; const conn=new Connection('https://devnet.helius-rpc.com/?api-key=52608a33-3681-440c-a616-b48da14cd28c','confirmed');
     const R=makeRsrct(solanaWeb3,splToken,'5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t');
-    const Ls=await Promise.race([R.fetchLaunches(conn),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000))]);
+    const Ls=(await Promise.race([R.fetchLaunches(conn),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000))])).filter(l=>l._size>=643&&l.startTs>=1794318900);
     const now=Math.floor(Date.now()/1000); const sol=l=>l.pairMint.equals(R.NATIVE);
     const live=Ls.filter(l=>!l.settled&&now<l.endTs).length, grad=Ls.filter(l=>l.settled&&(l.poolTokens>0n||l.graduated)).length, bids=Ls.reduce((a,l)=>a+l.bids,0);
     const fSol=v=>(Number(v)/1e9).toLocaleString('en-US',{maximumFractionDigits:4})+' SOL';
