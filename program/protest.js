@@ -16,7 +16,7 @@ const buy=async(who,m,lam)=>{const l=await R.fetchLaunch(conn,m);const q=R.quote
   const m=mk.publicKey; let l=await R.fetchLaunch(conn,m); const p0=Number(l.virtualPair)/1e15*1e6/1e9; // SOL per whole token console.log(`OPEN launch · opening price ${p0.toExponential(3)} SOL/token · fee now ${R.openFeeBps(l,await chainNow())} bps`);
   const a=web3.Keypair.generate(), b=web3.Keypair.generate(); for(const k of [a,b]) await conn.confirmTransaction(await conn.requestAirdrop(k.publicKey,50e9));
   // 1) creator cannot buy in the window
-  console.log('creator buy in window:', await fail(()=>buy(payer,m,100_000_000n),/CreatorCannotBuyYet/));
+  console.log('creator first buy in window = dev buy:', await (async()=>{try{await buy(payer,m,100_000_000n);return 'accepted ✓ (recorded as dev buy)';}catch(e){return 'REJECTED (BUG)';}})(), '· second one:', await fail(()=>buy(payer,m,100_000_000n),/CreatorCannotBuyYet/));
   // 2) fixed price: two buyers, different sizes, same price per token
   const before=BigInt((await conn.getTokenAccountBalance(R.ata(m,a.publicKey)).catch(()=>({value:{amount:'0'}}))).value.amount);
   await buy(a,m,300_000_000n); const ga=BigInt((await conn.getTokenAccountBalance(R.ata(m,a.publicKey))).value.amount);

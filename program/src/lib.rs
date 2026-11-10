@@ -59,6 +59,7 @@ pub const MIN_VIRTUAL_UNITS: u64 = 10;
 #[cfg(feature = "localtest")] pub const OPEN_FIXED_SECS: i64 = 20;
 #[cfg(not(feature = "localtest"))] pub const OPEN_CAP_SECS: i64 = 300;       // per-wallet buy cap window
 #[cfg(feature = "localtest")] pub const OPEN_CAP_SECS: i64 = 45;
+pub const DEV_BUY_MAX_BPS: u64 = 2000;                                      // Open mode: creator's one visible dev buy, at most 20% of supply
 pub const OPEN_CAP_BPS: u64 = 150;                                           // 1.5% of supply per wallet inside the cap window
 #[cfg(not(feature = "localtest"))] pub const OPEN_FEE_DECAY_SECS: i64 = 900; // fee 5% → 1% linearly
 #[cfg(feature = "localtest")] pub const OPEN_FEE_DECAY_SECS: i64 = 70;
@@ -147,6 +148,7 @@ pub mod resurrect {
         l.graduated = false;
         l.raydium_pool = Pubkey::default();
         l.virtual_pair = 0;
+        l.dev_bought = 0;
         if mode == MODE_OPEN {
             // plain curve: the whole supply sits on a constant-product curve with a virtual pair reserve; trading starts now
             let unit = 10u64.pow(pair.decimals as u32);
@@ -294,8 +296,13 @@ pub mod resurrect {
             ((net as u128) * (SUPPLY as u128) / (l.virtual_pair as u128)) as u64
         } else { cp_out(net as u128, l.pool_pair as u128, l.pool_tokens as u128) };
         require!(out >= min_tokens_out && out > 0 && out <= l.pool_tokens, ErrorCode::Slippage);
-        if l.mode == MODE_OPEN && now < l.start_ts + OPEN_CAP_SECS {
-            require!(ctx.accounts.trader.key() != l.creator, ErrorCode::CreatorCannotBuyYet);
+        let is_dev_buy = l.mode == MODE_OPEN && ctx.accounts.trader.key() == l.creator && now < l.start_ts + OPEN_CAP_SECS;
+        if is_dev_buy {
+            // the creator gets exactly one buy during the opening window: the "dev buy". It happens at the fixed opening price,
+            // pays the full opening fee, is capped at DEV_BUY_MAX_BPS of supply and is recorded on the launch so every UI can show it.
+            require!(now < l.start_ts + OPEN_FIXED_SECS && l.dev_bought == 0, ErrorCode::CreatorCannotBuyYet);
+            require!(out <= SUPPLY / 10_000 * DEV_BUY_MAX_BPS, ErrorCode::DevBuyTooLarge);
+        } else if l.mode == MODE_OPEN && now < l.start_ts + OPEN_CAP_SECS {
             let cap = SUPPLY / 10_000 * OPEN_CAP_BPS;
             require!(ctx.accounts.trader_stats.bought_open.saturating_add(out) <= cap, ErrorCode::OpenCapExceeded);
             ctx.accounts.trader_stats.bought_open += out;
@@ -318,6 +325,7 @@ pub mod resurrect {
         let l = &mut ctx.accounts.launch;
         l.pool_pair += net;
         l.pool_tokens -= out;
+        if is_dev_buy { l.dev_bought = out; }
         emit!(Swapped { launch: l.key(), trader: ctx.accounts.trader.key(), pair_in, tokens_out: out, tokens_in: 0, pair_out: 0 });
         Ok(())
     }
@@ -739,6 +747,7 @@ pub struct Launch {
     pub graduated: bool,
     pub raydium_pool: Pubkey,
     pub bump: u8,
+    pub dev_bought: u64,         // Open mode: tokens the creator bought in its one opening-window dev buy (0 = none)
 }
 
 #[account]
@@ -1137,5 +1146,6 @@ pub enum ErrorCode {
     #[msg("this launch graduates to Raydium; call graduate_raydium first")] GraduatePending,
     #[msg("not ready to graduate yet")] NotReadyToGraduate,
     #[msg("open mode: per-wallet buy cap (1.5% of supply) applies for the first 5 minutes")] OpenCapExceeded,
-    #[msg("open mode: the creator cannot buy during the opening window")] CreatorCannotBuyYet,
+    #[msg("open mode: the creator gets one dev buy inside the first 90 seconds, then nothing until the cap window ends")] CreatorCannotBuyYet,
+    #[msg("open mode: dev buy is capped at 20% of supply")] DevBuyTooLarge,
 }
