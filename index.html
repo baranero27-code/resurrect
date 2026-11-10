@@ -339,6 +339,9 @@ body.locked{overflow:hidden}
 .enter .go{position:absolute;right:30px;top:50%;transform:translateY(-50%);font-size:16px;letter-spacing:.1em;color:#000;border:2px solid #000;padding:12px 18px}
 .enterwrap{padding:52px 0;border-bottom:1px solid var(--line)}
 @media(max-width:700px){.enter{margin:0 14px;padding:26px 18px 78px}.enter .go{right:18px;top:auto;bottom:18px;transform:none}.lpbtn span{display:none}}
+
+/* full-bleed: the monitor fills the screen, no dark margins */
+@media(min-width:1100px){body{padding:0!important}.monitor{max-width:none!important;width:100%!important;margin:0!important;border-radius:0!important;border-left:0!important;border-right:0!important;box-shadow:none!important;min-height:100vh}}
 </style>
 </head>
 <body>
@@ -707,8 +710,5 @@ body.locked{overflow:hidden}
 })();
 </script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-<script src="js/rsrct-bundle.js"></script>
-<script src="js/rails.js"></script>
-<script>window.addEventListener('load',()=>{ if(window.Rails) Rails.mount({monitor:1180,rpc:'https://devnet.helius-rpc.com/?api-key=52608a33-3681-440c-a616-b48da14cd28c',cluster:'devnet',programId:'5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t',app:'app.html',delay:4000}); });</script>
 </body>
 </html>

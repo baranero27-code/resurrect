@@ -62,6 +62,9 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .foot{padding:18px 22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim);background:rgba(0,0,0,.35)}
 @media(max-width:900px){body{padding:8px}.dgrid{grid-template-columns:1fr}.f{grid-template-columns:1fr;gap:6px}.phase{grid-template-columns:1fr 1fr}.sec,.bar{padding-left:14px;padding-right:14px}}
 
+
+/* full-bleed: the monitor fills the screen, no dark margins */
+@media(min-width:1100px){body{padding:0!important}.monitor{max-width:none!important;width:100%!important;margin:0!important;border-radius:0!important;border-left:0!important;border-right:0!important;box-shadow:none!important;min-height:100vh}}
 </style>
 </head>
 <body>
@@ -165,7 +168,6 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 <div class="toast" id="toast"></div>
 
 <script src="js/rsrct-bundle.js"></script>
-<script src="js/rails.js"></script>
 <script>
 (function(){
 const PROGRAM_ID='5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t';
@@ -409,7 +411,7 @@ if(CLUSTER!=='mainnet') $('#testweek').style.display=''; setInterval(loadLaunche
 window.__openCoin=mint=>{ const l=launches.find(x=>x.mint.toBase58()===mint); if(l){ current=l; openDetail(); window.scrollTo({top:0,behavior:'smooth'}); } else { location.hash='coin='+mint; } };
 const _hashCoin=()=>{ const m=(location.hash.match(/coin=([1-9A-HJ-NP-Za-km-z]{32,44})/)||[])[1]; if(m&&launches.length){ const l=launches.find(x=>x.mint.toBase58()===m); if(l){ current=l; openDetail(); } } };
 window.addEventListener('hashchange',_hashCoin); const _ll=loadLaunches; let _hashDone=false; setInterval(()=>{ if(!_hashDone&&launches.length){ _hashDone=true; _hashCoin(); } },500);
-Rails.mount({monitor:1280,rpc:RPC,cluster:CLUSTER,programId:PROGRAM_ID,app:'app.html'});
+
 
 const p=provider(); if(p&&p.isPhantom){ p.on?.('accountChanged',()=>{ if(pubkey) connect(); }); }
 })();
