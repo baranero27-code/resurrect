@@ -63,6 +63,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{tex
 
       <section class="sec" id="assets"><h2><span>PAIRING ASSETS</span></h2>
         <p>The pairing asset is what your coin trades against and what all bids, fees and holder rewards are paid in. On mainnet you can pick from 2,400+ assets: SOL, USDC, xStocks (Backed) and Ondo Global Markets tokenized stocks and ETFs, Sunrise stocks, PreStocks, commodities. Anything that is an SPL Token or Token-2022 mint works, with one rule enforced on chain: the asset must transfer 1:1 and unconditionally. Mints with a transfer fee, a transfer hook, non-transferable or confidential extensions are rejected when a launch is created.</p>
+        <p><b>You never need to hold the pairing asset.</b> On mainnet, every bid/buy/sell panel on a non-SOL pair has a "pay with SOL" switch (on by default). Resurrect asks Jupiter for a route, and the SOL → pair swap and your bid or buy land in the same transaction; a sell swaps the proceeds back to SOL the same way. If Jupiter has no route or the price moves past 1% slippage, the whole transaction fails and nothing changes. Turn the switch off if you already hold the pair asset.</p>
         <div class="warn">Tokenized stocks are issued by regulated companies that keep control over their tokens (permanent delegate / pause). That is issuer risk of the stock token itself, not of Resurrect — but it applies to any pool holding it. SOL and USDC pairs do not have it.</div>
       </section>
 

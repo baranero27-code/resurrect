@@ -22,7 +22,7 @@ Everything below is in order. Do not skip steps; several are irreversible.
 11. After settle: `set_config(rsrct_mint = <RSRCT mint>)`. From this moment 25% of every fee on every launch buys and burns RSRCT (per-call cap: 1% of the RSRCT pool's real reserve).
 
 ## D. Open the doors
-12. Smoke-test one tiny Auction launch and one Open launch with real but small SOL (0.1). Check: bids, reveal, settle, claim, swap, stake, trader epoch record, treasury collection, graduation to Raydium (Open + Raydium with 10 SOL depth — the pool shows up on DexScreener within a minute).
+12. **First thing on mainnet:** open any launch paired with a non-SOL asset (e.g. TSLAx or USDC) and try a bid/buy with "pay with SOL" on, using a tiny amount (0.01 SOL). Jupiter auto-swap cannot be tested on devnet, so this is the first live check of that path; if it fails, uncheck the switch and buy with the pair asset directly (the on-chain path is unaffected). Then smoke-test one tiny Auction launch and one Open launch with real but small SOL (0.1). Check: bids, reveal, settle, claim, swap, stake, trader epoch record, treasury collection, graduation to Raydium (Open + Raydium with 10 SOL depth — the pool shows up on DexScreener within a minute).
 13. Post 7 (launch day) from `social/x-posts.md`, with the domain. Pin it.
 14. Watch the first batches live; be ready to answer "where is the salt" (browser localStorage — same device to reveal).
 
