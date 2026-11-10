@@ -8,14 +8,16 @@
 <script>var PROGRAM_SECRET = (typeof PROGRAM_SECRET!=="undefined")?PROGRAM_SECRET:JSON.parse(localStorage.getItem("rsrct_program_secret")||"null");</script>
 <script>
 const { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, SYSVAR_RENT_PUBKEY, SYSVAR_CLOCK_PUBKEY, LAMPORTS_PER_SOL, sendAndConfirmTransaction } = solanaWeb3;
-const RPC = new URLSearchParams(location.search).get('rpc') || 'https://devnet.helius-rpc.com/?api-key=52608a33-3681-440c-a616-b48da14cd28c'; const conn = new Connection(RPC, 'confirmed');
+const Q = new URLSearchParams(location.search); const MAINNET = Q.get('cluster')==='mainnet'; const KEY_PAYER = MAINNET?'rsrct_mainnet_payer':'rsrct_devnet_payer'; const ELF = MAINNET?'../program/resurrect-mainnet.so':'../program/resurrect.so';
+const RPC = Q.get('rpc') || (MAINNET?'https://mainnet.helius-rpc.com/?api-key=52608a33-3681-440c-a616-b48da14cd28c':'https://devnet.helius-rpc.com/?api-key=52608a33-3681-440c-a616-b48da14cd28c'); const conn = new Connection(RPC, 'confirmed');
+if(MAINNET){ document.title='Resurrect · MAINNET deploy'; document.body.insertAdjacentHTML('afterbegin','<div style="background:#3a1010;color:#ffb3b3;padding:8px 12px;font-family:monospace">MAINNET · real SOL · the payer key lives only in this browser\'s localStorage (rsrct_mainnet_payer). Back it up before deploying.</div>'); }
 const LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 if(!PROGRAM_SECRET){document.body.innerHTML='<p>no program key in localStorage</p>';throw new Error('no key');}
 const PROGRAM_KP = Keypair.fromSecretKey(Uint8Array.from(PROGRAM_SECRET));
 const log = (...a) => { const el = document.getElementById('log'); el.textContent += a.join(' ') + '\n'; el.scrollTop = el.scrollHeight; console.log(...a); };
 document.getElementById('pid').textContent = PROGRAM_KP.publicKey.toBase58();
 let payer = null;
-function loadPayer() { const s = localStorage.getItem('rsrct_devnet_payer'); if (s) { payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(s))); document.getElementById('payer').textContent = payer.publicKey.toBase58(); } }
+function loadPayer() { const s = localStorage.getItem(KEY_PAYER); if (s) { payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(s))); document.getElementById('payer').textContent = payer.publicKey.toBase58(); } }
 loadPayer();
 async function refreshBal() { if (!payer) return; const b = await conn.getBalance(payer.publicKey); document.getElementById('bal').textContent = (b / LAMPORTS_PER_SOL).toFixed(3) + ' SOL'; return b; }
 refreshBal();
@@ -30,14 +32,16 @@ async function airdropUntil(target) {
   return b;
 }
 document.getElementById('b1').onclick = async () => {
-  if (!payer) { payer = Keypair.generate(); localStorage.setItem('rsrct_devnet_payer', JSON.stringify(Array.from(payer.secretKey))); loadPayer(); log('payer created', payer.publicKey.toBase58()); log('PAYER_SECRET_B58=' + bs58(payer.secretKey)); }
+  if (!payer) { payer = Keypair.generate(); localStorage.setItem(KEY_PAYER, JSON.stringify(Array.from(payer.secretKey))); loadPayer(); log('payer created', payer.publicKey.toBase58()); if(!MAINNET) log('PAYER_SECRET_B58=' + bs58(payer.secretKey)); }
+  if (MAINNET) { const b = await refreshBal(); log('MAINNET payer', payer.publicKey.toBase58(), '· balance', b / LAMPORTS_PER_SOL, 'SOL · send ~6.5 SOL here, then press 5 (deploy) once it shows'); return; }
   const b = await airdropUntil(6); log('balance', b / LAMPORTS_PER_SOL, 'SOL');
 };
+window.exportPayer = () => bs58(payer.secretKey); // call from the console only, on your own machine, to back the key up
 function bs58(bytes) { const A = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'; let x = 0n; for (const b of bytes) x = (x << 8n) | BigInt(b); let s = ''; while (x > 0n) { s = A[Number(x % 58n)] + s; x /= 58n; } return s; }
 const u32 = v => { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, v, true); return b; };
 const u64 = v => { const b = new Uint8Array(8); new DataView(b.buffer).setBigUint64(0, BigInt(v), true); return b; };
 const cat = (...a) => { const n = a.reduce((s, x) => s + x.length, 0), o = new Uint8Array(n); let p = 0; for (const x of a) { o.set(x, p); p += x.length; } return o; };
-async function fetchElf() { const r = await fetch('../program/resurrect.so?v=' + Date.now()); if (!r.ok) throw new Error('cannot fetch .so'); return new Uint8Array(await r.arrayBuffer()); }
+async function fetchElf() { const r = await fetch(ELF + '?v=' + Date.now()); if (!r.ok) throw new Error('cannot fetch .so'); return new Uint8Array(await r.arrayBuffer()); }
 async function writeBuffer(elf) {
   let bufferPk; const saved = localStorage.getItem('rsrct_buffer');
   if (saved && await conn.getAccountInfo(new PublicKey(saved))) { bufferPk = new PublicKey(saved); log('resuming buffer', saved); }
