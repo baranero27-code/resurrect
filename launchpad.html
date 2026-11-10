@@ -781,7 +781,7 @@ td.g{color:var(--green)} td.d{color:var(--dim)} td.r{color:var(--red)}
 window.addEventListener('load',async()=>{
   const $=s=>document.querySelector(s); const src=$('#an-src'); if(!window.makeRsrct) return;
   try{
-    const {Connection}=solanaWeb3; const conn=new Connection('https://api.devnet.solana.com','confirmed');
+    const {Connection}=solanaWeb3; const conn=new Connection('https://devnet.helius-rpc.com/?api-key=52608a33-3681-440c-a616-b48da14cd28c','confirmed');
     const R=makeRsrct(solanaWeb3,splToken,'5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t');
     const Ls=await Promise.race([R.fetchLaunches(conn),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000))]);
     const now=Math.floor(Date.now()/1000); const sol=l=>l.pairMint.equals(R.NATIVE);

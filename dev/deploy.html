@@ -8,7 +8,7 @@
 <script>var PROGRAM_SECRET = (typeof PROGRAM_SECRET!=="undefined")?PROGRAM_SECRET:JSON.parse(localStorage.getItem("rsrct_program_secret")||"null");</script>
 <script>
 const { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, SYSVAR_RENT_PUBKEY, SYSVAR_CLOCK_PUBKEY, LAMPORTS_PER_SOL, sendAndConfirmTransaction } = solanaWeb3;
-const RPC = new URLSearchParams(location.search).get('rpc') || 'https://api.devnet.solana.com'; const conn = new Connection(RPC, 'confirmed');
+const RPC = new URLSearchParams(location.search).get('rpc') || 'https://devnet.helius-rpc.com/?api-key=52608a33-3681-440c-a616-b48da14cd28c'; const conn = new Connection(RPC, 'confirmed');
 const LOADER = new PublicKey('BPFLoaderUpgradeab1e11111111111111111111111');
 if(!PROGRAM_SECRET){document.body.innerHTML='<p>no program key in localStorage</p>';throw new Error('no key');}
 const PROGRAM_KP = Keypair.fromSecretKey(Uint8Array.from(PROGRAM_SECRET));

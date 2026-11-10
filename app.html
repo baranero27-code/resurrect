@@ -191,11 +191,13 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 (function(){
 const PROGRAM_ID='5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t';
 const Q=new URLSearchParams(location.search); const CLUSTER=(Q.get('cluster')||localStorage.getItem('rsrct_cluster')||'devnet')==='mainnet'?'mainnet':'devnet'; localStorage.setItem('rsrct_cluster',CLUSTER);
-const RPC=Q.get('rpc')||(CLUSTER==='mainnet'?'https://api.mainnet-beta.solana.com':'https://api.devnet.solana.com');
+const HELIUS='52608a33-3681-440c-a616-b48da14cd28c'; // Helius key, origin-restricted in the Helius dashboard; public RPC is the fallback
+const RPC=Q.get('rpc')||(CLUSTER==='mainnet'?`https://mainnet.helius-rpc.com/?api-key=${HELIUS}`:`https://devnet.helius-rpc.com/?api-key=${HELIUS}`);
+const RPC_FALLBACK=CLUSTER==='mainnet'?'https://api.mainnet-beta.solana.com':'https://api.devnet.solana.com';
 document.querySelectorAll('.net').forEach(e=>{e.textContent=CLUSTER==='mainnet'?'LIVE · SOLANA MAINNET':'LIVE · SOLANA DEVNET'; if(CLUSTER==='mainnet') e.classList.add('a');});
 document.getElementById('netsw').textContent=CLUSTER==='mainnet'?'switch to devnet':'switch to mainnet'; document.getElementById('netsw').href='?cluster='+(CLUSTER==='mainnet'?'devnet':'mainnet');
 const {Connection,PublicKey,Transaction,LAMPORTS_PER_SOL,Keypair}=solanaWeb3; const spl=splToken;
-const conn=new Connection(RPC,'confirmed'); const R=makeRsrct(solanaWeb3,spl,PROGRAM_ID,{epochSecs:Q.get('epochSecs')?+Q.get('epochSecs'):undefined,openSecs:Q.get('openSecs')?Q.get('openSecs').split(',').map(Number):undefined,cluster:CLUSTER});
+let conn=new Connection(RPC,'confirmed'); let rpcFell=false; conn.getVersion().catch(()=>{ if(!rpcFell&&!Q.get('rpc')){ rpcFell=true; conn=new Connection(RPC_FALLBACK,'confirmed'); log('RPC: switched to public endpoint','err'); loadLaunches(); } }); const R=makeRsrct(solanaWeb3,spl,PROGRAM_ID,{epochSecs:Q.get('epochSecs')?+Q.get('epochSecs'):undefined,openSecs:Q.get('openSecs')?Q.get('openSecs').split(',').map(Number):undefined,cluster:CLUSTER});
 const $=s=>document.querySelector(s);
 const toast=$('#toast');let tt;const say=m=>{toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),3800);};
 const log=(m,c='')=>{const d=document.createElement('div');d.className=c;d.textContent=new Date().toLocaleTimeString('en-GB')+' · '+m;$('#log').prepend(d);};
