@@ -62,31 +62,9 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 .foot{padding:18px 22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--dim);background:rgba(0,0,0,.35)}
 @media(max-width:900px){body{padding:8px}.dgrid{grid-template-columns:1fr}.f{grid-template-columns:1fr;gap:6px}.phase{grid-template-columns:1fr 1fr}.sec,.bar{padding-left:14px;padding-right:14px}}
 
-/* side rails (wide screens only) */
-.rail{position:fixed;top:24px;width:300px;max-height:calc(100vh - 48px);overflow:hidden;display:none;flex-direction:column;gap:10px;font-size:12px}
-.rail.l{left:calc(50% - 640px - 300px - 28px)}.rail.r{right:calc(50% - 640px - 300px - 28px)}
-@media(min-width:1560px){.rail{display:flex}}
-.rail .box{background:var(--card);border:1px solid var(--line);padding:12px 14px}
-.rail h5{font-weight:400;font-size:11px;letter-spacing:.14em;color:var(--green);margin:0 0 8px;display:flex;justify-content:space-between}
-.rail h5 i{font-style:normal;color:var(--dim);letter-spacing:0}
-.rail .kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line)}.rail .kv:last-child{border-bottom:0}.rail .kv span{color:var(--dim)}.rail .kv b{font-weight:400;color:var(--text);text-align:right}
-.tape{display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 150px);overflow:hidden}
-.tape .ev{border-left:2px solid var(--line);padding:6px 10px;background:rgba(0,0,0,.25);cursor:pointer;animation:evin .4s ease-out}
-.tape .ev.buy{border-left-color:var(--green)}.tape .ev.sell{border-left-color:var(--red)}.tape .ev.new{border-left-color:var(--amber)}.tape .ev.burn{border-left-color:var(--cyan)}.tape .ev.grad{border-left-color:var(--cyan)}
-.tape .ev b{display:block;font-weight:400;color:var(--text)}.tape .ev span{color:var(--dim);font-size:11px}.tape .ev:hover{background:rgba(74,227,138,.06)}
-@keyframes evin{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
-.rail .trend .kv b.g{color:var(--green)}
 </style>
 </head>
 <body>
-<aside class="rail l" aria-label="pulse">
-  <div class="box"><h5>PULSE <i id="pl-when">reading…</i></h5><div id="pl-stats"><div class="kv"><span>loading</span><b>—</b></div></div></div>
-  <div class="box trend"><h5>TRENDING <i>by pool depth</i></h5><div id="pl-trend"></div></div>
-  <div class="box"><h5>THIS EPOCH <i id="pl-epoch"></i></h5><div class="kv"><span>trader rewards</span><b>20% of every fee · claim after close</b></div><div class="kv"><span>holder rewards</span><b>35% + unused creator share</b></div></div>
-</aside>
-<aside class="rail r" aria-label="live tape">
-  <div class="box"><h5>LIVE TAPE <i id="tp-when">reading the program…</i></h5><div class="tape" id="tape"><div class="ev"><b>waiting for the first event</b><span>every swap, launch, graduation and burn appears here, read from the chain — nothing is curated, nothing is paid for</span></div></div></div>
-</aside>
 <div class="monitor"><div class="screen">
   <div id="testweek" style="display:none;margin:0 0 10px;border:1px solid var(--amber);background:rgba(242,177,52,.06);padding:10px 14px;font-size:12px;line-height:1.6">
     <b style="color:var(--amber);letter-spacing:.1em">TEST WEEK · SOLANA DEVNET</b> &nbsp;everything here is real program logic with free test SOL — nothing you do costs money, nothing you buy is worth money. Break it, snipe it, bundle it: the program is supposed to hold.
@@ -187,6 +165,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 <div class="toast" id="toast"></div>
 
 <script src="js/rsrct-bundle.js"></script>
+<script src="js/rails.js"></script>
 <script>
 (function(){
 const PROGRAM_ID='5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t';
@@ -427,34 +406,10 @@ $('#createForm').addEventListener('submit',async e=>{ e.preventDefault(); if(!pu
 // ---------- tick ----------
 setInterval(()=>{ document.querySelectorAll('[data-end]').forEach(e=>e.textContent=mmss(+e.dataset.end-now())); },1000);
 if(CLUSTER!=='mainnet') $('#testweek').style.display=''; setInterval(loadLaunches,15000); loadLaunches();
-// ---------- side rails: pulse (left) and live tape (right) ----------
-let newDisc=null,gradDisc=null; const TAPE={}; let tapeBusy=false;
-async function railDiscs(){ await eventDisc(); if(!newDisc){ newDisc=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('event:LaunchCreated'))).slice(0,8); gradDisc=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('event:GraduatedToRaydium'))).slice(0,8); } }
-const eq8=(u,d)=>d.every((x,j)=>u[j]===x);
-function renderPulse(){ if(!launches.length) return; const live=launches.filter(l=>phaseOf(l)==='live').length, batch=launches.filter(l=>phaseOf(l)==='batch').length, grads=launches.filter(l=>l.graduated).length;
-  const byPair={}; for(const l of launches){ const P=pairSym(l); const add=(k,v)=>{ byPair[k]=byPair[k]||{}; byPair[k][P]=(byPair[k][P]||0n)+v; }; add('fees',l.feesAccrued); add('pool',l.poolPair-l.virtualPair); add('holders',l.rewardsDistributed); add('burnspent',l.buybackTotal); }
-  const fm=k=>Object.entries(byPair[k]||{}).filter(([,v])=>v>0n).map(([P,v])=>{ const l=launches.find(x=>pairSym(x)===P); return fmtPair(l,v); }).join(' · ')||'0';
-  const burned=launches.reduce((a,l)=>a+l.burned,0n);
-  $('#pl-stats').innerHTML=[['coins trading',live+(batch?' · '+batch+' in sealed batch':'')],['graduated to Raydium',grads+''],['real liquidity in pools',fm('pool')],['fees accrued · 1% of swaps',fm('fees')],['paid to holders',fm('holders')],['RSRCT burned',fmtTok(burned)+' tokens']].map(r=>`<div class="kv"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
-  $('#pl-when').textContent='read from the program · '+new Date().toLocaleTimeString('en-GB');
-  const tr=[...launches].filter(l=>l.settled&&!l.graduated).sort((a,b)=>Number((b.poolPair-b.virtualPair)-(a.poolPair-a.virtualPair))).slice(0,4);
-  $('#pl-trend').innerHTML=tr.map((l,i)=>`<div class="kv" style="cursor:pointer" data-mint="${l.mint.toBase58()}"><span>${i+1} · $${l.symbol}${l.devBought>0n?' · dev '+(Number(l.devBought)/1e13).toFixed(1)+'%':''}</span><b class="g">${fmtPair(l,l.poolPair-l.virtualPair)}</b></div>`).join('')||'<div class="kv"><span>no live pools yet</span><b>—</b></div>';
-  $('#pl-trend').querySelectorAll('[data-mint]').forEach(e=>e.addEventListener('click',()=>{ const l=launches.find(x=>x.mint.toBase58()===e.dataset.mint); if(l){ current=l; openDetail(); window.scrollTo({top:0,behavior:'smooth'}); } }));
-  const ep=launches.find(l=>l.settled); if(ep){ const end=R.epochEnd(ep,R.epochOf(ep)); const left=end-now(); const hum=left>=86400?Math.floor(left/86400)+'d '+Math.floor(left%86400/3600)+'h':left>=3600?Math.floor(left/3600)+'h '+Math.floor(left%3600/60)+'m':mmss(left); $('#pl-epoch').textContent='epoch '+R.epochOf(ep)+' · closes in '+hum; } }
-async function loadTape(){ if(tapeBusy||!launches.length) return; tapeBusy=true; try{ await railDiscs(); const sigs=await conn.getSignaturesForAddress(new PublicKey(PROGRAM_ID),{limit:25}); const fresh=sigs.filter(s=>!TAPE[s.signature]&&!s.err).slice(0,12);
-    const txs=await Promise.all(fresh.map(sg=>conn.getTransaction(sg.signature,{maxSupportedTransactionVersion:0,commitment:'confirmed'}).catch(()=>null)));
-    txs.forEach((tx,i)=>{ const sg=fresh[i]; const evs=[]; if(tx&&tx.meta&&!tx.meta.err) for(const line of tx.meta.logMessages||[]){ if(!line.startsWith('Program data: ')) continue; const u=b64(line.slice(14)); if(u.length<40) continue; const dv=new DataView(u.buffer,u.byteOffset); const launch=new PublicKey(u.slice(8,40)); const l=launches.find(x=>x.pubkey.equals(launch)); const sym=l?'$'+l.symbol:'a coin';
-        if(eq8(u,evDisc)&&u.length>=104){ const trader=new PublicKey(u.slice(40,72)); const pairIn=dv.getBigUint64(72,true),tokOut=dv.getBigUint64(80,true),tokIn=dv.getBigUint64(88,true),pairOut=dv.getBigUint64(96,true); const buy=pairIn>0n; const dev=l&&trader.equals(l.creator); evs.push({cls:buy?'buy':'sell',h:`${buy?'BUY':'SELL'} ${fmtTok(buy?tokOut:tokIn)} ${sym}`,s:`${l?'for '+fmtPair(l,buy?pairIn:pairOut):''} · ${dev?'<span class="a">creator</span>':short(trader.toBase58())}`,l}); }
-        else if(eq8(u,newDisc)){ evs.push({cls:'new',h:`NEW LAUNCH ${sym}`,s:l?(l.mode===1?'open curve · protected start':'sealed auction · 15 min')+' · paired with '+pairSym(l):'',l}); }
-        else if(eq8(u,burnDisc)&&u.length>=56){ const spent=dv.getBigUint64(40,true),burned=dv.getBigUint64(48,true); evs.push({cls:'burn',h:`BURNED ${fmtTok(burned)} RSRCT`,s:`buyback from ${sym} fees${l?' · '+fmtPair(l,spent):''}`,l}); }
-        else if(eq8(u,gradDisc)){ evs.push({cls:'grad',h:`${sym} GRADUATED TO RAYDIUM`,s:'liquidity moved · LP burned',l}); } }
-      TAPE[sg.signature]={t:sg.blockTime||Math.floor(Date.now()/1000),sig:sg.signature,evs}; });
-    const items=Object.values(TAPE).filter(x=>x.evs.length).sort((a,b)=>b.t-a.t).slice(0,14);
-    $('#tape').innerHTML=items.map(x=>x.evs.map(e=>`<div class="ev ${e.cls}" data-mint="${e.l?e.l.mint.toBase58():''}" title="${x.sig}"><b>${e.h}</b><span>${new Date(x.t*1000).toLocaleTimeString('en-GB')} · ${e.s} · <a href="${explorer(x.sig,'tx')}" target="_blank" rel="noopener">tx</a></span></div>`).join('')).join('')||'<div class="ev"><b>no events yet</b><span>the first swap or launch will show here</span></div>';
-    $('#tape').querySelectorAll('.ev[data-mint]').forEach(e=>e.addEventListener('click',ev=>{ if(ev.target.tagName==='A') return; const l=launches.find(x=>x.mint.toBase58()===e.dataset.mint); if(l){ current=l; openDetail(); window.scrollTo({top:0,behavior:'smooth'}); } }));
-    $('#tp-when').textContent='read from the chain · '+new Date().toLocaleTimeString('en-GB'); }
-  catch(e){ $('#tp-when').textContent='RPC busy · retrying'; } finally{ tapeBusy=false; } }
-setInterval(()=>{ if(window.innerWidth>=1560){ renderPulse(); loadTape(); } },20000); setTimeout(()=>{ renderPulse(); loadTape(); },4000);
+window.__openCoin=mint=>{ const l=launches.find(x=>x.mint.toBase58()===mint); if(l){ current=l; openDetail(); window.scrollTo({top:0,behavior:'smooth'}); } else { location.hash='coin='+mint; } };
+const _hashCoin=()=>{ const m=(location.hash.match(/coin=([1-9A-HJ-NP-Za-km-z]{32,44})/)||[])[1]; if(m&&launches.length){ const l=launches.find(x=>x.mint.toBase58()===m); if(l){ current=l; openDetail(); } } };
+window.addEventListener('hashchange',_hashCoin); const _ll=loadLaunches; let _hashDone=false; setInterval(()=>{ if(!_hashDone&&launches.length){ _hashDone=true; _hashCoin(); } },500);
+Rails.mount({monitor:1280,rpc:RPC,cluster:CLUSTER,programId:PROGRAM_ID,app:'app.html'});
 
 const p=provider(); if(p&&p.isPhantom){ p.on?.('accountChanged',()=>{ if(pubkey) connect(); }); }
 })();
