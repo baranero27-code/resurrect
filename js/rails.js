@@ -2,14 +2,16 @@
 // Usage: <script src="js/rails.js"></script> after the bundle, then Rails.mount({monitor:1280, rpc, cluster, programId, app:'app.html'}).
 (function(){
   const CSS=`
-.rail{position:fixed;top:24px;width:min(320px,calc((100vw - var(--rail-monitor))/2 - 36px));max-height:calc(100vh - 48px);overflow:hidden;display:none;flex-direction:column;gap:10px;font-size:12px;z-index:5;font-family:var(--mono,'Share Tech Mono',ui-monospace,monospace)}
-.rail.l{left:12px}.rail.r{right:12px}
+.railwrap{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;width:100%;align-items:start}
+.railwrap>.monitor{max-width:none!important;width:100%;margin:0!important;min-width:0}
+.rail{display:none;position:sticky;top:16px;flex-direction:column;gap:10px;font-size:12px;max-height:calc(100vh - 32px);overflow:hidden;font-family:var(--mono,'Share Tech Mono',ui-monospace,monospace)}
+@media(min-width:1400px){.railwrap{grid-template-columns:clamp(240px,17vw,380px) minmax(0,1fr) clamp(240px,17vw,380px)}.rail{display:flex}}
 .rail .box{background:var(--card,#0A161D);border:1px solid var(--line,rgba(207,230,216,.12));padding:12px 14px}
 .rail h5{font-weight:400;font-size:11px;letter-spacing:.14em;color:var(--green,#4AE38A);margin:0 0 8px;display:flex;justify-content:space-between;gap:8px}
 .rail h5 i{font-style:normal;color:var(--dim,#5F7A6C);letter-spacing:0;text-align:right}
 .rail .kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line,rgba(207,230,216,.12))}.rail .kv:last-child{border-bottom:0}.rail .kv span{color:var(--dim,#5F7A6C)}.rail .kv b{font-weight:400;color:var(--text,#CFE6D8);text-align:right}
 .rail .kv.go{cursor:pointer}.rail .kv.go:hover b{color:var(--green,#4AE38A)}
-.tape{display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 150px);overflow:hidden}
+.tape{display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 120px);overflow:hidden}
 .tape .ev{border-left:2px solid var(--line,rgba(207,230,216,.12));padding:6px 10px;background:rgba(0,0,0,.25);cursor:pointer;animation:evin .4s ease-out}
 .tape .ev.buy{border-left-color:var(--green,#4AE38A)}.tape .ev.sell{border-left-color:var(--red,#FF4747)}.tape .ev.new{border-left-color:var(--amber,#F2B134)}.tape .ev.burn,.tape .ev.grad{border-left-color:var(--cyan,#5BD3E6)}
 .tape .ev b{display:block;font-weight:400;color:var(--text,#CFE6D8)}.tape .ev span{color:var(--dim,#5F7A6C);font-size:11px}.tape .ev a{color:var(--green,#4AE38A);text-decoration:none}.tape .ev:hover{background:rgba(74,227,138,.06)}
@@ -34,10 +36,11 @@
 
   async function mount(o){
     if(!window.solanaWeb3||!window.makeRsrct) return;
-    const monitor=o.monitor||1280; const minW=monitor+2*(200+36);
-    const st=document.createElement('style'); st.textContent=CSS+`@media(min-width:${minW}px){.rail{display:flex}}`; document.head.appendChild(st);
-    document.documentElement.style.setProperty('--rail-monitor',monitor+'px');
-    const wrap=document.createElement('div'); wrap.innerHTML=HTML; while(wrap.firstChild) document.body.appendChild(wrap.firstChild);
+    const minW=1400;
+    const st=document.createElement('style'); st.textContent=CSS; document.head.appendChild(st);
+    const mon=document.querySelector(o.monitorSel||'.monitor'); if(!mon) return;
+    const tmp=document.createElement('div'); tmp.innerHTML=HTML; const [L,Rr]=tmp.querySelectorAll('aside');
+    const wrap=document.createElement('div'); wrap.className='railwrap'; mon.parentNode.insertBefore(wrap,mon); wrap.appendChild(L); wrap.appendChild(mon); wrap.appendChild(Rr);
     const $=s=>document.querySelector(s);
     const {Connection,PublicKey}=solanaWeb3; const conn=new Connection(o.rpc,'confirmed'); const R=makeRsrct(solanaWeb3,splToken,o.programId,{});
     const cluster=o.cluster||'devnet'; const explorer=(k,type='address')=>`https://explorer.solana.com/${type}/${k}`+(cluster==='mainnet'?'':'?cluster=devnet');
