@@ -69,6 +69,13 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
 </head>
 <body>
 <div class="monitor"><div class="screen">
+<div class="pumpstrip" style="margin:0 0 10px;border:1px solid rgba(74,227,138,.45);background:rgba(74,227,138,.05);padding:10px 14px;font-size:12px;line-height:1.6;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-family:var(--mono)">
+  <b style="color:var(--green);letter-spacing:.1em">$RESURRECT · COMMUNITY COIN ON PUMP.FUN</b>
+  <span>CA <code id="pumpca" style="color:var(--text);user-select:all">4fSV34MYwSiikL28s1SGUhTgLJtgYeBP52f43x7Npump</code> <button onclick="navigator.clipboard.writeText('4fSV34MYwSiikL28s1SGUhTgLJtgYeBP52f43x7Npump');this.textContent='copied'" style="font:inherit;background:none;border:1px solid var(--line);color:var(--green);padding:1px 8px;cursor:pointer">copy</button></span>
+  <a href="https://pump.fun/coin/4fSV34MYwSiikL28s1SGUhTgLJtgYeBP52f43x7Npump" target="_blank" rel="noopener" style="color:var(--green)">pump.fun ↗</a>
+  <a href="https://dexscreener.com/solana/4fSV34MYwSiikL28s1SGUhTgLJtgYeBP52f43x7Npump" target="_blank" rel="noopener" style="color:var(--green)">chart ↗</a>
+  <span style="color:var(--dim)">launched on pump.fun, not through this program · the protocol token with buyback &amp; burn launches here on mainnet</span>
+</div>
   <div id="testweek" style="display:none;margin:0 0 10px;border:1px solid var(--amber);background:rgba(242,177,52,.06);padding:10px 14px;font-size:12px;line-height:1.6">
     <b style="color:var(--amber);letter-spacing:.1em">TEST WEEK · SOLANA DEVNET</b> &nbsp;everything here is real program logic with free test SOL — nothing you do costs money, nothing you buy is worth money. Break it, snipe it, bundle it: the program is supposed to hold.
     <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--green)">how to join in 3 steps (Phantom / Solflare)</summary>
