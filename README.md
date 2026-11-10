@@ -30,3 +30,6 @@ dev/deploy.html   browser-based deploy/upgrade console (program secret stays in 
 
 ## Status
 Devnet. Unaudited. No real funds. Mainnet requires an independent audit and moving the upgrade authority to a multisig.
+
+
+**X:** https://x.com/ressurectpad
