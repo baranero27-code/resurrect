@@ -70,13 +70,13 @@ document.getElementById('b2').onclick = async () => {
   try {
     if (!payer) return log('create payer first');
     const elf = await fetchElf(); log('elf bytes', elf.length);
-    const need = (await conn.getMinimumBalanceForRentExemption(elf.length + 65536 + 45)) + 0.4 * LAMPORTS_PER_SOL;
+    const need = (await conn.getMinimumBalanceForRentExemption(elf.length + 45)) + 0.4 * LAMPORTS_PER_SOL;
     if ((await refreshBal()) < need) { log('need ~', (need / LAMPORTS_PER_SOL).toFixed(2), 'SOL, airdropping…'); await airdropUntil(need / LAMPORTS_PER_SOL + 0.5); }
     const existing = await conn.getAccountInfo(PROGRAM_KP.publicKey); if (existing) return log('program account already exists — use upgrade');
     const bufferPk = await writeBuffer(elf);
     const [programData] = PublicKey.findProgramAddressSync([PROGRAM_KP.publicKey.toBuffer()], LOADER);
     const progRent = await conn.getMinimumBalanceForRentExemption(36);
-    const maxLen = elf.length + 65536; // small headroom for upgrades (keeps rent ~3 SOL)
+    const maxLen = elf.length; // small headroom for upgrades (keeps rent ~3 SOL)
     const tx = new Transaction().add(
       SystemProgram.createAccount({ fromPubkey: payer.publicKey, newAccountPubkey: PROGRAM_KP.publicKey, lamports: progRent, space: 36, programId: LOADER }),
       new TransactionInstruction({ programId: LOADER, data: cat(u32(2), u64(maxLen)), keys: [
