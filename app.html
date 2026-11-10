@@ -88,6 +88,17 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:90;bac
   <div class="box"><h5>LIVE TAPE <i id="tp-when">reading the program…</i></h5><div class="tape" id="tape"><div class="ev"><b>waiting for the first event</b><span>every swap, launch, graduation and burn appears here, read from the chain — nothing is curated, nothing is paid for</span></div></div></div>
 </aside>
 <div class="monitor"><div class="screen">
+  <div id="testweek" style="display:none;margin:0 0 10px;border:1px solid var(--amber);background:rgba(242,177,52,.06);padding:10px 14px;font-size:12px;line-height:1.6">
+    <b style="color:var(--amber);letter-spacing:.1em">TEST WEEK · SOLANA DEVNET</b> &nbsp;everything here is real program logic with free test SOL — nothing you do costs money, nothing you buy is worth money. Break it, snipe it, bundle it: the program is supposed to hold.
+    <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--green)">how to join in 3 steps (Phantom / Solflare)</summary>
+      <ol style="margin:6px 0 0 18px;color:var(--text)">
+        <li><b>Switch your wallet to devnet.</b> Phantom: Settings → Developer Settings → Testnet Mode on → network Solana Devnet. Solflare: Settings → Network → Devnet.</li>
+        <li><b>Get free test SOL.</b> Connect here and press <i>+1 devnet SOL</i> (works a few times a day), or open <a href="https://faucet.solana.com" target="_blank" rel="noopener">faucet.solana.com</a>, paste your address, pick devnet.</li>
+        <li><b>Trade.</b> Buy into an Open coin in its first 90 s, try to beat the 1.5% cap, bid in a sealed auction, launch your own coin with a dev buy. Every action shows in the live tape on the right.</li>
+      </ol>
+      <div class="note" style="margin-top:6px">Found something broken or unfair? Post it with the tx link — that is the point of the week.</div>
+    </details>
+  </div>
   <div class="bar">
     <div class="l"><a href="index.html"><img src="brand/door-64.png" alt=""></a><b>RESURRECT</b><span>APP</span><span class="tag net">LIVE · SOLANA DEVNET</span><a id="netsw" href="?cluster=mainnet" style="font-size:12px">switch to mainnet</a><a href="launchpad.html" style="font-size:12px">preview →</a><a href="docs.html" style="font-size:12px">docs →</a></div>
     <div class="l"><span id="bal"></span><button class="btn sm ghost" id="faucet" style="display:none">+1 devnet SOL</button><button class="btn" id="connect">connect wallet</button></div>
@@ -413,7 +424,7 @@ $('#createForm').addEventListener('submit',async e=>{ e.preventDefault(); if(!pu
 
 // ---------- tick ----------
 setInterval(()=>{ document.querySelectorAll('[data-end]').forEach(e=>e.textContent=mmss(+e.dataset.end-now())); },1000);
-setInterval(loadLaunches,15000); loadLaunches();
+if(CLUSTER!=='mainnet') $('#testweek').style.display=''; setInterval(loadLaunches,15000); loadLaunches();
 // ---------- side rails: pulse (left) and live tape (right) ----------
 let newDisc=null,gradDisc=null; const TAPE={}; let tapeBusy=false;
 async function railDiscs(){ await eventDisc(); if(!newDisc){ newDisc=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('event:LaunchCreated'))).slice(0,8); gradDisc=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('event:GraduatedToRaydium'))).slice(0,8); } }
