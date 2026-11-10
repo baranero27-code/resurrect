@@ -2,7 +2,7 @@
 
 Fair memecoin launches on Solana. No bots, no bundlers, no rugs, no insider KOLs.
 
-- **Site:** https://baranero27-code.github.io/resurrect/ — the ICU (manifesto) · `launchpad.html` (preview) · `app.html` (live on devnet)
+- **Site:** https://resurrect.fun/ — the ICU (manifesto) · `launchpad.html` (preview) · `app.html` (live on devnet)
 - **Program (devnet):** `5iHSXX9YQNYyYACuf2csorP7CLovzQD6nGvDu5G9VM7t` — source in [`program/`](program/)
 
 ## What the program enforces
